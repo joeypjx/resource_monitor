@@ -23,7 +23,7 @@
 
 ### 依赖项
 
-- C++14兼容的编译器
+- C++14兼容的编译器（如g++ 5.4及以上，支持-std=c++14）
 - CMake 3.10+
 - SQLite3
 - CURL
@@ -38,13 +38,24 @@ sudo apt-get install -y build-essential cmake libsqlite3-dev libcurl4-openssl-de
 
 ### 编译
 
-使用提供的构建脚本进行编译：
+建议使用C++14标准进行编译。例如：
+
+```bash
+g++ -std=c++14 -Wall -Wextra -Isrc -Isrc/agent -Isrc/manager -Ideps/nlohmann_json/include -Ideps/cpp-httplib -Ideps/SQLiteCpp/include -I/usr/local/include -c -o build/src/agent/agent.o src/agent/agent.cpp
+```
+
+或使用提供的构建脚本：
 
 ```bash
 ./build.sh
 ```
 
 编译成功后，将在`build`目录下生成`agent`和`manager`两个可执行文件。
+
+#### C++14兼容性说明
+- 项目已将所有`std::filesystem`相关用法替换为自定义递归目录创建函数，兼容C++14。
+- 代码中未使用结构化绑定（如`for (auto& [k, v] : map)`），全部改为C++14兼容写法。
+- 若遇到相关兼容性问题，请优先检查编译器版本和编译参数。
 
 ## 使用方法
 
@@ -91,6 +102,17 @@ GET /api/agents/{agent_id}/{resource_type}?limit={limit}
 - `agent_id`：Agent ID
 - `resource_type`：资源类型，可选值：cpu, memory, disk, network, docker
 - `limit`：返回记录数量限制，默认为100
+
+### 组件管理相关API
+
+Agent本地HTTP服务（默认8081端口）支持组件部署与停止：
+
+- 部署组件：
+  - `POST /api/deploy`，请求体为JSON，包含component_id、business_id、component_name、type等字段
+- 停止组件：
+  - `POST /api/stop`，请求体为JSON，包含component_id、business_id等字段
+
+> 注意：Agent上报组件状态时，暂不包含node_id字段（即agent_id），如需扩展可在后续版本中支持。
 
 ## 测试
 
