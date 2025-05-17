@@ -10,7 +10,16 @@
 
 // 前向声明
 class DockerManager;
+class BinaryManager;
 class HttpClient;
+
+/**
+ * 组件类型枚举
+ */
+enum class ComponentType {
+    DOCKER,   // Docker容器类型
+    BINARY    // 二进制运行体类型
+};
 
 /**
  * ComponentManager类 - 组件管理器
@@ -51,12 +60,14 @@ public:
      * 
      * @param component_id 组件ID
      * @param business_id 业务ID
-     * @param container_id 容器ID
+     * @param container_or_process_id 容器ID或进程ID
+     * @param component_type 组件类型
      * @return 停止结果
      */
     nlohmann::json stopComponent(const std::string& component_id, 
                                const std::string& business_id, 
-                               const std::string& container_id);
+                               const std::string& container_or_process_id,
+                               ComponentType component_type = ComponentType::DOCKER);
     
     /**
      * 收集组件状态
@@ -87,13 +98,62 @@ public:
 
 private:
     /**
-     * 下载组件镜像
+     * 部署Docker容器组件
+     * 
+     * @param component_info 组件信息
+     * @return 部署结果
+     */
+    nlohmann::json deployDockerComponent(const nlohmann::json& component_info);
+    
+    /**
+     * 部署二进制运行体组件
+     * 
+     * @param component_info 组件信息
+     * @return 部署结果
+     */
+    nlohmann::json deployBinaryComponent(const nlohmann::json& component_info);
+    
+    /**
+     * 停止Docker容器组件
+     * 
+     * @param component_id 组件ID
+     * @param business_id 业务ID
+     * @param container_id 容器ID
+     * @return 停止结果
+     */
+    nlohmann::json stopDockerComponent(const std::string& component_id, 
+                                     const std::string& business_id, 
+                                     const std::string& container_id);
+    
+    /**
+     * 停止二进制运行体组件
+     * 
+     * @param component_id 组件ID
+     * @param business_id 业务ID
+     * @param process_id 进程ID
+     * @return 停止结果
+     */
+    nlohmann::json stopBinaryComponent(const std::string& component_id, 
+                                     const std::string& business_id, 
+                                     int process_id);
+    
+    /**
+     * 下载Docker镜像
      * 
      * @param image_url 镜像URL
      * @param image_name 镜像名称
      * @return 下载结果
      */
     nlohmann::json downloadImage(const std::string& image_url, const std::string& image_name);
+    
+    /**
+     * 下载二进制文件
+     * 
+     * @param binary_url 二进制文件URL
+     * @param binary_path 保存路径
+     * @return 下载结果
+     */
+    nlohmann::json downloadBinary(const std::string& binary_url, const std::string& binary_path);
     
     /**
      * 创建配置文件
@@ -111,6 +171,7 @@ private:
 private:
     std::shared_ptr<HttpClient> http_client_;        // HTTP客户端
     std::unique_ptr<DockerManager> docker_manager_;  // Docker管理器
+    std::unique_ptr<BinaryManager> binary_manager_;  // 二进制运行体管理器
     
     std::map<std::string, nlohmann::json> components_;  // 组件信息，key为组件ID
     std::mutex components_mutex_;                       // 组件信息互斥锁

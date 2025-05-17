@@ -6,15 +6,15 @@
 #include <map>
 #include <mutex>
 #include <nlohmann/json.hpp>
-#include "scheduler.h"
 
 // 前向声明
 class DatabaseManager;
+class Scheduler;
 
 /**
  * BusinessManager类 - 业务管理器
  * 
- * 负责管理业务的部署、停止、更新和状态
+ * 负责业务的部署、停止、更新和状态管理
  */
 class BusinessManager {
 public:
@@ -22,13 +22,14 @@ public:
      * 构造函数
      * 
      * @param db_manager 数据库管理器
+     * @param scheduler 调度器
      */
-    explicit BusinessManager(std::shared_ptr<DatabaseManager> db_manager);
+    BusinessManager(std::shared_ptr<DatabaseManager> db_manager, std::shared_ptr<Scheduler> scheduler);
     
     /**
      * 析构函数
      */
-    ~BusinessManager() = default;
+    ~BusinessManager();
     
     /**
      * 初始化业务管理器
@@ -41,7 +42,7 @@ public:
      * 部署业务
      * 
      * @param business_info 业务信息
-     * @return 响应JSON
+     * @return 部署结果
      */
     nlohmann::json deployBusiness(const nlohmann::json& business_info);
     
@@ -49,7 +50,7 @@ public:
      * 停止业务
      * 
      * @param business_id 业务ID
-     * @return 响应JSON
+     * @return 停止结果
      */
     nlohmann::json stopBusiness(const std::string& business_id);
     
@@ -57,7 +58,7 @@ public:
      * 重启业务
      * 
      * @param business_id 业务ID
-     * @return 响应JSON
+     * @return 重启结果
      */
     nlohmann::json restartBusiness(const std::string& business_id);
     
@@ -65,15 +66,15 @@ public:
      * 更新业务
      * 
      * @param business_id 业务ID
-     * @param business_info 更新后的业务信息
-     * @return 响应JSON
+     * @param business_info 业务信息
+     * @return 更新结果
      */
     nlohmann::json updateBusiness(const std::string& business_id, const nlohmann::json& business_info);
     
     /**
      * 获取业务列表
      * 
-     * @return 业务列表JSON
+     * @return 业务列表
      */
     nlohmann::json getBusinesses();
     
@@ -81,25 +82,25 @@ public:
      * 获取业务详情
      * 
      * @param business_id 业务ID
-     * @return 业务详情JSON
+     * @return 业务详情
      */
     nlohmann::json getBusinessDetails(const std::string& business_id);
     
     /**
-     * 获取业务组件状态
+     * 获取业务组件
      * 
      * @param business_id 业务ID
-     * @return 业务组件状态JSON
+     * @return 业务组件
      */
     nlohmann::json getBusinessComponents(const std::string& business_id);
     
     /**
-     * 更新组件状态
+     * 处理组件状态上报
      * 
-     * @param component_status 组件状态信息
-     * @return 是否成功更新
+     * @param component_status 组件状态
+     * @return 处理结果
      */
-    bool updateComponentStatus(const nlohmann::json& component_status);
+    nlohmann::json handleComponentStatusReport(const nlohmann::json& component_status);
 
 private:
     /**
@@ -111,26 +112,40 @@ private:
     bool validateBusinessInfo(const nlohmann::json& business_info);
     
     /**
-     * 调度业务组件
+     * 验证组件信息
      * 
-     * @param business_info 业务信息
-     * @return 调度结果，包含每个组件的目标节点
+     * @param component_info 组件信息
+     * @return 是否有效
      */
-    nlohmann::json scheduleBusinessComponents(const nlohmann::json& business_info);
+    bool validateComponentInfo(const nlohmann::json& component_info);
     
     /**
-     * 部署组件到指定节点
+     * 部署业务组件
      * 
+     * @param business_id 业务ID
      * @param component_info 组件信息
      * @param node_id 节点ID
      * @return 部署结果
      */
-    nlohmann::json deployComponentToNode(const nlohmann::json& component_info, const std::string& node_id);
+    nlohmann::json deployComponent(const std::string& business_id, 
+                                 const nlohmann::json& component_info, 
+                                 const std::string& node_id);
+    
+    /**
+     * 停止业务组件
+     * 
+     * @param business_id 业务ID
+     * @param component_id 组件ID
+     * @return 停止结果
+     */
+    nlohmann::json stopComponent(const std::string& business_id, const std::string& component_id);
 
 private:
     std::shared_ptr<DatabaseManager> db_manager_;  // 数据库管理器
-    std::unique_ptr<Scheduler> scheduler_;         // 资源调度器
-    std::mutex mutex_;                             // 互斥锁
+    std::shared_ptr<Scheduler> scheduler_;         // 调度器
+    
+    std::map<std::string, nlohmann::json> businesses_;  // 业务信息，key为业务ID
+    std::mutex businesses_mutex_;                       // 业务信息互斥锁
 };
 
 #endif // BUSINESS_MANAGER_H

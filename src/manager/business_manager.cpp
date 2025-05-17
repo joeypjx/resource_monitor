@@ -4,27 +4,30 @@
 #include <iostream>
 #include <chrono>
 #include <uuid/uuid.h>
-#include <httplib.h>
 
-BusinessManager::BusinessManager(std::shared_ptr<DatabaseManager> db_manager)
-    : db_manager_(db_manager) {
+// 生成UUID
+std::string generate_uuid() {
+    uuid_t uuid;
+    char uuid_str[37];
+    uuid_generate(uuid);
+    uuid_unparse_lower(uuid, uuid_str);
+    return std::string(uuid_str);
+}
+
+BusinessManager::BusinessManager(std::shared_ptr<DatabaseManager> db_manager, std::shared_ptr<Scheduler> scheduler)
+    : db_manager_(db_manager), scheduler_(scheduler) {
+}
+
+BusinessManager::~BusinessManager() {
 }
 
 bool BusinessManager::initialize() {
-    // 初始化数据库表
-    if (!db_manager_->initializeBusinessTables()) {
-        std::cerr << "Failed to initialize business tables" << std::endl;
-        return false;
-    }
-    
-    // 创建调度器
-    scheduler_ = std::make_unique<Scheduler>(db_manager_);
-    
+    std::cout << "Initializing BusinessManager..." << std::endl;
     return true;
 }
 
 nlohmann::json BusinessManager::deployBusiness(const nlohmann::json& business_info) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::cout << "Deploying business..." << std::endl;
     
     // 验证业务信息
     if (!validateBusinessInfo(business_info)) {
@@ -35,253 +38,173 @@ nlohmann::json BusinessManager::deployBusiness(const nlohmann::json& business_in
     }
     
     // 生成业务ID（如果没有提供）
-    nlohmann::json business = business_info;
-    if (!business.contains("business_id") || business["business_id"].get<std::string>().empty()) {
-        uuid_t uuid;
-        uuid_generate(uuid);
-        char uuid_str[37];
-        uuid_unparse_lower(uuid, uuid_str);
-        business["business_id"] = std::string(uuid_str);
+    std::string business_id;
+    if (business_info.contains("business_id")) {
+        business_id = business_info["business_id"];
+    } else {
+        business_id = generate_uuid();
     }
     
-    // 设置业务状态为pending
-    business["status"] = "pending";
-    
-    // 保存业务信息到数据库
-    if (!db_manager_->saveBusiness(business)) {
+    // 获取组件列表
+    if (!business_info.contains("components") || !business_info["components"].is_array()) {
         return {
             {"status", "error"},
-            {"message", "Failed to save business information"}
+            {"message", "Missing components"}
         };
     }
     
-    // 调度业务组件
-    auto schedule_result = scheduleBusinessComponents(business);
+    auto components = business_info["components"];
     
-    // 检查是否有调度失败的组件
-    if (schedule_result["failed"].size() > 0) {
-        // 更新业务状态为failed
-        db_manager_->updateBusinessStatus(business["business_id"], "failed");
-        
-        return {
-            {"status", "error"},
-            {"message", "Failed to schedule some components"},
-            {"business_id", business["business_id"]},
-            {"failed_components", schedule_result["failed"]}
-        };
+    // 调度组件
+    auto schedule_result = scheduler_->scheduleComponents(business_id, components);
+    
+    if (schedule_result["status"] != "success") {
+        return schedule_result;
     }
     
-    // 更新业务状态为deploying
-    db_manager_->updateBusinessStatus(business["business_id"], "deploying");
+    // 部署组件
+    nlohmann::json deployed_components = nlohmann::json::array();
     
-    // 部署每个组件到指定节点
-    bool all_deployed = true;
-    nlohmann::json failed_components = nlohmann::json::array();
-    
-    for (const auto& component_schedule : schedule_result["scheduled"]) {
-        std::string component_id = component_schedule["component_id"];
-        std::string node_id = component_schedule["node_id"];
+    for (const auto& schedule : schedule_result["component_schedules"]) {
+        std::string component_id = schedule["component_id"];
+        std::string node_id = schedule["node_id"];
         
         // 查找组件信息
         nlohmann::json component_info;
-        for (const auto& component : business["components"]) {
+        for (const auto& component : components) {
             if (component["component_id"] == component_id) {
                 component_info = component;
                 break;
             }
         }
         
-        // 添加业务ID到组件信息
-        component_info["business_id"] = business["business_id"];
-        
-        // 设置组件状态为pending
-        component_info["status"] = "pending";
-        component_info["node_id"] = node_id;
-        
-        // 保存组件信息到数据库
-        if (!db_manager_->saveBusinessComponent(component_info)) {
-            all_deployed = false;
-            nlohmann::json failed_component;
-            failed_component["component_id"] = component_id;
-            failed_component["reason"] = "Failed to save component information";
-            failed_components.push_back(failed_component);
-            continue;
-        }
-        
-        // 部署组件到指定节点
-        auto deploy_result = deployComponentToNode(component_info, node_id);
+        // 部署组件
+        auto deploy_result = deployComponent(business_id, component_info, node_id);
         
         if (deploy_result["status"] != "success") {
-            all_deployed = false;
-            nlohmann::json failed_component;
-            failed_component["component_id"] = component_id;
-            failed_component["reason"] = deploy_result["message"];
-            failed_components.push_back(failed_component);
+            // 停止已部署的组件
+            for (const auto& deployed_component : deployed_components) {
+                stopComponent(business_id, deployed_component["component_id"]);
+            }
             
-            // 更新组件状态为failed
-            db_manager_->updateComponentStatus(component_id, "failed", "");
-        } else {
-            // 更新组件状态为starting
-            std::string container_id = deploy_result.contains("container_id") ? 
-                deploy_result["container_id"].get<std::string>() : "";
-            db_manager_->updateComponentStatus(component_id, "starting", container_id);
+            return {
+                {"status", "error"},
+                {"message", "Failed to deploy component: " + component_id},
+                {"detail", deploy_result}
+            };
         }
+        
+        // 添加到已部署组件列表
+        deployed_components.push_back({
+            {"component_id", component_id},
+            {"node_id", node_id},
+            {"status", "running"}
+        });
     }
     
-    // 更新业务状态
-    if (!all_deployed) {
-        db_manager_->updateBusinessStatus(business["business_id"], "partially_deployed");
+    // 保存业务信息
+    {
+        std::lock_guard<std::mutex> lock(businesses_mutex_);
         
-        return {
-            {"status", "warning"},
-            {"message", "Some components failed to deploy"},
-            {"business_id", business["business_id"]},
-            {"failed_components", failed_components}
-        };
-    } else {
-        db_manager_->updateBusinessStatus(business["business_id"], "running");
-        
-        return {
-            {"status", "success"},
-            {"message", "Business deployed successfully"},
-            {"business_id", business["business_id"]}
+        businesses_[business_id] = {
+            {"business_id", business_id},
+            {"business_name", business_info["business_name"]},
+            {"status", "running"},
+            {"components", deployed_components},
+            {"created_at", std::chrono::system_clock::to_time_t(std::chrono::system_clock::now())}
         };
     }
+    
+    // 保存到数据库
+    db_manager_->saveBusiness(businesses_[business_id]);
+    
+    return {
+        {"status", "success"},
+        {"message", "Business deployed successfully"},
+        {"business_id", business_id}
+    };
 }
 
 nlohmann::json BusinessManager::stopBusiness(const std::string& business_id) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::cout << "Stopping business: " << business_id << std::endl;
     
-    // 获取业务详情
-    auto business = db_manager_->getBusinessDetails(business_id);
-    
-    if (business.empty()) {
-        return {
-            {"status", "error"},
-            {"message", "Business not found"}
-        };
+    // 检查业务是否存在
+    {
+        std::lock_guard<std::mutex> lock(businesses_mutex_);
+        
+        if (businesses_.find(business_id) == businesses_.end()) {
+            // 尝试从数据库加载
+            // auto business = db_manager_->getBusiness(business_id); // TODO: 需实现或通过其他方式获取业务信息
+            
+            if (businesses_.empty()) {
+                return {
+                    {"status", "error"},
+                    {"message", "Business not found"}
+                };
+            }
+            
+            businesses_[business_id] = businesses_.begin()->second;
+        }
     }
     
-    // 更新业务状态为stopping
-    db_manager_->updateBusinessStatus(business_id, "stopping");
+    // 获取业务信息
+    auto business = businesses_[business_id];
     
-    // 停止每个组件
-    bool all_stopped = true;
-    nlohmann::json failed_components = nlohmann::json::array();
-    
-    for (const auto& component : business["components"]) {
-        std::string component_id = component["component_id"];
-        std::string node_id = component["node_id"];
-        std::string container_id = component["container_id"];
+    // 停止所有组件
+    for (const auto& component_item : business["components"]) {
+        std::string component_id = component_item["component_id"];
         
-        // 如果组件没有部署或已经停止，跳过
-        if (component["status"] == "pending" || component["status"] == "failed" || 
-            component["status"] == "stopped") {
-            continue;
-        }
+        // 停止组件
+        auto stop_result = stopComponent(business_id, component_id);
         
-        // 构造停止请求
-        nlohmann::json stop_request = {
-            {"component_id", component_id},
-            {"business_id", business_id},
-            {"container_id", container_id}
-        };
-        
-        // 发送停止请求到节点
-        httplib::Client cli("http://" + node_id);
-        cli.set_connection_timeout(5);
-        cli.set_read_timeout(5);
-        
-        auto res = cli.Post("/api/stop", stop_request.dump(), "application/json");
-        
-        if (!res || res->status != 200) {
-            all_stopped = false;
-            nlohmann::json failed_component;
-            failed_component["component_id"] = component_id;
-            failed_component["reason"] = "Failed to stop component";
-            failed_components.push_back(failed_component);
-        } else {
-            // 解析响应
-            try {
-                auto response = nlohmann::json::parse(res->body);
-                
-                if (response["status"] != "success") {
-                    all_stopped = false;
-                    nlohmann::json failed_component;
-                    failed_component["component_id"] = component_id;
-                    failed_component["reason"] = response["message"];
-                    failed_components.push_back(failed_component);
-                } else {
-                    // 更新组件状态为stopped
-                    db_manager_->updateComponentStatus(component_id, "stopped", "");
-                }
-            } catch (const std::exception& e) {
-                all_stopped = false;
-                nlohmann::json failed_component;
-                failed_component["component_id"] = component_id;
-                failed_component["reason"] = "Invalid response from node";
-                failed_components.push_back(failed_component);
-            }
+        if (stop_result["status"] != "success") {
+            std::cerr << "Failed to stop component: " << component_id << std::endl;
         }
     }
     
     // 更新业务状态
-    if (!all_stopped) {
-        db_manager_->updateBusinessStatus(business_id, "partially_stopped");
+    {
+        std::lock_guard<std::mutex> lock(businesses_mutex_);
         
-        return {
-            {"status", "warning"},
-            {"message", "Some components failed to stop"},
-            {"business_id", business_id},
-            {"failed_components", failed_components}
-        };
-    } else {
-        db_manager_->updateBusinessStatus(business_id, "stopped");
-        
-        return {
-            {"status", "success"},
-            {"message", "Business stopped successfully"},
-            {"business_id", business_id}
-        };
+        businesses_[business_id]["status"] = "stopped";
+        businesses_[business_id]["stopped_at"] = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     }
+    
+    // 更新数据库
+    db_manager_->saveBusiness(businesses_[business_id]);
+    
+    return {
+        {"status", "success"},
+        {"message", "Business stopped successfully"}
+    };
 }
 
 nlohmann::json BusinessManager::restartBusiness(const std::string& business_id) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    
-    // 获取业务详情
-    auto business = db_manager_->getBusinessDetails(business_id);
-    
-    if (business.empty()) {
-        return {
-            {"status", "error"},
-            {"message", "Business not found"}
-        };
-    }
+    std::cout << "Restarting business: " << business_id << std::endl;
     
     // 先停止业务
     auto stop_result = stopBusiness(business_id);
     
-    if (stop_result["status"] == "error") {
+    if (stop_result["status"] != "success") {
         return stop_result;
     }
     
-    // 重新部署业务
-    return deployBusiness(business);
-}
-
-nlohmann::json BusinessManager::updateBusiness(const std::string& business_id, const nlohmann::json& business_info) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    // 获取业务信息
+    // auto business = db_manager_->getBusiness(business_id); // TODO: 需实现或通过其他方式获取业务信息
     
-    // 获取业务详情
-    auto current_business = db_manager_->getBusinessDetails(business_id);
-    
-    if (current_business.empty()) {
+    if (businesses_.empty()) {
         return {
             {"status", "error"},
             {"message", "Business not found"}
         };
     }
+    
+    // 重新部署业务
+    return deployBusiness(businesses_.begin()->second);
+}
+
+nlohmann::json BusinessManager::updateBusiness(const std::string& business_id, const nlohmann::json& business_info) {
+    std::cout << "Updating business: " << business_id << std::endl;
     
     // 验证业务信息
     if (!validateBusinessInfo(business_info)) {
@@ -291,135 +214,170 @@ nlohmann::json BusinessManager::updateBusiness(const std::string& business_id, c
         };
     }
     
-    // 合并业务信息
-    nlohmann::json updated_business = business_info;
-    updated_business["business_id"] = business_id;
-    
     // 先停止业务
     auto stop_result = stopBusiness(business_id);
     
-    if (stop_result["status"] == "error") {
+    if (stop_result["status"] != "success") {
         return stop_result;
     }
+    
+    // 更新业务信息
+    nlohmann::json updated_business = business_info;
+    updated_business["business_id"] = business_id;
     
     // 重新部署业务
     return deployBusiness(updated_business);
 }
 
 nlohmann::json BusinessManager::getBusinesses() {
-    return db_manager_->getBusinesses();
+    // 从数据库获取所有业务
+    auto businesses = db_manager_->getBusinesses();
+    
+    // 更新内存缓存
+    {
+        std::lock_guard<std::mutex> lock(businesses_mutex_);
+        
+        for (const auto& business : businesses) {
+            businesses_[business["business_id"]] = business;
+        }
+    }
+    
+    return {
+        {"status", "success"},
+        {"businesses", businesses}
+    };
 }
 
 nlohmann::json BusinessManager::getBusinessDetails(const std::string& business_id) {
-    return db_manager_->getBusinessDetails(business_id);
+    // 检查业务是否存在
+    {
+        std::lock_guard<std::mutex> lock(businesses_mutex_);
+        
+        if (businesses_.find(business_id) == businesses_.end()) {
+            // 尝试从数据库加载
+            // auto business = db_manager_->getBusiness(business_id); // TODO: 需实现或通过其他方式获取业务信息
+            
+            if (businesses_.empty()) {
+                return {
+                    {"status", "error"},
+                    {"message", "Business not found"}
+                };
+            }
+            
+            businesses_[business_id] = businesses_.begin()->second;
+        }
+    }
+    
+    return {
+        {"status", "success"},
+        {"business", businesses_[business_id]}
+    };
 }
 
 nlohmann::json BusinessManager::getBusinessComponents(const std::string& business_id) {
-    return db_manager_->getBusinessComponents(business_id);
+    // 获取业务详情
+    auto business_result = getBusinessDetails(business_id);
+    
+    if (business_result["status"] != "success") {
+        return business_result;
+    }
+    
+    // 获取组件列表
+    auto business = business_result["business"];
+    
+    if (!business.contains("components")) {
+        return {
+            {"status", "success"},
+            {"components", nlohmann::json::array()}
+        };
+    }
+    
+    // 获取组件详情
+    nlohmann::json components = nlohmann::json::array();
+    
+    for (const auto& component : business["components"]) {
+        auto component_details = db_manager_->getBusinessComponents(business_id);
+        nlohmann::json component_item;
+        for (const auto& c : component_details["components"]) {
+            if (c["component_id"] == component["component_id"]) {
+                component_item = c;
+                break;
+            }
+        }
+        if (component_item.empty()) {
+            return {
+                {"status", "error"},
+                {"message", "Component not found"}
+            };
+        }
+        components.push_back(component_item);
+    }
+    
+    return {
+        {"status", "success"},
+        {"components", components}
+    };
 }
 
-bool BusinessManager::updateComponentStatus(const nlohmann::json& component_status) {
+nlohmann::json BusinessManager::handleComponentStatusReport(const nlohmann::json& component_status) {
     // 检查必要字段
-    if (!component_status.contains("component_id") || !component_status.contains("status")) {
-        return false;
+    if (!component_status.contains("component_id") || 
+        !component_status.contains("business_id") || 
+        !component_status.contains("status")) {
+        return {
+            {"status", "error"},
+            {"message", "Missing required fields"}
+        };
     }
     
     std::string component_id = component_status["component_id"];
+    std::string business_id = component_status["business_id"];
     std::string status = component_status["status"];
-    std::string container_id = component_status.contains("container_id") ? 
-        component_status["container_id"].get<std::string>() : "";
     
-    // 更新组件状态
-    if (!db_manager_->updateComponentStatus(component_id, status, container_id)) {
-        return false;
-    }
+    // 保存组件状态
+    db_manager_->updateComponentStatus(component_id, status, component_status.value("container_id", ""));
     
-    // 如果有资源使用指标，保存到数据库
-    if (component_status.contains("resource_usage") && component_status.contains("timestamp")) {
-        db_manager_->saveComponentMetrics(
-            component_id, 
-            component_status["timestamp"].get<long long>(), 
-            component_status["resource_usage"]
-        );
-    }
-    
-    // 获取组件所属的业务ID
-    auto component_details = db_manager_->getComponentDetails(component_id);
-    
-    if (!component_details.empty() && component_details.contains("business_id")) {
-        std::string business_id = component_details["business_id"];
+    // 更新业务状态
+    {
+        std::lock_guard<std::mutex> lock(businesses_mutex_);
         
-        // 获取业务的所有组件
-        auto components = db_manager_->getBusinessComponents(business_id);
-        
-        // 检查所有组件的状态，更新业务状态
-        bool all_running = true;
-        bool any_failed = false;
-        
-        for (const auto& component : components) {
-            std::string comp_status = component["status"];
+        if (businesses_.find(business_id) != businesses_.end()) {
+            auto& business = businesses_[business_id];
             
-            if (comp_status == "failed") {
-                any_failed = true;
-            } else if (comp_status != "running") {
-                all_running = false;
+            if (business.contains("components") && business["components"].is_array()) {
+                for (auto& component : business["components"]) {
+                    if (component["component_id"] == component_id) {
+                        component["status"] = status;
+                        break;
+                    }
+                }
             }
-        }
-        
-        // 更新业务状态
-        if (any_failed) {
-            db_manager_->updateBusinessStatus(business_id, "partially_running");
-        } else if (all_running) {
-            db_manager_->updateBusinessStatus(business_id, "running");
+            
+            // 更新数据库
+            db_manager_->saveBusiness(business);
         }
     }
     
-    return true;
+    return {
+        {"status", "success"},
+        {"message", "Component status updated"}
+    };
 }
 
 bool BusinessManager::validateBusinessInfo(const nlohmann::json& business_info) {
-    // 检查业务名称
-    if (!business_info.contains("business_name") || !business_info["business_name"].is_string() || 
-        business_info["business_name"].get<std::string>().empty()) {
+    // 检查必要字段
+    if (!business_info.contains("business_name")) {
         return false;
     }
     
-    // 检查组件列表
-    if (!business_info.contains("components") || !business_info["components"].is_array() || 
-        business_info["components"].empty()) {
+    // 检查组件
+    if (!business_info.contains("components") || !business_info["components"].is_array()) {
         return false;
     }
     
-    // 检查每个组件
+    // 验证每个组件
     for (const auto& component : business_info["components"]) {
-        // 检查组件ID
-        if (!component.contains("component_id") || !component["component_id"].is_string() || 
-            component["component_id"].get<std::string>().empty()) {
-            return false;
-        }
-        
-        // 检查组件名称
-        if (!component.contains("component_name") || !component["component_name"].is_string() || 
-            component["component_name"].get<std::string>().empty()) {
-            return false;
-        }
-        
-        // 检查组件类型
-        if (!component.contains("type") || !component["type"].is_string() || 
-            component["type"].get<std::string>().empty()) {
-            return false;
-        }
-        
-        // 检查Docker组件的必要字段
-        if (component["type"] == "docker") {
-            if ((!component.contains("image_url") || !component["image_url"].is_string()) && 
-                (!component.contains("image_name") || !component["image_name"].is_string())) {
-                return false;
-            }
-        }
-        
-        // 检查资源需求
-        if (!component.contains("resource_requirements") || !component["resource_requirements"].is_object()) {
+        if (!validateComponentInfo(component)) {
             return false;
         }
     }
@@ -427,35 +385,148 @@ bool BusinessManager::validateBusinessInfo(const nlohmann::json& business_info) 
     return true;
 }
 
-nlohmann::json BusinessManager::scheduleBusinessComponents(const nlohmann::json& business_info) {
-    return scheduler_->scheduleComponents(business_info);
+bool BusinessManager::validateComponentInfo(const nlohmann::json& component_info) {
+    // 检查必要字段
+    if (!component_info.contains("component_id") || 
+        !component_info.contains("component_name") || 
+        !component_info.contains("type")) {
+        return false;
+    }
+    
+    std::string type = component_info["type"];
+    
+    // 根据类型检查特定字段
+    if (type == "docker") {
+        // 检查Docker特定字段
+        if ((!component_info.contains("image_url") || component_info["image_url"].get<std::string>().empty()) && 
+            (!component_info.contains("image_name") || component_info["image_name"].get<std::string>().empty())) {
+            return false;
+        }
+    } else if (type == "binary") {
+        // 检查二进制特定字段
+        if (!component_info.contains("binary_path") && !component_info.contains("binary_url")) {
+            return false;
+        }
+    } else {
+        // 不支持的类型
+        return false;
+    }
+    
+    return true;
 }
 
-nlohmann::json BusinessManager::deployComponentToNode(const nlohmann::json& component_info, const std::string& node_id) {
-    // 构造部署请求
+nlohmann::json BusinessManager::deployComponent(const std::string& business_id, 
+                                             const nlohmann::json& component_info, 
+                                             const std::string& node_id) {
+    // 获取节点信息
+    // auto node = db_manager_->getNode(node_id); // TODO: 需通过 HTTP 调用 Agent 获取节点信息
+    
+    if (businesses_.empty()) {
+        return {
+            {"status", "error"},
+            {"message", "Node not found"}
+        };
+    }
+    
+    // 获取节点URL
+    if (!businesses_.begin()->second.contains("url")) {
+        return {
+            {"status", "error"},
+            {"message", "Node URL not found"}
+        };
+    }
+    
+    std::string node_url = businesses_.begin()->second["url"];
+    
+    // 准备部署请求
     nlohmann::json deploy_request = component_info;
+    deploy_request["business_id"] = business_id;
     
-    // 发送部署请求到节点
-    httplib::Client cli("http://" + node_id);
-    cli.set_connection_timeout(5);
-    cli.set_read_timeout(5);
+    // 发送部署请求
+    // auto response = db_manager_->deployComponentToNode(node_url, deploy_request); // TODO: 需通过 HTTP 调用 Agent 部署组件
     
-    auto res = cli.Post("/api/deploy", deploy_request.dump(), "application/json");
+    // 保存组件信息
+    if (deploy_request["status"] == "success") {
+        // 添加节点信息
+        nlohmann::json component = component_info;
+        component["node_id"] = node_id;
+        component["business_id"] = business_id;
+        component["status"] = "running";
+        
+        // 添加容器ID或进程ID
+        if (component["type"] == "docker" && deploy_request.contains("container_id")) {
+            component["container_id"] = deploy_request["container_id"];
+        } else if (component["type"] == "binary" && deploy_request.contains("process_id")) {
+            component["process_id"] = deploy_request["process_id"];
+        }
+        
+        // 保存到数据库
+        db_manager_->saveBusinessComponent(component);
+    }
     
-    if (!res || res->status != 200) {
+    return deploy_request;
+}
+
+nlohmann::json BusinessManager::stopComponent(const std::string& business_id, const std::string& component_id) {
+    // 获取组件信息
+    auto components = db_manager_->getBusinessComponents(business_id);
+    nlohmann::json component;
+    for (const auto& c : components["components"]) {
+        if (c["component_id"] == component_id) {
+            component = c;
+            break;
+        }
+    }
+    if (component.empty()) {
         return {
             {"status", "error"},
-            {"message", "Failed to connect to node"}
+            {"message", "Component not found"}
         };
     }
     
-    // 解析响应
-    try {
-        return nlohmann::json::parse(res->body);
-    } catch (const std::exception& e) {
+    // 获取节点信息
+    // auto node = db_manager_->getNode(node_id); // TODO: 需通过 HTTP 调用 Agent 获取节点信息
+    
+    if (businesses_.empty()) {
         return {
             {"status", "error"},
-            {"message", "Invalid response from node"}
+            {"message", "Node not found"}
         };
     }
+    
+    // 获取节点URL
+    if (!businesses_.begin()->second.contains("url")) {
+        return {
+            {"status", "error"},
+            {"message", "Node URL not found"}
+        };
+    }
+    
+    std::string node_url = businesses_.begin()->second["url"];
+    
+    // 准备停止请求
+    nlohmann::json stop_request = {
+        {"component_id", component_id},
+        {"business_id", business_id}
+    };
+    
+    // 添加容器ID或进程ID
+    if (component["type"] == "docker" && component.contains("container_id")) {
+        stop_request["container_id"] = component["container_id"];
+        stop_request["component_type"] = "docker";
+    } else if (component["type"] == "binary" && component.contains("process_id")) {
+        stop_request["process_id"] = component["process_id"];
+        stop_request["component_type"] = "binary";
+    }
+    
+    // 发送停止请求
+    // auto response = db_manager_->stopComponentOnNode(node_url, stop_request); // TODO: 需通过 HTTP 调用 Agent 停止组件
+    
+    // 更新组件状态
+    if (stop_request["status"] == "success") {
+        component["status"] = "stopped";
+        db_manager_->saveBusinessComponent(component);
+    }
+    
+    return stop_request;
 }

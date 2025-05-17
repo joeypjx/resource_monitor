@@ -30,8 +30,11 @@ bool Manager::start() {
         return false;
     }
     
+    // 创建调度器
+    scheduler_ = std::make_shared<Scheduler>(db_manager_);
+    
     // 创建业务管理器
-    business_manager_ = std::make_shared<BusinessManager>(db_manager_);
+    business_manager_ = std::make_shared<BusinessManager>(db_manager_, scheduler_);
     
     // 初始化业务管理器
     if (!business_manager_->initialize()) {

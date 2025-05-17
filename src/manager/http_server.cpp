@@ -321,10 +321,12 @@ nlohmann::json HttpServer::handleComponentStatusReport(const nlohmann::json& req
     }
     
     // 更新组件状态
-    if (!business_manager_->updateComponentStatus(request)) {
+    auto result = business_manager_->handleComponentStatusReport(request);
+    if (result["status"] != "success") {
         return {
             {"status", "error"},
-            {"message", "Failed to update component status"}
+            {"message", "Failed to update component status"},
+            {"detail", result}
         };
     }
     

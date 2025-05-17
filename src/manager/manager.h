@@ -3,6 +3,7 @@
 
 #include <string>
 #include <memory>
+#include "scheduler.h"
 
 // 前向声明
 class HttpServer;
@@ -54,6 +55,7 @@ private:
     std::unique_ptr<HttpServer> http_server_;           // HTTP服务器
     std::shared_ptr<DatabaseManager> db_manager_;       // 数据库管理器
     std::shared_ptr<BusinessManager> business_manager_; // 业务管理器
+    std::shared_ptr<Scheduler> scheduler_; // 调度器
 };
 
 #endif // MANAGER_H

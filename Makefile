@@ -39,6 +39,7 @@ AGENT_SOURCES = $(AGENT_DIR)/agent.cpp \
                $(AGENT_DIR)/http_client.cpp \
 			   $(AGENT_DIR)/component_manager.cpp \
 			   $(AGENT_DIR)/docker_manager.cpp \
+			   $(AGENT_DIR)/binary_manager.cpp \
                $(SRC_DIR)/agent_main.cpp
 
 # Manager源文件

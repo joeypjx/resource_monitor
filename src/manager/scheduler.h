@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 #include <map>
-#include <memory>
 #include <nlohmann/json.hpp>
 
 // 前向声明
@@ -27,22 +26,39 @@ public:
     /**
      * 析构函数
      */
-    ~Scheduler() = default;
+    ~Scheduler();
     
     /**
-     * 调度业务组件
+     * 初始化调度器
      * 
-     * @param business_info 业务信息
-     * @return 调度结果，包含每个组件的目标节点
+     * @return 是否成功初始化
      */
-    nlohmann::json scheduleComponents(const nlohmann::json& business_info);
+    bool initialize();
     
     /**
-     * 获取节点资源情况
+     * 为业务组件选择最佳节点
      * 
-     * @return 节点资源情况
+     * @param business_id 业务ID
+     * @param components 组件列表
+     * @return 调度结果，包含组件到节点的映射
      */
-    nlohmann::json getNodesResourceStatus();
+    nlohmann::json scheduleComponents(const std::string& business_id, const nlohmann::json& components);
+
+private:
+    /**
+     * 获取所有可用节点
+     * 
+     * @return 节点列表
+     */
+    nlohmann::json getAvailableNodes();
+    
+    /**
+     * 获取节点最新资源使用情况
+     * 
+     * @param node_id 节点ID
+     * @return 资源使用情况
+     */
+    nlohmann::json getNodeResourceUsage(const std::string& node_id);
     
     /**
      * 检查节点是否满足组件资源需求
@@ -51,51 +67,47 @@ public:
      * @param resource_requirements 资源需求
      * @return 是否满足
      */
-    bool checkNodeResourceRequirements(const std::string& node_id, 
-                                      const nlohmann::json& resource_requirements);
+    bool checkNodeResourceRequirements(const std::string& node_id, const nlohmann::json& resource_requirements);
     
     /**
-     * 检查节点是否满足组件亲和性要求
+     * 检查节点是否满足Docker组件资源需求
      * 
      * @param node_id 节点ID
-     * @param affinity 亲和性要求
+     * @param resource_requirements 资源需求
+     * @return 是否满足
+     */
+    bool checkNodeResourceRequirementsForDocker(const std::string& node_id, const nlohmann::json& resource_requirements);
+    
+    /**
+     * 检查节点是否满足二进制组件资源需求
+     * 
+     * @param node_id 节点ID
+     * @param resource_requirements 资源需求
+     * @return 是否满足
+     */
+    bool checkNodeResourceRequirementsForBinary(const std::string& node_id, const nlohmann::json& resource_requirements);
+    
+    /**
+     * 检查节点是否满足组件亲和性需求
+     * 
+     * @param node_id 节点ID
+     * @param affinity 亲和性需求
      * @return 是否满足
      */
     bool checkNodeAffinity(const std::string& node_id, const nlohmann::json& affinity);
     
     /**
-     * 选择最优节点
+     * 根据负载均衡策略为组件选择最佳节点
      * 
-     * @param candidate_nodes 候选节点列表
-     * @param resource_requirements 资源需求
-     * @return 最优节点ID
+     * @param component 组件信息
+     * @param available_nodes 可用节点列表
+     * @return 最佳节点ID
      */
-    std::string selectOptimalNode(const std::vector<std::string>& candidate_nodes, 
-                                 const nlohmann::json& resource_requirements);
-
-private:
-    /**
-     * 计算节点负载分数
-     * 
-     * @param node_id 节点ID
-     * @return 负载分数（越低越好）
-     */
-    double calculateNodeLoadScore(const std::string& node_id);
-    
-    /**
-     * 获取节点GPU信息
-     * 
-     * @param node_id 节点ID
-     * @return GPU信息
-     */
-    nlohmann::json getNodeGpuInfo(const std::string& node_id);
+    std::string selectBestNodeForComponent(const nlohmann::json& component, const nlohmann::json& available_nodes);
 
 private:
     std::shared_ptr<DatabaseManager> db_manager_;  // 数据库管理器
-    
-    // 缓存节点资源情况，定期更新
-    std::map<std::string, nlohmann::json> node_resources_;
-    std::map<std::string, nlohmann::json> node_gpu_info_;
+    std::map<std::string, nlohmann::json> node_resources_;  // 节点资源缓存
 };
 
 #endif // SCHEDULER_H
