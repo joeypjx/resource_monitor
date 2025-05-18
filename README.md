@@ -529,6 +529,15 @@ cd build
 - [资源监控架构](docs/system_architecture.md)
 - [业务部署架构](docs/deployment/deployment_architecture.md)
 
+## 后续改进
+
+- 接口改成异步
+- 接口/agent全部改成/node，数据库字段也改成node
+- node信息完善
+- 完善调度机制
+- 不常用接口检查和删除
+- 前端开发
+
 ## 许可证
 
 MIT
