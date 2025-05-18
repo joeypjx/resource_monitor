@@ -70,7 +70,7 @@ nlohmann::json Scheduler::getAvailableNodes() {
     nlohmann::json available_nodes = nlohmann::json::array();
     
     for (const auto& agent : agents) {
-        // 检查节点是否在线（假设有 status 字段）
+        // 检查节点是否在线（使用数据库中的status字段）
         if (agent.contains("status") && agent["status"] == "online") {
             std::string node_id = agent.contains("node_id") ? agent["node_id"].get<std::string>() : agent["agent_id"].get<std::string>();
             // 获取节点最新资源使用情况
@@ -248,7 +248,8 @@ std::string Scheduler::selectBestNodeForComponent(const nlohmann::json& componen
     
     // 为每个节点计算得分
     for (const auto& node : available_nodes) {
-        std::string node_id = node["node_id"];
+        std::string node_id = node["agent_id"];
+        best_node_id = node_id; // todo 需要修改
         
         // 检查资源需求
         if (!checkNodeResourceRequirements(node_id, resource_requirements)) {
@@ -280,7 +281,11 @@ std::string Scheduler::selectBestNodeForComponent(const nlohmann::json& componen
             best_score = score;
             best_node_id = node_id;
         }
+
+        best_node_id = node_id; // todo 需要修改
     }
     
+    std::cout << "Best node for component " << component["component_id"] << ": " << best_node_id << std::endl; // todo 需要修改
+
     return best_node_id;
 }

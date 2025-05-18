@@ -4,6 +4,7 @@
 #include <string>
 #include <memory>
 #include <nlohmann/json.hpp>
+#include <thread>
 
 // 前向声明
 namespace SQLite {
@@ -46,6 +47,13 @@ public:
     // 资源监控相关方法
     bool saveAgent(const nlohmann::json& agent_info);
     bool updateAgentLastSeen(const std::string& agent_id);
+    bool updateAgentStatus(const std::string& agent_id, const std::string& status);
+    
+    /**
+     * 启动节点状态监控线程
+     * 定期检查节点最后上报时间，超过阈值则标记为离线
+     */
+    void startNodeStatusMonitor();
     bool saveCpuMetrics(const std::string& agent_id, long long timestamp, const nlohmann::json& cpu_data);
     bool saveMemoryMetrics(const std::string& agent_id, long long timestamp, const nlohmann::json& memory_data);
     bool saveDiskMetrics(const std::string& agent_id, long long timestamp, const nlohmann::json& disk_data);
@@ -80,6 +88,9 @@ public:
 private:
     std::string db_path_;                     // 数据库文件路径
     std::unique_ptr<SQLite::Database> db_;    // 数据库连接
+    
+    bool node_monitor_running_;               // 节点监控线程运行标志
+    std::unique_ptr<std::thread> node_monitor_thread_; // 节点监控线程
 };
 
 #endif // DATABASE_MANAGER_H

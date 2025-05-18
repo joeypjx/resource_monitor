@@ -94,12 +94,12 @@ nlohmann::json ComponentManager::deployDockerComponent(const nlohmann::json& com
     std::string image_url = component_info.contains("image_url") ? component_info["image_url"].get<std::string>() : "";
     std::string image_name = component_info.contains("image_name") ? component_info["image_name"].get<std::string>() : "";
     
-    // 下载或拉取镜像
-    auto pull_result = downloadImage(image_url, image_name);
+    // 下载或拉取镜像 todo 需要修改
+    // auto pull_result = downloadImage(image_url, image_name);
     
-    if (pull_result["status"] != "success") {
-        return pull_result;
-    }
+    // if (pull_result["status"] != "success") {
+    //     return pull_result;
+    // }
     
     // 创建配置文件
     if (component_info.contains("config_files") && component_info["config_files"].is_array()) {
@@ -263,6 +263,10 @@ nlohmann::json ComponentManager::stopComponent(const std::string& component_id,
                                             const std::string& business_id, 
                                             const std::string& container_or_process_id,
                                             ComponentType component_type) {
+
+    // 打印停止组件信息
+    std::cout << "Stopping component: " << component_id << ", business_id: " << business_id << ", container_or_process_id: " << container_or_process_id << std::endl;
+
     std::lock_guard<std::mutex> lock(components_mutex_);
     
     // 检查组件是否存在
@@ -313,6 +317,10 @@ nlohmann::json ComponentManager::stopComponent(const std::string& component_id,
 nlohmann::json ComponentManager::stopDockerComponent(const std::string& component_id, 
                                                    const std::string& business_id, 
                                                    const std::string& container_id) {
+
+    // 打印停止组件信息
+    std::cout << "Stopping Docker component: " << component_id << ", business_id: " << business_id << ", container_id: " << container_id << std::endl;
+
     if (container_id.empty()) {
         return {
             {"status", "error"},

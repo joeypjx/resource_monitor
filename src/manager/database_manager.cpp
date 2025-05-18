@@ -2,13 +2,21 @@
 #include <SQLiteCpp/SQLiteCpp.h>
 #include <iostream>
 #include <chrono>
+#include <thread>
 
-DatabaseManager::DatabaseManager(const std::string& db_path) : db_path_(db_path), db_(nullptr) {
+DatabaseManager::DatabaseManager(const std::string& db_path) : db_path_(db_path), db_(nullptr), node_monitor_running_(false) {
     // 构造函数，初始化数据库路径
 }
 
 DatabaseManager::~DatabaseManager() {
-    // 析构函数，数据库连接会自动关闭
+    // 停止节点监控线程
+    if (node_monitor_running_) {
+        node_monitor_running_ = false;
+        if (node_monitor_thread_ && node_monitor_thread_->joinable()) {
+            node_monitor_thread_->join();
+        }
+    }
+    // 数据库连接会自动关闭
 }
 
 bool DatabaseManager::initialize() {
@@ -27,7 +35,8 @@ bool DatabaseManager::initialize() {
                 ip_address TEXT NOT NULL,
                 os_info TEXT NOT NULL,
                 first_seen TIMESTAMP NOT NULL,
-                last_seen TIMESTAMP NOT NULL
+                last_seen TIMESTAMP NOT NULL,
+                status TEXT NOT NULL DEFAULT 'online'
             )
         )");
         
@@ -134,6 +143,15 @@ bool DatabaseManager::initialize() {
         db_->exec("CREATE INDEX IF NOT EXISTS idx_docker_metrics_agent_id ON docker_metrics(agent_id)");
         db_->exec("CREATE INDEX IF NOT EXISTS idx_docker_metrics_timestamp ON docker_metrics(timestamp)");
         
+        // 初始化业务相关的数据库表
+        if (!initializeBusinessTables()) {
+            std::cerr << "Business tables initialization error" << std::endl;
+            return false;
+        }
+        
+        // 启动节点状态监控线程
+        startNodeStatusMonitor();
+        
         return true;
     } catch (const std::exception& e) {
         std::cerr << "Database initialization error: " << e.what() << std::endl;
@@ -193,8 +211,8 @@ bool DatabaseManager::updateAgentLastSeen(const std::string& agent_id) {
         auto now = std::chrono::system_clock::now();
         auto timestamp = std::chrono::system_clock::to_time_t(now);
         
-        // 更新Agent最后活动时间
-        SQLite::Statement update(*db_, "UPDATE agents SET last_seen = ? WHERE agent_id = ?");
+        // 更新Agent最后活动时间和状态为在线
+        SQLite::Statement update(*db_, "UPDATE agents SET last_seen = ?, status = 'online' WHERE agent_id = ?");
         update.bind(1, static_cast<int64_t>(timestamp));
         update.bind(2, agent_id);
         update.exec();
@@ -204,6 +222,61 @@ bool DatabaseManager::updateAgentLastSeen(const std::string& agent_id) {
         std::cerr << "Update agent last seen error: " << e.what() << std::endl;
         return false;
     }
+}
+
+bool DatabaseManager::updateAgentStatus(const std::string& agent_id, const std::string& status) {
+    try {
+        // 更新Agent状态
+        SQLite::Statement update(*db_, "UPDATE agents SET status = ? WHERE agent_id = ?");
+        update.bind(1, status);
+        update.bind(2, agent_id);
+        update.exec();
+        
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Update agent status error: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+void DatabaseManager::startNodeStatusMonitor() {
+    // 如果监控线程已经在运行，则不再启动
+    if (node_monitor_running_) {
+        return;
+    }
+    
+    node_monitor_running_ = true;
+    
+    // 创建并启动监控线程
+    node_monitor_thread_ = std::make_unique<std::thread>([this]() {
+        while (node_monitor_running_) {
+            try {
+                // 获取当前时间戳
+                auto now = std::chrono::system_clock::now();
+                auto current_timestamp = std::chrono::system_clock::to_time_t(now);
+                
+                // 查询所有节点
+                SQLite::Statement query(*db_, "SELECT agent_id, last_seen FROM agents");
+                
+                while (query.executeStep()) {
+                    std::string agent_id = query.getColumn(0).getString();
+                    int64_t last_seen = query.getColumn(1).getInt64();
+                    
+                    // 如果超过5秒没有上报，则标记为离线
+                    if (current_timestamp - last_seen > 5) {
+                        updateAgentStatus(agent_id, "offline");
+                    }
+                }
+                
+                // 每秒检查一次
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            } catch (const std::exception& e) {
+                std::cerr << "Node status monitor error: " << e.what() << std::endl;
+                // 出错后暂停一下再继续
+                std::this_thread::sleep_for(std::chrono::seconds(5));
+            }
+        }
+    });
 }
 
 bool DatabaseManager::saveCpuMetrics(const std::string& agent_id, 
@@ -409,7 +482,7 @@ nlohmann::json DatabaseManager::getAgents() {
         nlohmann::json result = nlohmann::json::array();
         
         // 查询所有Agent
-        SQLite::Statement query(*db_, "SELECT agent_id, hostname, ip_address, os_info, first_seen, last_seen FROM agents");
+        SQLite::Statement query(*db_, "SELECT agent_id, hostname, ip_address, os_info, first_seen, last_seen, status FROM agents");
         
         while (query.executeStep()) {
             nlohmann::json agent;
@@ -419,6 +492,7 @@ nlohmann::json DatabaseManager::getAgents() {
             agent["os_info"] = query.getColumn(3).getString();
             agent["first_seen"] = query.getColumn(4).getInt64();
             agent["last_seen"] = query.getColumn(5).getInt64();
+            agent["status"] = query.getColumn(6).getString();
             
             result.push_back(agent);
         }
