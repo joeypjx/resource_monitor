@@ -47,6 +47,11 @@ int main(int argc, char* argv[]) {
     // 创建Manager实例
     g_manager = std::make_unique<Manager>(port, db_path);
     
+    if (!g_manager->initialize()) {
+        std::cerr << "Failed to initialize manager" << std::endl;
+        return 1;
+    }
+    
     // 启动Manager
     if (!g_manager->start()) {
         std::cerr << "Failed to start manager" << std::endl;

@@ -6,7 +6,7 @@
 #include "scheduler.h"
 
 // 前向声明
-class HttpServer;
+class HTTPServer;
 class DatabaseManager;
 class BusinessManager;
 
@@ -31,6 +31,20 @@ public:
     ~Manager();
     
     /**
+     * 初始化Manager
+     * 
+     * @return 是否成功初始化
+     */
+    bool initialize();
+    
+    /**
+     * 初始化数据库
+     * 
+     * @return 是否成功初始化
+     */
+    bool initializeDatabase();
+    
+    /**
      * 启动Manager
      * 
      * @return 是否成功启动
@@ -52,7 +66,7 @@ private:
     std::string db_path_;                               // 数据库文件路径
     bool running_;                                      // 运行标志
     
-    std::unique_ptr<HttpServer> http_server_;           // HTTP服务器
+    std::unique_ptr<HTTPServer> http_server_;           // HTTP服务器
     std::shared_ptr<DatabaseManager> db_manager_;       // 数据库管理器
     std::shared_ptr<BusinessManager> business_manager_; // 业务管理器
     std::shared_ptr<Scheduler> scheduler_; // 调度器

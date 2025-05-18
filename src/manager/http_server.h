@@ -5,6 +5,7 @@
 #include <memory>
 #include <functional>
 #include <map>
+#include <httplib.h>
 #include <nlohmann/json.hpp>
 
 // 前向声明
@@ -12,61 +13,177 @@ class DatabaseManager;
 class BusinessManager;
 
 /**
- * HttpServer类 - HTTP服务器
+ * HTTPServer类 - HTTP服务器
  * 
- * 负责处理HTTP请求，提供API接口
+ * 提供HTTP API接口
  */
-class HttpServer {
+class HTTPServer {
 public:
     /**
      * 构造函数
      * 
-     * @param port 监听端口
      * @param db_manager 数据库管理器
      * @param business_manager 业务管理器
+     * @param port 监听端口
      */
-    HttpServer(int port, std::shared_ptr<DatabaseManager> db_manager, std::shared_ptr<BusinessManager> business_manager);
+    HTTPServer(std::shared_ptr<DatabaseManager> db_manager, 
+              std::shared_ptr<BusinessManager> business_manager,
+              int port = 8080);
     
     /**
      * 析构函数
      */
-    ~HttpServer();
+    ~HTTPServer();
     
     /**
-     * 启动HTTP服务器
+     * 启动服务器
      * 
      * @return 是否成功启动
      */
     bool start();
     
     /**
-     * 停止HTTP服务器
+     * 停止服务器
      */
     void stop();
 
 private:
-    // 资源监控API处理函数
-    nlohmann::json handleAgentRegistration(const nlohmann::json& request);
-    nlohmann::json handleResourceReport(const nlohmann::json& request);
-    nlohmann::json handleGetAgents();
-    nlohmann::json handleGetAgentResources(const std::string& agent_id, const std::string& resource_type, int limit);
+    /**
+     * 初始化路由
+     */
+    void initRoutes();
     
-    // 业务部署API处理函数
-    nlohmann::json handleDeployBusiness(const nlohmann::json& request);
-    nlohmann::json handleStopBusiness(const std::string& business_id);
-    nlohmann::json handleRestartBusiness(const std::string& business_id);
-    nlohmann::json handleUpdateBusiness(const std::string& business_id, const nlohmann::json& request);
-    nlohmann::json handleGetBusinesses();
-    nlohmann::json handleGetBusinessDetails(const std::string& business_id);
-    nlohmann::json handleGetBusinessComponents(const std::string& business_id);
-    nlohmann::json handleComponentStatusReport(const nlohmann::json& request);
+    /**
+     * 处理节点注册
+     */
+    void handleNodeRegistration(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理资源上报
+     */
+    void handleResourceReport(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理获取节点列表
+     */
+    void handleGetNodes(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理获取节点详情
+     */
+    void handleGetNodeDetails(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理获取节点资源历史
+     */
+    void handleGetNodeResourceHistory(const httplib::Request& req, httplib::Response& res);
+
+    /**
+     * 处理获取节点资源
+     */
+    void handleGetAgentResources(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理业务部署
+     */
+    void handleDeployBusiness(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理业务停止
+     */
+    void handleStopBusiness(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理业务重启
+     */
+    void handleRestartBusiness(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理业务更新
+     */
+    void handleUpdateBusiness(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理获取业务列表
+     */
+    void handleGetBusinesses(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理获取业务详情
+     */
+    void handleGetBusinessDetails(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理获取业务组件
+     */
+    void handleGetBusinessComponents(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理组件状态上报
+     */
+    void handleComponentStatusReport(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理创建组件模板
+     */
+    void handleCreateComponentTemplate(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理获取组件模板列表
+     */
+    void handleGetComponentTemplates(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理获取组件模板详情
+     */
+    void handleGetComponentTemplateDetails(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理更新组件模板
+     */
+    void handleUpdateComponentTemplate(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理删除组件模板
+     */
+    void handleDeleteComponentTemplate(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理创建业务模板
+     */
+    void handleCreateBusinessTemplate(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理获取业务模板列表
+     */
+    void handleGetBusinessTemplates(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理获取业务模板详情
+     */
+    void handleGetBusinessTemplateDetails(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理更新业务模板
+     */
+    void handleUpdateBusinessTemplate(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理删除业务模板
+     */
+    void handleDeleteBusinessTemplate(const httplib::Request& req, httplib::Response& res);
+    
+    /**
+     * 处理获取业务模板作为业务
+     */
+    void handleGetBusinessTemplateAsBusiness(const httplib::Request& req, httplib::Response& res);
 
 private:
-    int port_;                                      // 监听端口
-    std::shared_ptr<DatabaseManager> db_manager_;   // 数据库管理器
-    std::shared_ptr<BusinessManager> business_manager_; // 业务管理器
-    bool running_;                                  // 运行标志
-    void* server_;                                  // HTTP服务器实例
+    std::shared_ptr<DatabaseManager> db_manager_;    // 数据库管理器
+    std::shared_ptr<BusinessManager> business_manager_;  // 业务管理器
+    int port_;  // 监听端口
+    httplib::Server server_;  // HTTP服务器
+    bool running_;  // 是否正在运行
 };
 
 #endif // HTTP_SERVER_H

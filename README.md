@@ -213,6 +213,135 @@ POST /api/report/component
 }
 ```
 
+### 组件模板API
+
+#### 创建组件模板
+```
+POST /api/templates/components
+```
+请求体示例：
+```json
+{
+  "template_name": "nginx-docker-template",
+  "description": "Nginx docker组件模板",
+  "type": "docker",
+  "config": {
+    "image_url": "nginx:latest",
+    "image_name": "nginx:latest",
+    "resource_requirements": {"cpu_cores": 1, "memory_mb": 128},
+    "environment_variables": {"PORT": "80"},
+    "config_files": [],
+    "affinity": {}
+  }
+}
+```
+
+#### 获取组件模板列表
+```
+GET /api/templates/components
+```
+
+#### 获取组件模板详情
+```
+GET /api/templates/components/{template_id}
+```
+
+#### 更新组件模板
+```
+PUT /api/templates/components/{template_id}
+```
+请求体示例：
+```json
+{
+  "template_name": "nginx-docker-template-updated",
+  "description": "更新后的描述",
+  "type": "docker",
+  "config": {
+    "image_url": "nginx:1.21",
+    "image_name": "nginx:1.21",
+    "resource_requirements": {"cpu_cores": 2, "memory_mb": 256},
+    "environment_variables": {"PORT": "8080"},
+    "config_files": [],
+    "affinity": {}
+  }
+}
+```
+
+#### 删除组件模板
+```
+DELETE /api/templates/components/{template_id}
+```
+
+### 业务模板API
+
+#### 创建业务模板
+```
+POST /api/templates/businesses
+```
+请求体示例：
+```json
+{
+  "template_name": "web-app-template",
+  "description": "Web应用业务模板",
+  "components": [
+    {
+      "component_template_id": "ct-xxxx-xxxx",
+      "component_id": "component-1",
+      "component_name": "nginx-web"
+    },
+    {
+      "component_template_id": "ct-yyyy-yyyy",
+      "component_id": "component-2",
+      "component_name": "my-binary"
+    }
+  ]
+}
+```
+
+#### 获取业务模板列表
+```
+GET /api/templates/businesses
+```
+
+#### 获取业务模板详情
+```
+GET /api/templates/businesses/{template_id}
+```
+
+#### 更新业务模板
+```
+PUT /api/templates/businesses/{template_id}
+```
+请求体示例：
+```json
+{
+  "template_name": "web-app-template-updated",
+  "description": "更新后的业务模板描述",
+  "components": [
+    {
+      "component_template_id": "ct-xxxx-xxxx",
+      "component_id": "component-1",
+      "component_name": "nginx-web"
+    },
+    {
+      "component_template_id": "ct-yyyy-yyyy",
+      "component_id": "component-2",
+      "component_name": "my-binary"
+    }
+  ]
+}
+```
+
+#### 删除业务模板
+```
+DELETE /api/templates/businesses/{template_id}
+```
+
+#### 获取业务模板部署配置
+```
+GET /api/templates/businesses/{template_id}/deployment-config
+```
+
 ### Agent本地API（组件部署/停止）
 
 Agent本地HTTP服务（默认8081端口）支持组件部署与停止：

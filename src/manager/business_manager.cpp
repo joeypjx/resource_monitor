@@ -464,6 +464,9 @@ nlohmann::json BusinessManager::deployComponent(const std::string& business_id,
         };
     }
     
+    // 打印节点信息node_info
+    std::cout << "Node info: " << node_info.dump() << std::endl;
+
     // 获取节点URL
     std::string node_url;
     if (node_info.contains("ip_address")) {

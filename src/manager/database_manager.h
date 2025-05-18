@@ -54,6 +54,7 @@ public:
      * 定期检查节点最后上报时间，超过阈值则标记为离线
      */
     void startNodeStatusMonitor();
+    bool saveResourceUsage(const nlohmann::json& resource_usage);
     bool saveCpuMetrics(const std::string& agent_id, long long timestamp, const nlohmann::json& cpu_data);
     bool saveMemoryMetrics(const std::string& agent_id, long long timestamp, const nlohmann::json& memory_data);
     bool saveDiskMetrics(const std::string& agent_id, long long timestamp, const nlohmann::json& disk_data);
@@ -61,11 +62,13 @@ public:
     bool saveDockerMetrics(const std::string& agent_id, long long timestamp, const nlohmann::json& docker_data);
     
     nlohmann::json getAgents();
+    nlohmann::json getNode(const std::string& node_id);
     nlohmann::json getCpuMetrics(const std::string& agent_id, int limit = 100);
     nlohmann::json getMemoryMetrics(const std::string& agent_id, int limit = 100);
     nlohmann::json getDiskMetrics(const std::string& agent_id, int limit = 100);
     nlohmann::json getNetworkMetrics(const std::string& agent_id, int limit = 100);
     nlohmann::json getDockerMetrics(const std::string& agent_id, int limit = 100);
+    nlohmann::json getNodeResourceHistory(const std::string& node_id, int limit = 100);
     
     // 业务部署相关方法
     bool saveBusiness(const nlohmann::json& business_info);
@@ -85,10 +88,25 @@ public:
     nlohmann::json getNodeResourceInfo(const std::string& node_id);
     nlohmann::json getNodeGpuInfo(const std::string& node_id);
 
+    // 业务模板相关方法
+    bool createBusinessTemplateTable();
+    bool createComponentTemplateTable();
+    nlohmann::json getBusinessTemplate(const std::string& template_id);
+    nlohmann::json getBusinessTemplates();
+    nlohmann::json saveBusinessTemplate(const nlohmann::json& template_info);
+    nlohmann::json updateBusinessTemplate(const std::string& template_id, const nlohmann::json& template_info);
+    nlohmann::json deleteBusinessTemplate(const std::string& template_id);
+
+    // 组件/业务模板相关接口
+    nlohmann::json saveComponentTemplate(const nlohmann::json& template_info);
+    nlohmann::json getComponentTemplates();
+    nlohmann::json getComponentTemplate(const std::string& template_id);
+    nlohmann::json deleteComponentTemplate(const std::string& template_id);
+
 private:
     std::string db_path_;                     // 数据库文件路径
     std::unique_ptr<SQLite::Database> db_;    // 数据库连接
-    
+
     bool node_monitor_running_;               // 节点监控线程运行标志
     std::unique_ptr<std::thread> node_monitor_thread_; // 节点监控线程
 };
