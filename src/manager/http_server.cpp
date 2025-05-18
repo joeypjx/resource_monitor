@@ -175,7 +175,7 @@ void HTTPServer::handleGetNodes(const httplib::Request &req, httplib::Response &
     try
     {
         auto nodes = db_manager_->getAgents();
-        res.set_content(nodes.dump(), "application/json");
+        res.set_content("{\"status\":\"success\",\"agents\":" + nodes.dump() + "}", "application/json");
     }
     catch (const std::exception &e)
     {
@@ -215,7 +215,7 @@ void HTTPServer::handleGetNodeResourceHistory(const httplib::Request &req, httpl
         int limit = req.has_param("limit") ? std::stoi(req.get_param_value("limit")) : 100;
 
         auto history = db_manager_->getNodeResourceHistory(node_id, limit);
-        res.set_content(history.dump(), "application/json");
+        res.set_content("{\"status\":\"success\",\"history\":" + history.dump() + "}", "application/json");
     }
     catch (const std::exception &e)
     {
@@ -240,27 +240,27 @@ void HTTPServer::handleGetAgentResources(const httplib::Request &req, httplib::R
         if (resource_type == "cpu")
         {
             auto cpu_metrics = db_manager_->getCpuMetrics(agent_id, limit);
-            res.set_content(cpu_metrics.dump(), "application/json");
+            res.set_content("{\"status\":\"success\",\"cpu_metrics\":" + cpu_metrics.dump() + "}", "application/json");
         }
         else if (resource_type == "memory")
         {
             auto memory_metrics = db_manager_->getMemoryMetrics(agent_id, limit);
-            res.set_content(memory_metrics.dump(), "application/json");
+            res.set_content("{\"status\":\"success\",\"memory_metrics\":" + memory_metrics.dump() + "}", "application/json");
         }
         else if (resource_type == "disk")
         {
             auto disk_metrics = db_manager_->getDiskMetrics(agent_id, limit);
-            res.set_content(disk_metrics.dump(), "application/json");
+            res.set_content("{\"status\":\"success\",\"disk_metrics\":" + disk_metrics.dump() + "}", "application/json");
         }
         else if (resource_type == "network")
         {
             auto network_metrics = db_manager_->getNetworkMetrics(agent_id, limit);
-            res.set_content(network_metrics.dump(), "application/json");
+            res.set_content("{\"status\":\"success\",\"network_metrics\":" + network_metrics.dump() + "}", "application/json");
         }
         else if (resource_type == "docker")
         {
             auto docker_metrics = db_manager_->getDockerMetrics(agent_id, limit);
-            res.set_content(docker_metrics.dump(), "application/json");
+            res.set_content("{\"status\":\"success\",\"docker_metrics\":" + docker_metrics.dump() + "}", "application/json");
         }
         else
         {
