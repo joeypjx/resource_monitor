@@ -80,278 +80,430 @@ cd build
 - `--hostname`：主机名，默认自动获取
 - `--interval`：资源采集间隔（秒），默认为5
 
-## API接口
+---
 
-### 资源监控API
+# API接口文档（前端开发专用）
 
-#### 获取所有Agent列表
+## 1. 节点与资源监控
 
-```
-GET /api/agents
-```
-
-#### 获取指定Agent的资源数据
-
-```
-GET /api/agents/{agent_id}/{resource_type}?limit={limit}
-```
-
-参数说明：
-- `agent_id`：Agent ID
-- `resource_type`：资源类型，可选值：cpu, memory, disk, network, docker
-- `limit`：返回记录数量限制，默认为100
-
-### 业务部署与管理API（Manager端）
-
-#### 部署业务
-
-```
-POST /api/businesses
-```
-
-请求体示例：
-```json
-{
-  "business_id": "unique-business-id",
-  "business_name": "example-business",
-  "components": [
-    {
-      "component_id": "component-1",
-      "component_name": "web-server",
-      "type": "docker",
-      "image_url": "https://example.com/images/web-server.tar",
-      "image_name": "web-server:latest",
-      "resource_requirements": {
-        "cpu_cores": 2,
-        "memory_mb": 1024,
-        "gpu": false
-      },
-      "environment_variables": {
-        "PORT": "8080",
-        "DB_HOST": "localhost"
-      },
-      "config_files": [
-        {
-          "path": "/etc/web-server/config.json",
-          "content": "{\"key\": \"value\"}"
-        }
-      ],
-      "affinity": {
-        "require_gpu": false
+### 获取所有Agent列表
+- **GET** `/api/agents`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "agents": [
+      {
+        "agent_id": "node-xxxx",
+        "hostname": "host1",
+        "ip": "192.168.1.10",
+        "last_heartbeat": "2024-05-18 10:00:00"
       }
-    },
-    {
-      "component_id": "component-2",
-      "component_name": "my-binary",
-      "type": "binary",
-      "binary_path": "/opt/bin/my-binary",
-      "binary_url": "http://example.com/bin/my-binary",
-      "resource_requirements": {
-        "cpu_cores": 1,
-        "memory_mb": 256
+    ]
+  }
+  ```
+
+### 获取指定Agent的资源历史
+- **GET** `/api/agents/{agent_id}/resources?limit=100`
+- **参数**
+  - `agent_id`：节点ID
+  - `limit`：返回条数（可选，默认100）
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "history": [
+      {
+        "timestamp": "2024-05-18 10:00:00",
+        "cpu": 0.12,
+        "memory": 512,
+        "disk": 10240,
+        "network": 1234
+      }
+    ]
+  }
+  ```
+
+### 获取指定Agent的某类资源
+- **GET** `/api/agents/{agent_id}/resources/{resource_type}?limit=100`
+- **resource_type**：`cpu`/`memory`/`disk`/`network`/`docker`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "metrics": [
+      {
+        "timestamp": "2024-05-18 10:00:00",
+        "value": 0.12
+      }
+    ]
+  }
+  ```
+
+---
+
+## 2. 业务部署与管理
+
+### 部署业务
+- **POST** `/api/businesses`
+- **请求体**
+  ```json
+  {
+    "business_name": "example-business",
+    "components": [
+      {
+        "component_id": "component-1",
+        "component_name": "web-server",
+        "type": "docker",
+        "image_url": "https://example.com/images/web-server.tar",
+        "image_name": "web-server:latest",
+        "resource_requirements": {"cpu_cores": 2, "memory_mb": 1024, "gpu": false},
+        "environment_variables": {"PORT": "8080"},
+        "config_files": [],
+        "affinity": {"require_gpu": false}
       },
-      "environment_variables": {
-        "MODE": "test"
-      },
+      {
+        "component_id": "component-2",
+        "component_name": "my-binary",
+        "type": "binary",
+        "binary_path": "/opt/bin/my-binary",
+        "binary_url": "http://example.com/bin/my-binary",
+        "resource_requirements": {"cpu_cores": 1, "memory_mb": 256},
+        "environment_variables": {"MODE": "test"},
+        "config_files": [],
+        "affinity": {}
+      }
+    ]
+  }
+  ```
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "business_id": "business-xxxx",
+    "message": "Business deployed"
+  }
+  ```
+
+### 停止业务
+- **POST** `/api/businesses/{business_id}/stop`
+- **返回示例**
+  ```json
+  {"status": "success", "message": "Business stopped"}
+  ```
+
+### 重启业务
+- **POST** `/api/businesses/{business_id}/restart`
+- **返回示例**
+  ```json
+  {"status": "success", "message": "Business restarted"}
+  ```
+
+### 更新业务
+- **PUT** `/api/businesses/{business_id}`
+- **请求体**：同部署业务
+- **返回示例**
+  ```json
+  {"status": "success", "message": "Business updated"}
+  ```
+
+### 获取业务列表
+- **GET** `/api/businesses`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "businesses": [
+      {
+        "business_id": "business-xxxx",
+        "business_name": "example-business",
+        "status": "running"
+      }
+    ]
+  }
+  ```
+
+### 获取业务详情
+- **GET** `/api/businesses/{business_id}`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "business": {
+      "business_id": "business-xxxx",
+      "business_name": "example-business",
+      "status": "running",
+      "components": [ ... ]
+    }
+  }
+  ```
+
+### 获取业务组件状态
+- **GET** `/api/businesses/{business_id}/components`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "components": [
+      {
+        "component_id": "component-1",
+        "status": "running",
+        "type": "docker",
+        "node_id": "node-xxxx"
+      }
+    ]
+  }
+  ```
+
+### 组件状态上报
+- **POST** `/api/report/component`
+- **请求体**
+  ```json
+  {
+    "component_id": "component-1",
+    "business_id": "business-xxxx",
+    "status": "running",
+    "container_id": "xxxxxx"
+  }
+  ```
+- **返回示例**
+  ```json
+  {"status": "success"}
+  ```
+
+---
+
+## 3. 组件模板管理
+
+### 创建组件模板
+- **POST** `/api/templates/components`
+- **请求体**
+  ```json
+  {
+    "template_name": "nginx-docker-template",
+    "description": "Nginx docker组件模板",
+    "type": "docker",
+    "config": {
+      "image_url": "nginx:latest",
+      "image_name": "nginx:latest",
+      "resource_requirements": {"cpu_cores": 1, "memory_mb": 128},
+      "environment_variables": {"PORT": "80"},
       "config_files": [],
       "affinity": {}
     }
-  ]
-}
-```
-
-#### 停止业务
-
-```
-POST /api/businesses/{business_id}/stop
-```
-
-#### 重启业务
-
-```
-POST /api/businesses/{business_id}/restart
-```
-
-#### 更新业务
-
-```
-PUT /api/businesses/{business_id}
-```
-
-请求体格式同部署业务。
-
-#### 获取业务列表
-
-```
-GET /api/businesses
-```
-
-#### 获取业务详情
-
-```
-GET /api/businesses/{business_id}
-```
-
-#### 获取业务组件状态
-
-```
-GET /api/businesses/{business_id}/components
-```
-
-#### 组件状态上报
-
-```
-POST /api/report/component
-```
-请求体示例：
-```json
-{
-  "component_id": "component-1",
-  "business_id": "unique-business-id",
-  "status": "running",
-  "container_id": "xxxxxx"
-}
-```
-
-### 组件模板API
-
-#### 创建组件模板
-```
-POST /api/templates/components
-```
-请求体示例：
-```json
-{
-  "template_name": "nginx-docker-template",
-  "description": "Nginx docker组件模板",
-  "type": "docker",
-  "config": {
-    "image_url": "nginx:latest",
-    "image_name": "nginx:latest",
-    "resource_requirements": {"cpu_cores": 1, "memory_mb": 128},
-    "environment_variables": {"PORT": "80"},
-    "config_files": [],
-    "affinity": {}
   }
-}
-```
+  ```
+- **返回示例**
+  ```json
+  {"status": "success", "component_template_id": "ct-xxxx"}
+  ```
 
-#### 获取组件模板列表
-```
-GET /api/templates/components
-```
-
-#### 获取组件模板详情
-```
-GET /api/templates/components/{template_id}
-```
-
-#### 更新组件模板
-```
-PUT /api/templates/components/{template_id}
-```
-请求体示例：
-```json
-{
-  "template_name": "nginx-docker-template-updated",
-  "description": "更新后的描述",
-  "type": "docker",
-  "config": {
-    "image_url": "nginx:1.21",
-    "image_name": "nginx:1.21",
-    "resource_requirements": {"cpu_cores": 2, "memory_mb": 256},
-    "environment_variables": {"PORT": "8080"},
-    "config_files": [],
-    "affinity": {}
+### 获取组件模板列表
+- **GET** `/api/templates/components`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "templates": [
+      {
+        "component_template_id": "ct-xxxx",
+        "template_name": "nginx-docker-template",
+        "type": "docker"
+      }
+    ]
   }
-}
-```
+  ```
 
-#### 删除组件模板
-```
-DELETE /api/templates/components/{template_id}
-```
-
-### 业务模板API
-
-#### 创建业务模板
-```
-POST /api/templates/businesses
-```
-请求体示例：
-```json
-{
-  "template_name": "web-app-template",
-  "description": "Web应用业务模板",
-  "components": [
-    {
-      "component_template_id": "ct-xxxx-xxxx",
-      "component_id": "component-1",
-      "component_name": "nginx-web"
-    },
-    {
-      "component_template_id": "ct-yyyy-yyyy",
-      "component_id": "component-2",
-      "component_name": "my-binary"
+### 获取组件模板详情
+- **GET** `/api/templates/components/{template_id}`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "template": {
+      "component_template_id": "ct-xxxx",
+      "template_name": "nginx-docker-template",
+      "type": "docker",
+      "description": "Nginx docker组件模板",
+      "config": { ... }
     }
-  ]
-}
-```
+  }
+  ```
 
-#### 获取业务模板列表
-```
-GET /api/templates/businesses
-```
+### 更新组件模板
+- **PUT** `/api/templates/components/{template_id}`
+- **请求体**：同创建
+- **返回示例**
+  ```json
+  {"status": "success"}
+  ```
 
-#### 获取业务模板详情
-```
-GET /api/templates/businesses/{template_id}
-```
+### 删除组件模板
+- **DELETE** `/api/templates/components/{template_id}`
+- **返回示例**
+  ```json
+  {"status": "success"}
+  ```
 
-#### 更新业务模板
-```
-PUT /api/templates/businesses/{template_id}
-```
-请求体示例：
-```json
-{
-  "template_name": "web-app-template-updated",
-  "description": "更新后的业务模板描述",
-  "components": [
-    {
-      "component_template_id": "ct-xxxx-xxxx",
-      "component_id": "component-1",
-      "component_name": "nginx-web"
-    },
-    {
-      "component_template_id": "ct-yyyy-yyyy",
-      "component_id": "component-2",
-      "component_name": "my-binary"
+---
+
+## 4. 业务模板管理
+
+### 创建业务模板
+- **POST** `/api/templates/businesses`
+- **请求体**
+  ```json
+  {
+    "template_name": "web-app-template",
+    "description": "Web应用业务模板",
+    "components": [
+      {
+        "component_template_id": "ct-xxxx",
+        "component_id": "component-1",
+        "component_name": "nginx-web"
+      },
+      {
+        "component_template_id": "ct-yyyy",
+        "component_id": "component-2",
+        "component_name": "my-binary"
+      }
+    ]
+  }
+  ```
+- **返回示例**
+  ```json
+  {"status": "success", "business_template_id": "bt-xxxx"}
+  ```
+
+### 获取业务模板列表
+- **GET** `/api/templates/businesses`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "templates": [
+      {
+        "business_template_id": "bt-xxxx",
+        "template_name": "web-app-template"
+      }
+    ]
+  }
+  ```
+
+### 获取业务模板详情
+- **GET** `/api/templates/businesses/{template_id}`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "template": {
+      "business_template_id": "bt-xxxx",
+      "template_name": "web-app-template",
+      "description": "Web应用业务模板",
+      "components": [
+        {
+          "component_template_id": "ct-xxxx",
+          "component_id": "component-1",
+          "component_name": "nginx-web",
+          "template_details": { ... }
+        }
+      ]
     }
-  ]
-}
-```
+  }
+  ```
 
-#### 删除业务模板
-```
-DELETE /api/templates/businesses/{template_id}
-```
+### 更新业务模板
+- **PUT** `/api/templates/businesses/{template_id}`
+- **请求体**：同创建
+- **返回示例**
+  ```json
+  {"status": "success"}
+  ```
 
-#### 获取业务模板部署配置
-```
-GET /api/templates/businesses/{template_id}/deployment-config
-```
+### 删除业务模板
+- **DELETE** `/api/templates/businesses/{template_id}`
+- **返回示例**
+  ```json
+  {"status": "success"}
+  ```
 
-### Agent本地API（组件部署/停止）
+### 获取业务模板部署配置（转为实际部署格式）
+- **GET** `/api/templates/businesses/{template_id}/as-business`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "business": {
+      "business_name": "web-app-template",
+      "components": [
+        {
+          "component_id": "component-1",
+          "component_name": "nginx-web",
+          "type": "docker",
+          "image_url": "nginx:1.21",
+          "image_name": "nginx:1.21",
+          "resource_requirements": {"cpu_cores": 2, "memory_mb": 256},
+          "environment_variables": {"PORT": "8080"},
+          "config_files": [],
+          "affinity": {}
+        }
+      ]
+    }
+  }
+  ```
 
-Agent本地HTTP服务（默认8081端口）支持组件部署与停止：
+---
 
-- 部署组件：
-  - `POST /api/deploy`，请求体为JSON，包含component_id、business_id、component_name、type等字段
-- 停止组件：
-  - `POST /api/stop`，请求体为JSON，包含component_id、business_id等字段
+## 5. Agent本地API（组件部署/停止）
 
-> 注意：Agent上报组件状态时，暂不包含node_id字段（即agent_id），如需扩展可在后续版本中支持。
+### 部署组件
+- **POST** `/api/deploy`
+- **请求体**
+  ```json
+  {
+    "component_id": "component-1",
+    "business_id": "business-xxxx",
+    "component_name": "web-server",
+    "type": "docker"
+  }
+  ```
+- **返回示例**
+  ```json
+  {"status": "success"}
+  ```
+
+### 停止组件
+- **POST** `/api/stop`
+- **请求体**
+  ```json
+  {
+    "component_id": "component-1",
+    "business_id": "business-xxxx"
+  }
+  ```
+- **返回示例**
+  ```json
+  {"status": "success"}
+  ```
+
+---
+
+## 字段说明
+
+- `component_id`：组件唯一标识
+- `component_name`：组件名称
+- `type`：组件类型（docker/binary）
+- `image_url`/`image_name`：docker镜像相关
+- `binary_url`/`binary_path`：二进制组件相关
+- `resource_requirements`：资源需求（cpu_cores、memory_mb、gpu）
+- `environment_variables`：环境变量
+- `config_files`：配置文件数组
+- `affinity`：调度亲和性约束
+- `status`：状态（success/error/running/stopped等）
+
+---
+
+如需补充更多接口或字段说明，请随时告知！
 
 ## 测试
 
