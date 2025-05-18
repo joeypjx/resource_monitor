@@ -190,7 +190,7 @@ bool DatabaseManager::saveBusinessComponent(const nlohmann::json& component_info
             update.bind(idx++, component_info.contains("node_id") ? component_info["node_id"].get<std::string>() : "");
             update.bind(idx++, component_info.contains("container_id") ? component_info["container_id"].get<std::string>() : "");
             update.bind(idx++, component_info["status"].get<std::string>());
-            update.bind(idx++, timestamp);
+            update.bind(idx++, static_cast<int64_t>(timestamp));
             update.bind(idx++, component_info["component_id"].get<std::string>());
             update.bind(idx++, component_info.contains("binary_path") ? component_info["binary_path"].get<std::string>() : "");
             update.bind(idx++, component_info.contains("binary_url") ? component_info["binary_url"].get<std::string>() : "");
@@ -220,8 +220,8 @@ bool DatabaseManager::saveBusinessComponent(const nlohmann::json& component_info
             insert.bind(idx++, component_info.contains("node_id") ? component_info["node_id"].get<std::string>() : "");
             insert.bind(idx++, component_info.contains("container_id") ? component_info["container_id"].get<std::string>() : "");
             insert.bind(idx++, component_info["status"].get<std::string>());
-            insert.bind(idx++, timestamp);
-            insert.bind(idx++, timestamp);
+            insert.bind(idx++, static_cast<int64_t>(timestamp));
+            insert.bind(idx++, static_cast<int64_t>(timestamp));
             insert.bind(idx++, component_info.contains("binary_path") ? component_info["binary_path"].get<std::string>() : "");
             insert.bind(idx++, component_info.contains("binary_url") ? component_info["binary_url"].get<std::string>() : "");
             insert.bind(idx++, component_info.contains("process_id") ? component_info["process_id"].get<std::string>() : "");
@@ -250,7 +250,7 @@ bool DatabaseManager::updateComponentStatus(const std::string& component_id,
             "UPDATE business_components SET status = ?, container_id = ?, updated_at = ? WHERE component_id = ?");
         update.bind(1, status);
         update.bind(2, container_id);
-        update.bind(3, timestamp);
+        update.bind(3, static_cast<int64_t>(timestamp));
         update.bind(4, component_id);
         update.exec();
         
