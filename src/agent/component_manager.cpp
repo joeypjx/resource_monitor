@@ -47,6 +47,10 @@ bool ComponentManager::initialize() {
 }
 
 nlohmann::json ComponentManager::deployComponent(const nlohmann::json& component_info) {
+
+    // 打印组件信息
+    std::cout << "Deploying component: " << component_info.dump() << std::endl;
+
     std::lock_guard<std::mutex> lock(components_mutex_);
     
     // 检查必要字段
@@ -90,12 +94,19 @@ nlohmann::json ComponentManager::deployDockerComponent(const nlohmann::json& com
         };
     }
     
+    // 打印组件信息
+    std::cout << "Component info: " << component_info.dump() << std::endl;
+
     // 获取镜像信息
     std::string image_url = component_info.contains("image_url") ? component_info["image_url"].get<std::string>() : "";
     std::string image_name = component_info.contains("image_name") ? component_info["image_name"].get<std::string>() : "";
     
     // 下载或拉取镜像 todo 需要修改
     auto pull_result = downloadImage(image_url, image_name);
+
+    // 打印镜像信息
+    std::cout << "Image url: " << image_url << std::endl;
+    std::cout << "Image name: " << image_name << std::endl;
     
     if (pull_result["status"] != "success") {
         return pull_result;
@@ -136,6 +147,9 @@ nlohmann::json ComponentManager::deployDockerComponent(const nlohmann::json& com
     // 创建容器名称
     std::string container_name = "rm_" + business_id.substr(0, 8) + "_" + component_id.substr(0, 8);
     
+    // 打印容器名称
+    std::cout << "Container name: " << container_name << std::endl;
+
     // 创建并启动容器
     auto create_result = docker_manager_->createContainer(
         image_name.empty() ? "loaded_image:latest" : image_name,
@@ -264,9 +278,6 @@ nlohmann::json ComponentManager::stopComponent(const std::string& component_id,
                                             const std::string& container_or_process_id,
                                             ComponentType component_type) {
 
-    // 打印停止组件信息
-    std::cout << "Stopping component: " << component_id << ", business_id: " << business_id << ", container_or_process_id: " << container_or_process_id << std::endl;
-
     std::lock_guard<std::mutex> lock(components_mutex_);
     
     // 检查组件是否存在
@@ -317,9 +328,6 @@ nlohmann::json ComponentManager::stopComponent(const std::string& component_id,
 nlohmann::json ComponentManager::stopDockerComponent(const std::string& component_id, 
                                                    const std::string& business_id, 
                                                    const std::string& container_id) {
-
-    // 打印停止组件信息
-    std::cout << "Stopping Docker component: " << component_id << ", business_id: " << business_id << ", container_id: " << container_id << std::endl;
 
     if (container_id.empty()) {
         return {

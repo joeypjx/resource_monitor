@@ -100,6 +100,19 @@ nlohmann::json DockerManager::pullImage(const std::string& image_url, const std:
         } 
         // 否则，从Docker Hub拉取镜像
         else if (!image_name.empty()) {
+
+            // 检查本地有没有镜像
+            std::string check_cmd = "docker images " + image_name;
+            std::string check_output = exec(check_cmd.c_str());
+            if (check_output.find(image_name) != std::string::npos) {
+                return {
+                    {"status", "success"},
+                    {"message", "Image already exists"},
+                    {"output", check_output}
+                };
+            }
+
+            // 拉取镜像
             cmd = "docker pull " + image_name;
             std::string pull_output = exec(cmd.c_str());
             

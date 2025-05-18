@@ -64,6 +64,10 @@ nlohmann::json BusinessManager::deployBusiness(const nlohmann::json& business_in
     }
     
     auto components = business_info["components"];
+    // 修改组件的id
+    for (auto& component : components) {
+        component["component_id"] = generate_uuid();
+    }
     
     // 调度组件
     auto schedule_result = scheduler_->scheduleComponents(business_id, components);
@@ -90,9 +94,6 @@ nlohmann::json BusinessManager::deployBusiness(const nlohmann::json& business_in
         
         // 部署组件
         auto deploy_result = deployComponent(business_id, component_info, node_id);
-        
-        // 打印部署结果
-        std::cout << "Deploy result: " << deploy_result.dump() << std::endl;
 
         if (deploy_result["status"] != "success") {
             // 停止已部署的组件
@@ -141,33 +142,10 @@ nlohmann::json BusinessManager::deployBusiness(const nlohmann::json& business_in
 nlohmann::json BusinessManager::stopBusiness(const std::string& business_id) {
     std::cout << "Stopping business: " << business_id << std::endl;
     
-    // // 检查业务是否存在
-    // {
-    //     std::lock_guard<std::mutex> lock(businesses_mutex_);
-
-    //     // 打印业务信息
-    //     std::cout << "Business info: " << businesses_[business_id].dump() << std::endl;
-        
-    //     if (businesses_.find(business_id) == businesses_.end()) {
-    //         // 尝试从数据库加载
-    //         // auto business = db_manager_->getBusiness(business_id); // TODO: 需实现或通过其他方式获取业务信息
-            
-    //         if (businesses_.empty()) {
-    //             return {
-    //                 {"status", "error"},
-    //                 {"message", "Business not found"}
-    //             };
-    //         }
-            
-    //         businesses_[business_id] = businesses_.begin()->second;
-    //     }
-    // }
-    
     // 获取业务信息
     auto business = db_manager_-> getBusinessDetails(business_id);
 
     // auto business = businesses_[business_id];
-
     // 打印业务信息
     std::cout << "Business info: " << business.dump() << std::endl;
     
@@ -176,6 +154,9 @@ nlohmann::json BusinessManager::stopBusiness(const std::string& business_id) {
         std::string component_id = component_item["component_id"];
         
         // 停止组件
+        // 打印停止组件信息
+        std::cout << "Stopping component: " << component_id << ", business_id: " << business_id << std::endl;
+
         auto stop_result = stopComponent(business_id, component_id);
         
         if (stop_result["status"] != "success") {
@@ -464,9 +445,6 @@ nlohmann::json BusinessManager::deployComponent(const std::string& business_id,
         };
     }
     
-    // 打印节点信息node_info
-    std::cout << "Node info: " << node_info.dump() << std::endl;
-
     // 获取节点URL
     std::string node_url;
     if (node_info.contains("ip_address")) {
@@ -526,12 +504,6 @@ nlohmann::json BusinessManager::deployComponent(const std::string& business_id,
         // 发送POST请求
         auto res = cli.Post(path, header_map, json_data, "application/json");
         
-        // 打印
-        std::cout << "Deploy request sent to " << node_url << std::endl;
-        std::cout << "Request body: " << json_data << std::endl;
-        std::cout << "Response status: " << res->status << std::endl;
-        std::cout << "Response body: " << res->body << std::endl;
-
         // 处理响应
         if (res && res->status == 200) {
             try {
@@ -564,6 +536,9 @@ nlohmann::json BusinessManager::deployComponent(const std::string& business_id,
             component["process_id"] = deploy_request["process_id"];
         }
         
+        // 打印组件信息
+        std::cout << "save Component info: " << component.dump() << std::endl;
+
         // 保存到数据库
         db_manager_->saveBusinessComponent(component);
     }
@@ -579,9 +554,6 @@ nlohmann::json BusinessManager::stopComponent(const std::string& business_id, co
     // 获取组件信息
     auto components = db_manager_->getBusinessComponents(business_id);
 
-    // 打印组件信息
-    std::cout << "Components info: " << components.dump() << std::endl;
-
     nlohmann::json component;
     for (const auto& c : components) {
         if (c["component_id"] == component_id) {
@@ -595,9 +567,6 @@ nlohmann::json BusinessManager::stopComponent(const std::string& business_id, co
             {"message", "Component not found"}
         };
     }
-
-    // 打印组件信息
-    std::cout << "Component info: " << component.dump() << std::endl;
     
     // 获取节点信息
     std::string node_id = component["node_id"].get<std::string>();
@@ -649,10 +618,10 @@ nlohmann::json BusinessManager::stopComponent(const std::string& business_id, co
         stop_request["process_id"] = component["process_id"];
         stop_request["component_type"] = "binary";
     }
-    
+        
     // 打印停止请求
     std::cout << "Stop request: " << stop_request.dump() << std::endl;
-    
+
     // 发送停止请求
     nlohmann::json response;
     try {
@@ -693,16 +662,8 @@ nlohmann::json BusinessManager::stopComponent(const std::string& business_id, co
         // 将JSON数据转换为字符串
         std::string json_data = stop_request.dump();
         
-        // 打印请求
-        std::cout << "Stop request sent to " << node_url << std::endl;
-        std::cout << "Request body: " << json_data << std::endl;
-        
         // 发送POST请求
         auto res = cli.Post(path, header_map, json_data, "application/json");
-        
-        // 打印响应
-        std::cout << "Response status: " << res->status << std::endl;
-        std::cout << "Response body: " << res->body << std::endl;
         
         // 处理响应
         if (res && res->status == 200) {

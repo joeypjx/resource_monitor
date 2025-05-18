@@ -143,9 +143,6 @@ nlohmann::json BinaryManager::startProcess(const std::string& binary_path,
         std::lock_guard<std::mutex> lock(process_mutex_);
         process_map_[process_id] = binary_path;
     }
-    
-    // 打印进程信息
-    std::cout << "Process started successfully, process_id: " << process_id << std::endl;
 
     return {
         {"status", "success"},

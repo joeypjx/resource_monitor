@@ -61,9 +61,8 @@ void HTTPServer::initRoutes()
     server_.Get("/api/agents/:agent_id/resources/:resource_type", [this](const httplib::Request &req, httplib::Response &res)
                 { handleGetAgentResources(req, res); });
 
-    server_.Get("/api/agents/:agent_id/resources", [this](const httplib::Request& req, httplib::Response& res) {
-        handleGetNodeResourceHistory(req, res);
-    });
+    server_.Get("/api/agents/:agent_id/resources", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetNodeResourceHistory(req, res); });
 
     // 业务管理API
     server_.Post("/api/businesses", [this](const httplib::Request &req, httplib::Response &res)
@@ -208,14 +207,18 @@ void HTTPServer::handleGetNodeDetails(const httplib::Request &req, httplib::Resp
 }
 
 // 处理获取节点资源
-void HTTPServer::handleGetNodeResourceHistory(const httplib::Request& req, httplib::Response& res) {
-    try {
+void HTTPServer::handleGetNodeResourceHistory(const httplib::Request &req, httplib::Response &res)
+{
+    try
+    {
         std::string node_id = req.path_params.at("agent_id");
         int limit = req.has_param("limit") ? std::stoi(req.get_param_value("limit")) : 100;
 
         auto history = db_manager_->getNodeResourceHistory(node_id, limit);
         res.set_content(history.dump(), "application/json");
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         res.set_content("{\"status\":\"error\",\"message\":\"" + std::string(e.what()) + "\"}", "application/json");
     }
 }

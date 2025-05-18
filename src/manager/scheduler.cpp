@@ -40,6 +40,7 @@ nlohmann::json Scheduler::scheduleComponents(const std::string& business_id, con
     
     // 为每个组件选择最佳节点
     for (const auto& component : components) {
+        // 打印组件信息
         std::string component_id = component["component_id"];
         std::string component_type = component["type"];
         
@@ -71,7 +72,7 @@ nlohmann::json Scheduler::getAvailableNodes() {
     std::cout << "Get agents 0" << std::endl;
 
     auto agents = db_manager_->getAgents();
-    
+
     std::cout << "Agents: " << agents.dump() << std::endl;
 
     // 过滤出可用节点
@@ -150,15 +151,19 @@ bool Scheduler::checkNodeResourceRequirements(const std::string& node_id, const 
 bool Scheduler::checkNodeResourceRequirementsForDocker(const std::string& node_id, const nlohmann::json& resource_requirements) {
     auto resource_usage = getNodeResourceUsage(node_id);
     
-    // 检查Docker是否可用
-    if (!resource_usage.contains("docker_available") || !resource_usage["docker_available"].get<bool>()) {
-        return false;
-    }
+    // 检查Docker是否可用 todo
+    // if (!resource_usage.contains("docker_available") || !resource_usage["docker_available"].get<bool>()) {
+    //     return false;
+    // }
     
     // 检查CPU
     if (resource_requirements.contains("cpu") && resource_usage.contains("cpu_usage_percent")) {
         float required_cpu = resource_requirements["cpu"];
         float available_cpu = 100.0f - resource_usage["cpu_usage_percent"].get<float>();
+        // 打印CPU需求
+        std::cout << "Required CPU: " << required_cpu << std::endl;
+        // 打印CPU可用
+        std::cout << "Available CPU: " << available_cpu << std::endl;
         
         if (required_cpu > available_cpu) {
             return false;
@@ -169,6 +174,10 @@ bool Scheduler::checkNodeResourceRequirementsForDocker(const std::string& node_i
     if (resource_requirements.contains("memory") && resource_usage.contains("memory_usage_percent")) {
         float required_memory = resource_requirements["memory"];
         float available_memory = 100.0f - resource_usage["memory_usage_percent"].get<float>();
+        // 打印内存需求
+        std::cout << "Required Memory: " << required_memory << std::endl;
+        // 打印内存可用
+        std::cout << "Available Memory: " << available_memory << std::endl;
         
         if (required_memory > available_memory) {
             return false;
@@ -258,15 +267,23 @@ std::string Scheduler::selectBestNodeForComponent(const nlohmann::json& componen
     // 为每个节点计算得分
     for (const auto& node : available_nodes) {
         std::string node_id = node["agent_id"];
-        best_node_id = node_id; // todo 需要修改
+        // best_node_id = node_id; // todo 需要修改
         
         // 检查资源需求
         if (!checkNodeResourceRequirements(node_id, resource_requirements)) {
+            // 打印资源需求
+            std::cout << "Resource requirements: " << resource_requirements.dump() << std::endl;
+            // 打印节点资源使用情况
+            std::cout << "Node resource usage: " << node["resource_usage"].dump() << std::endl;
             continue;
         }
         
         // 检查亲和性
         if (!checkNodeAffinity(node_id, affinity)) {
+            // 打印亲和性
+            std::cout << "Affinity: " << affinity.dump() << std::endl;
+            // 打印节点资源使用情况
+            std::cout << "Node resource usage: " << node["resource_usage"].dump() << std::endl;
             continue;
         }
         
@@ -285,13 +302,20 @@ std::string Scheduler::selectBestNodeForComponent(const nlohmann::json& componen
         // 综合得分（CPU和内存各占50%）
         float score = 0.5f * cpu_score + 0.5f * memory_score;
         
+        // 打印得分
+        std::cout << "Score: " << score << std::endl;
+        // 打印节点ID
+        std::cout << "Node ID: " << node_id << std::endl;
+        // 打印节点资源使用情况
+        std::cout << "Node resource usage: " << node["resource_usage"].dump() << std::endl;
+
         // 更新最佳节点
         if (score > best_score) {
             best_score = score;
             best_node_id = node_id;
         }
 
-        best_node_id = node_id; // todo 需要修改
+        // best_node_id = node_id; // todo 需要修改
     }
     
     std::cout << "Best node for component " << component["component_id"] << ": " << best_node_id << std::endl; // todo 需要修改

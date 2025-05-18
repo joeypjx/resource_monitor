@@ -791,9 +791,6 @@ nlohmann::json DatabaseManager::getNodeResourceHistory(const std::string& node_i
     result["network_metrics"] = network_metrics;
     result["docker_metrics"] = docker_metrics;
 
-    // 打印结果
-    std::cout << "Node resource history: " << result.dump() << std::endl;
-
     return result;
 }
 
