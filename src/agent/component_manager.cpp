@@ -95,11 +95,11 @@ nlohmann::json ComponentManager::deployDockerComponent(const nlohmann::json& com
     std::string image_name = component_info.contains("image_name") ? component_info["image_name"].get<std::string>() : "";
     
     // 下载或拉取镜像 todo 需要修改
-    // auto pull_result = downloadImage(image_url, image_name);
+    auto pull_result = downloadImage(image_url, image_name);
     
-    // if (pull_result["status"] != "success") {
-    //     return pull_result;
-    // }
+    if (pull_result["status"] != "success") {
+        return pull_result;
+    }
     
     // 创建配置文件
     if (component_info.contains("config_files") && component_info["config_files"].is_array()) {

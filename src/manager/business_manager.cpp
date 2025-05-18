@@ -271,27 +271,29 @@ nlohmann::json BusinessManager::getBusinesses() {
 
 nlohmann::json BusinessManager::getBusinessDetails(const std::string& business_id) {
     // 检查业务是否存在
-    {
-        std::lock_guard<std::mutex> lock(businesses_mutex_);
+    // {
+    //     std::lock_guard<std::mutex> lock(businesses_mutex_);
         
-        if (businesses_.find(business_id) == businesses_.end()) {
-            // 尝试从数据库加载
-            // auto business = db_manager_->getBusiness(business_id); // TODO: 需实现或通过其他方式获取业务信息
+    //     if (businesses_.find(business_id) == businesses_.end()) {
+    //         // 尝试从数据库加载
+    //         // auto business = db_manager_->getBusiness(business_id); // TODO: 需实现或通过其他方式获取业务信息
             
-            if (businesses_.empty()) {
-                return {
-                    {"status", "error"},
-                    {"message", "Business not found"}
-                };
-            }
+    //         if (businesses_.empty()) {
+    //             return {
+    //                 {"status", "error"},
+    //                 {"message", "Business not found"}
+    //             };
+    //         }
             
-            businesses_[business_id] = businesses_.begin()->second;
-        }
-    }
+    //         businesses_[business_id] = businesses_.begin()->second;
+    //     }
+    // }
+
+    auto business = db_manager_->getBusinessDetails(business_id);
     
     return {
         {"status", "success"},
-        {"business", businesses_[business_id]}
+        {"business", business}
     };
 }
 

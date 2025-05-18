@@ -28,6 +28,9 @@ bool DatabaseManager::initializeBusinessTables() {
                 type TEXT NOT NULL,
                 image_url TEXT,
                 image_name TEXT,
+                binary_path TEXT,
+                binary_url TEXT,
+                process_id TEXT,
                 resource_requirements TEXT NOT NULL,
                 environment_variables TEXT,
                 config_files TEXT,
@@ -137,10 +140,14 @@ bool DatabaseManager::updateBusinessStatus(const std::string& business_id, const
 // 保存业务组件信息
 bool DatabaseManager::saveBusinessComponent(const nlohmann::json& component_info) {
     try {
+
+        // 打印组件信息
+        std::cout << "saveBusinessComponent Component info: " << component_info.dump() << std::endl;
+        
         // 检查必要字段
         if (!component_info.contains("component_id") || !component_info.contains("business_id") || 
             !component_info.contains("component_name") || !component_info.contains("type") || 
-            !component_info.contains("resource_requirements") || !component_info.contains("status")) {
+            !component_info.contains("resource_requirements") || !component_info.contains("status") ) {
             return false;
         }
         
@@ -167,7 +174,7 @@ bool DatabaseManager::saveBusinessComponent(const nlohmann::json& component_info
                 "UPDATE business_components SET "
                 "business_id = ?, component_name = ?, type = ?, image_url = ?, image_name = ?, "
                 "resource_requirements = ?, environment_variables = ?, config_files = ?, affinity = ?, "
-                "node_id = ?, container_id = ?, status = ?, updated_at = ? "
+                "node_id = ?, container_id = ?, status = ?, updated_at = ? , binary_path = ?, binary_url = ?, process_id = ?"
                 "WHERE component_id = ?");
             
             int idx = 1;
@@ -185,6 +192,9 @@ bool DatabaseManager::saveBusinessComponent(const nlohmann::json& component_info
             update.bind(idx++, component_info["status"].get<std::string>());
             update.bind(idx++, timestamp);
             update.bind(idx++, component_info["component_id"].get<std::string>());
+            update.bind(idx++, component_info.contains("binary_path") ? component_info["binary_path"].get<std::string>() : "");
+            update.bind(idx++, component_info.contains("binary_url") ? component_info["binary_url"].get<std::string>() : "");
+            update.bind(idx++, component_info.contains("process_id") ? component_info["process_id"].get<std::string>() : "");
             
             update.exec();
         } else {
@@ -193,8 +203,8 @@ bool DatabaseManager::saveBusinessComponent(const nlohmann::json& component_info
                 "INSERT INTO business_components ("
                 "component_id, business_id, component_name, type, image_url, image_name, "
                 "resource_requirements, environment_variables, config_files, affinity, "
-                "node_id, container_id, status, started_at, updated_at) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                "node_id, container_id, status, started_at, updated_at, binary_path, binary_url, process_id) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
             
             int idx = 1;
             insert.bind(idx++, component_info["component_id"].get<std::string>());
@@ -212,6 +222,9 @@ bool DatabaseManager::saveBusinessComponent(const nlohmann::json& component_info
             insert.bind(idx++, component_info["status"].get<std::string>());
             insert.bind(idx++, timestamp);
             insert.bind(idx++, timestamp);
+            insert.bind(idx++, component_info.contains("binary_path") ? component_info["binary_path"].get<std::string>() : "");
+            insert.bind(idx++, component_info.contains("binary_url") ? component_info["binary_url"].get<std::string>() : "");
+            insert.bind(idx++, component_info.contains("process_id") ? component_info["process_id"].get<std::string>() : "");
             
             insert.exec();
         }

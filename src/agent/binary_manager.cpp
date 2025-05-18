@@ -144,6 +144,9 @@ nlohmann::json BinaryManager::startProcess(const std::string& binary_path,
         process_map_[process_id] = binary_path;
     }
     
+    // 打印进程信息
+    std::cout << "Process started successfully, process_id: " << process_id << std::endl;
+
     return {
         {"status", "success"},
         {"message", "Process started successfully"},
@@ -251,23 +254,17 @@ nlohmann::json BinaryManager::getProcessStats(int process_id) {
 }
 
 std::string BinaryManager::executeCommand(const std::string& command) {
-    std::array<char, 128> buffer;
     std::string result;
-    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(command.c_str(), "r"), pclose);
-    
-    if (!pipe) {
-        throw std::runtime_error("popen() failed!");
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe) return "";
+    char buffer[128];
+    if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        result = buffer;
     }
-    
-    while (fgets(buffer.data(), buffer.size(), pipe.get()) != nullptr) {
-        result += buffer.data();
-    }
-    
-    // 移除末尾的换行符
-    if (!result.empty() && result[result.length() - 1] == '\n') {
-        result.erase(result.length() - 1);
-    }
-    
+    pclose(pipe);
+
+    // 去掉换行符
+    if (!result.empty() && result.back() == '\n') result.pop_back();
     return result;
 }
 
