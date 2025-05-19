@@ -541,8 +541,6 @@ nlohmann::json DatabaseManager::getAgents()
     {
         nlohmann::json result = nlohmann::json::array();
 
-        std::cout << "Get agents" << std::endl;
-
         // 查询所有Agent
         SQLite::Statement query(*db_, "SELECT agent_id, hostname, ip_address, os_info, first_seen, last_seen, status FROM agents");
 
@@ -559,8 +557,6 @@ nlohmann::json DatabaseManager::getAgents()
 
             result.push_back(agent);
         }
-
-        std::cout << "Agents: " << result.dump() << std::endl;
 
         return result;
     }

@@ -69,11 +69,7 @@ nlohmann::json Scheduler::scheduleComponents(const std::string& business_id, con
 
 nlohmann::json Scheduler::getAvailableNodes() {
     // 从数据库获取所有节点（用 agent 作为节点）
-    std::cout << "Get agents 0" << std::endl;
-
     auto agents = db_manager_->getAgents();
-
-    std::cout << "Agents: " << agents.dump() << std::endl;
 
     // 过滤出可用节点
     nlohmann::json available_nodes = nlohmann::json::array();
@@ -93,7 +89,6 @@ nlohmann::json Scheduler::getAvailableNodes() {
         }
     }
 
-    std::cout << "Available nodes: " << available_nodes.dump() << std::endl;
     return available_nodes;
 }
 

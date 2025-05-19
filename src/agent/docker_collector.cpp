@@ -4,11 +4,14 @@
 #include <unistd.h>
 #include <cstring>
 #include <sstream>
+#include <iostream>
+#include <regex>
 
 DockerCollector::DockerCollector(const std::string& docker_socket) 
     : docker_socket_(docker_socket), docker_available_(false) {
     // 检查Docker服务是否可用
     docker_available_ = isDockerAvailable();
+    std::cout << "Docker available: " << docker_available_ << std::endl;
 }
 
 nlohmann::json DockerCollector::collect() {
@@ -216,11 +219,35 @@ std::string DockerCollector::sendDockerApiRequest(const std::string& endpoint, c
     
     close(fd);
     
-    // 解析HTTP响应，提取JSON部分
+    // 解析HTTP响应，提取body部分
     size_t body_pos = response.find("\r\n\r\n");
-    if (body_pos != std::string::npos) {
-        return response.substr(body_pos + 4);
+    if (body_pos == std::string::npos) {
+        return "";
     }
-    
-    return "";
+    std::string body = response.substr(body_pos + 4);
+
+    // 检查是否为chunked编码
+    size_t chunked_pos = response.find("Transfer-Encoding: chunked");
+    if (chunked_pos != std::string::npos) {
+        // 解析chunked body
+        std::string decoded;
+        size_t pos = 0;
+        while (pos < body.size()) {
+            // 查找chunk size行
+            size_t line_end = body.find("\r\n", pos);
+            if (line_end == std::string::npos) break;
+            std::string size_str = body.substr(pos, line_end - pos);
+            int chunk_size = 0;
+            std::istringstream(size_str) >> std::hex >> chunk_size;
+            if (chunk_size == 0) break;
+            pos = line_end + 2;
+            if (pos + chunk_size > body.size()) break;
+            decoded += body.substr(pos, chunk_size);
+            pos += chunk_size + 2; // 跳过\r\n
+        }
+        return decoded;
+    } else {
+        // 非chunked，直接返回body
+        return body;
+    }
 }

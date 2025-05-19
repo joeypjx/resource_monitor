@@ -15,6 +15,7 @@
 #include <ifaddrs.h>
 #include <uuid/uuid.h>
 #include <httplib.h>
+#include <fstream>
 
 Agent::Agent(const std::string& manager_url, 
              const std::string& hostname,
@@ -138,41 +139,45 @@ std::string Agent::getAgentId() const {
 }
 
 bool Agent::registerToManager() {
-    // 如果已经有Agent ID，说明已经注册过
-    if (!agent_id_.empty()) {
-        return true;
+    // 本地agent_id文件路径
+    std::string agent_id_file = "agent_id.txt";
+    // 优先尝试从本地文件读取agent_id
+    if (agent_id_.empty()) {
+        std::ifstream fin(agent_id_file);
+        if (fin) {
+            std::getline(fin, agent_id_);
+            fin.close();
+        }
     }
-    
-    // 生成一个临时的Agent ID（UUID）
-    uuid_t uuid;
-    uuid_generate(uuid);
-    char uuid_str[37];
-    uuid_unparse_lower(uuid, uuid_str);
-    std::string temp_agent_id = uuid_str;
-    
-    // 构建注册信息
+
     nlohmann::json register_info;
-    register_info["agent_id"] = temp_agent_id;
+    if (!agent_id_.empty()) {
+        // 已有agent_id，带上注册
+        register_info["agent_id"] = agent_id_;
+    }
     register_info["hostname"] = hostname_;
     register_info["ip_address"] = ip_address_;
     register_info["os_info"] = os_info_;
-    
+
     // 发送注册请求
     nlohmann::json response = http_client_->registerAgent(register_info);
-    
+
     // 检查响应
     if (response.contains("status") && response["status"] == "success") {
         // 使用服务器返回的Agent ID
         if (response.contains("agent_id")) {
             agent_id_ = response["agent_id"];
-        } else {
-            agent_id_ = temp_agent_id;
+            // 写入本地文件
+            std::ofstream fout(agent_id_file);
+            if (fout) {
+                fout << agent_id_ << std::endl;
+                fout.close();
+            }
         }
-        
         std::cout << "Successfully registered to Manager with Agent ID: " << agent_id_ << std::endl;
         return true;
     } else {
-        std::cerr << "Failed to register to Manager: " 
+        std::cerr << "Failed to register to Manager: "
                   << (response.contains("message") ? response["message"].get<std::string>() : "Unknown error")
                   << std::endl;
         return false;

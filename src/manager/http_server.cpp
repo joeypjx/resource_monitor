@@ -3,6 +3,7 @@
 #include "business_manager.h"
 #include <iostream>
 #include <sstream>
+#include <uuid/uuid.h>
 
 HTTPServer::HTTPServer(std::shared_ptr<DatabaseManager> db_manager,
                        std::shared_ptr<BusinessManager> business_manager,
@@ -28,6 +29,7 @@ bool HTTPServer::start()
 
     // 启动服务器
     running_ = true;
+    server_.set_default_headers({{"Access-Control-Allow-Origin", "*"}, {"Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS"}, {"Access-Control-Allow-Headers", "Content-Type"}});
     server_.listen("0.0.0.0", port_);
 
     return true;
@@ -131,10 +133,26 @@ void HTTPServer::handleNodeRegistration(const httplib::Request &req, httplib::Re
     try
     {
         auto json = nlohmann::json::parse(req.body);
+        std::string agent_id;
+        if (!json.contains("agent_id") || json["agent_id"].get<std::string>().empty()) {
+            // 生成新的agent_id
+            uuid_t uuid;
+            char uuid_str[37];
+            uuid_generate(uuid);
+            uuid_unparse_lower(uuid, uuid_str);
+            agent_id = std::string("node-") + uuid_str;
+            json["agent_id"] = agent_id;
+        } else {
+            agent_id = json["agent_id"].get<std::string>();
+        }
 
         if (db_manager_->saveAgent(json))
         {
-            res.set_content("{\"status\":\"success\",\"message\":\"Node registered successfully\"}", "application/json");
+            res.set_content((nlohmann::json{
+                {"status", "success"},
+                {"message", "Node registered successfully"},
+                {"agent_id", agent_id}
+            }).dump(), "application/json");
         }
         else
         {
@@ -193,7 +211,7 @@ void HTTPServer::handleGetNodeDetails(const httplib::Request &req, httplib::Resp
 
         if (!node.empty())
         {
-            res.set_content(node.dump(), "application/json");
+            res.set_content("{\"status\":\"success\",\"node\":" + node.dump() + "}", "application/json");
         }
         else
         {
