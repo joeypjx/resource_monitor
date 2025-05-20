@@ -125,6 +125,12 @@ void HTTPServer::initRoutes()
 
     server_.Get("/api/templates/businesses/:template_id/as-business", [this](const httplib::Request &req, httplib::Response &res)
                 { handleGetBusinessTemplateAsBusiness(req, res); });
+
+    server_.Get("/api/cluster/metrics", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetClusterMetrics(req, res); });
+
+    server_.Get("/api/cluster/metrics/history", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetClusterMetricsHistory(req, res); });
 }
 
 // 处理节点注册
@@ -603,6 +609,27 @@ void HTTPServer::handleGetBusinessTemplateAsBusiness(const httplib::Request &req
     }
     catch (const std::exception &e)
     {
+        res.set_content((nlohmann::json{{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
+    }
+}
+
+void HTTPServer::handleGetClusterMetrics(const httplib::Request& req, httplib::Response& res)
+{
+    try {
+        auto metrics = db_manager_->getClusterMetrics();
+        res.set_content("{\"status\":\"success\",\"metrics\":" + metrics.dump() + "}", "application/json");
+    } catch (const std::exception& e) {
+        res.set_content((nlohmann::json{{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
+    }
+}
+
+void HTTPServer::handleGetClusterMetricsHistory(const httplib::Request& req, httplib::Response& res)
+{
+    try {
+        int limit = req.has_param("limit") ? std::stoi(req.get_param_value("limit")) : 100;
+        auto history = db_manager_->getClusterMetricsHistory(limit);
+        res.set_content("{\"status\":\"success\",\"history\":" + history.dump() + "}", "application/json");
+    } catch (const std::exception& e) {
         res.set_content((nlohmann::json{{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
     }
 }

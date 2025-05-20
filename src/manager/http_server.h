@@ -178,6 +178,16 @@ private:
      */
     void handleGetBusinessTemplateAsBusiness(const httplib::Request& req, httplib::Response& res);
 
+    /**
+     * 处理获取集群指标
+     */
+    void handleGetClusterMetrics(const httplib::Request& req, httplib::Response& res);
+
+    /**
+     * 处理获取集群指标历史
+     */
+    void handleGetClusterMetricsHistory(const httplib::Request& req, httplib::Response& res);
+
 private:
     std::shared_ptr<DatabaseManager> db_manager_;    // 数据库管理器
     std::shared_ptr<BusinessManager> business_manager_;  // 业务管理器

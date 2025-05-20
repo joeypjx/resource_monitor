@@ -103,6 +103,12 @@ public:
     nlohmann::json getComponentTemplate(const std::string& template_id);
     nlohmann::json deleteComponentTemplate(const std::string& template_id);
 
+    // 集群资源聚合
+    nlohmann::json getClusterMetrics();
+
+    // 集群资源历史聚合
+    nlohmann::json getClusterMetricsHistory(int limit = 100);
+
 private:
     std::string db_path_;                     // 数据库文件路径
     std::unique_ptr<SQLite::Database> db_;    // 数据库连接
