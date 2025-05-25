@@ -122,66 +122,62 @@ Agent和Manager之间采用HTTP协议通信，具体接口如下：
   ```json
   {
     "agent_id": "唯一标识符",
-    "timestamp": "时间戳",
-    "cpu": {
-      "usage_percent": 数值,
-      "load_avg_1m": 数值,
-      "load_avg_5m": 数值,
-      "load_avg_15m": 数值,
-      "core_count": 数值
-    },
-    "memory": {
-      "total": 数值,
-      "used": 数值,
-      "free": 数值,
-      "usage_percent": 数值
-    },
-    "disk": [
-      {
-        "device": "设备名",
-        "mount_point": "挂载点",
-        "total": 数值,
-        "used": 数值,
-        "free": 数值,
-        "usage_percent": 数值
-      }
-    ],
-    "network": [
-      {
-        "interface": "接口名",
-        "rx_bytes": 数值,
-        "tx_bytes": 数值,
-        "rx_packets": 数值,
-        "tx_packets": 数值,
-        "rx_errors": 数值,
-        "tx_errors": 数值
-      }
-    ],
-    "docker": {
-      "container_count": 数值,
-      "running_count": 数值,
-      "paused_count": 数值,
-      "stopped_count": 数值,
-      "containers": [
+    "timestamp": 1710000000,
+    "resource": {
+      "cpu": {
+        "usage_percent": 12.5,
+        "load_avg_1m": 0.5,
+        "load_avg_5m": 0.4,
+        "load_avg_15m": 0.3,
+        "core_count": 4
+      },
+      "memory": {
+        "total": 8192,
+        "used": 4096,
+        "free": 4096,
+        "usage_percent": 50.0
+      },
+      "disk": [
         {
-          "id": "容器ID",
-          "name": "容器名",
-          "image": "镜像名",
-          "status": "状态",
-          "cpu_percent": 数值,
-          "memory_usage": 数值
+          "device": "/dev/sda1",
+          "mount_point": "/",
+          "total": 100000,
+          "used": 50000,
+          "free": 50000,
+          "usage_percent": 50.0
         }
-      ]
+      ],
+      "network": [
+        {
+          "interface": "eth0",
+          "rx_bytes": 123456,
+          "tx_bytes": 654321,
+          "rx_packets": 1000,
+          "tx_packets": 900,
+          "rx_errors": 0,
+          "tx_errors": 0
+        }
+      ],
+      "docker": {
+        "container_count": 2,
+        "running_count": 2,
+        "paused_count": 0,
+        "stopped_count": 0,
+        "containers": [
+          {
+            "id": "abc123",
+            "name": "nginx",
+            "image": "nginx:latest",
+            "status": "running",
+            "cpu_percent": 1.2,
+            "memory_usage": 128
+          }
+        ]
+      }
     }
   }
   ```
-- **响应**:
-  ```json
-  {
-    "status": "success/error",
-    "message": "成功/错误信息"
-  }
-  ```
+- **说明**：所有资源数据均在 resource 字段下，字段类型和内容如上所示。
 
 ## 5. 数据库设计
 

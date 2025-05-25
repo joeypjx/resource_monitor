@@ -176,6 +176,12 @@ bool DatabaseManager::initialize()
             return false;
         }
 
+        // 新增：初始化告警规则表
+        if (!createAlarmRulesTable()) {
+            std::cerr << "Failed to create alarm_rules table" << std::endl;
+            return false;
+        }
+
         // 启动节点状态监控线程
         startNodeStatusMonitor();
 
@@ -887,38 +893,31 @@ nlohmann::json DatabaseManager::getNode(const std::string &node_id)
 
 bool DatabaseManager::saveResourceUsage(const nlohmann::json &resource_usage)
 {
-        // 检查必要字段
-    if (!resource_usage.contains("agent_id") || !resource_usage.contains("timestamp")) {
-        return true;
+    // 检查必要字段
+    if (!resource_usage.contains("agent_id") || !resource_usage.contains("timestamp") || !resource_usage.contains("resource")) {
+        return false;
     }
-    
     std::string agent_id = resource_usage["agent_id"];
     long long timestamp = resource_usage["timestamp"];
-    
+    const auto& resource = resource_usage["resource"];
     // 更新Agent最后一次上报时间
     updateAgentLastSeen(agent_id);
-    
     // 保存各类资源数据
-    if (resource_usage.contains("cpu")) {
-        saveCpuMetrics(agent_id, timestamp, resource_usage["cpu"]);
+    if (resource.contains("cpu")) {
+        saveCpuMetrics(agent_id, timestamp, resource["cpu"]);
     }
-    
-    if (resource_usage.contains("memory")) {
-        saveMemoryMetrics(agent_id, timestamp, resource_usage["memory"]);
+    if (resource.contains("memory")) {
+        saveMemoryMetrics(agent_id, timestamp, resource["memory"]);
     }
-    
-    if (resource_usage.contains("disk")) {
-        saveDiskMetrics(agent_id, timestamp, resource_usage["disk"]);
+    if (resource.contains("disk")) {
+        saveDiskMetrics(agent_id, timestamp, resource["disk"]);
     }
-    
-    if (resource_usage.contains("network")) {
-        saveNetworkMetrics(agent_id, timestamp, resource_usage["network"]);
+    if (resource.contains("network")) {
+        saveNetworkMetrics(agent_id, timestamp, resource["network"]);
     }
-    
-    if (resource_usage.contains("docker")) {
-        saveDockerMetrics(agent_id, timestamp, resource_usage["docker"]);
+    if (resource.contains("docker")) {
+        saveDockerMetrics(agent_id, timestamp, resource["docker"]);
     }
-    
     return true;
 }
 

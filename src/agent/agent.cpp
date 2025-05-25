@@ -198,24 +198,22 @@ bool Agent::registerToManager() {
 }
 
 void Agent::collectAndReportResources() {
-    // 构建资源数据
-    nlohmann::json resource_data;
-    resource_data["agent_id"] = agent_id_;
-    resource_data["timestamp"] = std::time(nullptr);
-    
-    // 采集各类资源信息
+    nlohmann::json report_json;
+    report_json["agent_id"] = agent_id_;
+    report_json["timestamp"] = std::time(nullptr);
+    nlohmann::json resource_json;
+    // 采集各类资源信息，按类型放入resource字段
     for (const auto& collector : collectors_) {
-        resource_data[collector->getType()] = collector->collect();
+        resource_json[collector->getType()] = collector->collect();
     }
-    
+    report_json["resource"] = resource_json;
     // 上报资源数据
-    nlohmann::json response = http_client_->reportData(resource_data);
-    
+    nlohmann::json response = http_client_->reportData(report_json);
     // 检查响应
     if (response.contains("status") && response["status"] == "success") {
         std::cout << "Successfully reported resource data to Manager" << std::endl;
     } else {
-        std::cerr << "Failed to report resource data to Manager: " 
+        std::cerr << "Failed to report resource data to Manager: "
                   << (response.contains("message") ? response["message"].get<std::string>() : "Unknown error")
                   << std::endl;
     }

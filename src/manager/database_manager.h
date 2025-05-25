@@ -5,6 +5,10 @@
 #include <memory>
 #include <nlohmann/json.hpp>
 #include <thread>
+#include <unordered_map>
+#include <vector>
+#include <optional>
+#include <mutex>
 
 // 前向声明
 namespace SQLite {
@@ -109,6 +113,14 @@ public:
     // 集群资源历史聚合
     nlohmann::json getClusterMetricsHistory(int limit = 100);
 
+    // 新增：告警规则表
+    bool createAlarmRulesTable();
+    nlohmann::json addAlarmRule(const nlohmann::json& rule);
+    nlohmann::json deleteAlarmRule(int id);
+    nlohmann::json updateAlarmRule(int id, const nlohmann::json& rule);
+    nlohmann::json getAlarmRule(int id);
+    nlohmann::json getAlarmRules();
+
 private:
     std::string db_path_;                     // 数据库文件路径
     std::unique_ptr<SQLite::Database> db_;    // 数据库连接
@@ -116,5 +128,27 @@ private:
     bool node_monitor_running_;               // 节点监控线程运行标志
     std::unique_ptr<std::thread> node_monitor_thread_; // 节点监控线程
 };
+
+// 告警规则的C++结构体 (与表字段对应)
+struct AlarmRule {
+    int id;
+    std::string alarm_name;
+    int alarm_type;
+    int alarm_level;
+    std::string metric_key;
+    std::string comparison_operator;
+    std::string threshold_value;
+    std::string secondary_threshold_value;
+    int trigger_count;
+    std::string target_identifier;
+    std::string description;
+    std::string created_at;
+    std::string updated_at;
+};
+
+extern std::unordered_map<std::string, std::vector<AlarmRule>> g_cached_rules;
+extern std::mutex g_alarm_rule_mutex;
+void loadEnabledAlarmRulesToCache(class SQLite::Database* db);
+void refreshAlarmRuleCache(class SQLite::Database* db);
 
 #endif // DATABASE_MANAGER_H

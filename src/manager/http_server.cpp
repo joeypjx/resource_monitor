@@ -60,6 +60,9 @@ void HTTPServer::initRoutes()
     server_.Post("/api/heartbeat/:agent_id", [this](const httplib::Request &req, httplib::Response &res)
                 { handleAgentHeartbeat(req, res); });
 
+    server_.Post("/api/agents/:agent_id/control", [this](const httplib::Request &req, httplib::Response &res)
+                 { handleAgentControl(req, res); });         
+
     server_.Get("/api/agents", [this](const httplib::Request &req, httplib::Response &res)
                 { handleGetNodes(req, res); });
 
@@ -71,6 +74,12 @@ void HTTPServer::initRoutes()
 
     server_.Get("/api/agents/:agent_id/resources", [this](const httplib::Request &req, httplib::Response &res)
                 { handleGetNodeResourceHistory(req, res); });
+    
+    server_.Get("/api/cluster/metrics", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetClusterMetrics(req, res); });
+
+    server_.Get("/api/cluster/metrics/history", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetClusterMetricsHistory(req, res); });
 
     // 业务管理API
     server_.Post("/api/businesses", [this](const httplib::Request &req, httplib::Response &res)
@@ -131,15 +140,6 @@ void HTTPServer::initRoutes()
 
     server_.Get("/api/templates/businesses/:template_id/as-business", [this](const httplib::Request &req, httplib::Response &res)
                 { handleGetBusinessTemplateAsBusiness(req, res); });
-
-    server_.Get("/api/cluster/metrics", [this](const httplib::Request &req, httplib::Response &res)
-                { handleGetClusterMetrics(req, res); });
-
-    server_.Get("/api/cluster/metrics/history", [this](const httplib::Request &req, httplib::Response &res)
-                { handleGetClusterMetricsHistory(req, res); });
-
-    server_.Post("/api/agents/:agent_id/control", [this](const httplib::Request &req, httplib::Response &res)
-                 { handleAgentControl(req, res); });
 }
 
 // 处理节点注册
@@ -186,7 +186,9 @@ void HTTPServer::handleResourceReport(const httplib::Request &req, httplib::Resp
     try
     {
         auto json = nlohmann::json::parse(req.body);
-
+        
+        // 打印json
+        // std::cout << "Resource report: " << json.dump() << std::endl;
         if (db_manager_->saveResourceUsage(json))
         {
             res.set_content("{\"status\":\"success\",\"message\":\"Resource usage saved successfully\"}", "application/json");
