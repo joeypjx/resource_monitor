@@ -62,6 +62,14 @@ public:
                         const nlohmann::json& data,
                         const std::map<std::string, std::string>& headers = {});
 
+    /**
+     * 发送心跳请求
+     * 
+     * @param agent_id Agent的ID
+     * @return 服务器响应的JSON对象
+     */
+    nlohmann::json heartbeat(const std::string& agent_id);
+
 private:
     std::string base_url_;  // 基础URL
 };

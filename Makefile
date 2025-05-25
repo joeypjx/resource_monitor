@@ -40,6 +40,7 @@ AGENT_SOURCES = $(AGENT_DIR)/agent.cpp \
 			   $(AGENT_DIR)/component_manager.cpp \
 			   $(AGENT_DIR)/docker_manager.cpp \
 			   $(AGENT_DIR)/binary_manager.cpp \
+			   $(AGENT_DIR)/node_controller.cpp \
                $(SRC_DIR)/agent_main.cpp
 
 # Manager源文件
@@ -51,6 +52,7 @@ MANAGER_SOURCES = $(MANAGER_DIR)/manager.cpp \
                  $(MANAGER_DIR)/scheduler.cpp \
 				 $(MANAGER_DIR)/business_manager_template.cpp \
 				 $(MANAGER_DIR)/database_manager_template.cpp \
+				 $(MANAGER_DIR)/agent_control_manager.cpp \
                  $(SRC_DIR)/manager_main.cpp 
 
 # 目标文件

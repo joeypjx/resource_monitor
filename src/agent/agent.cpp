@@ -6,6 +6,7 @@
 #include "docker_collector.h"
 #include "http_client.h"
 #include "component_manager.h"
+#include "node_controller.h"
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <unistd.h>
@@ -25,7 +26,8 @@ Agent::Agent(const std::string& manager_url,
       collection_interval_sec_(collection_interval_sec),
       running_(false),
       http_server_(nullptr),
-      server_running_(false) {
+      server_running_(false),
+      heartbeat_running_(false) {
     
     // 如果没有提供主机名，则自动获取
     if (hostname_.empty()) {
@@ -55,6 +57,7 @@ Agent::Agent(const std::string& manager_url,
     
     // 创建组件管理器
     component_manager_ = std::make_shared<ComponentManager>(http_client_);
+    node_controller_ = std::make_shared<NodeController>();
 }
 
 Agent::~Agent() {
@@ -99,6 +102,10 @@ bool Agent::start() {
         return false;
     }
     
+    // 启动心跳线程
+    heartbeat_running_ = true;
+    heartbeat_thread_ = std::thread(&Agent::heartbeatThread, this);
+    
     // 设置运行标志
     running_ = true;
     
@@ -132,6 +139,12 @@ void Agent::stop() {
         http_server_ = nullptr;
         server_running_ = false;
     }
+    
+    // 停止心跳线程
+    heartbeat_running_ = false;
+    if (heartbeat_thread_.joinable()) {
+        heartbeat_thread_.join();
+    }
 }
 
 std::string Agent::getAgentId() const {
@@ -158,10 +171,10 @@ bool Agent::registerToManager() {
     register_info["hostname"] = hostname_;
     register_info["ip_address"] = ip_address_;
     register_info["os_info"] = os_info_;
-
+    
     // 发送注册请求
     nlohmann::json response = http_client_->registerAgent(register_info);
-
+    
     // 检查响应
     if (response.contains("status") && response["status"] == "success") {
         // 使用服务器返回的Agent ID
@@ -172,12 +185,12 @@ bool Agent::registerToManager() {
             if (fout) {
                 fout << agent_id_ << std::endl;
                 fout.close();
-            }
+        }
         }
         std::cout << "Successfully registered to Manager with Agent ID: " << agent_id_ << std::endl;
         return true;
     } else {
-        std::cerr << "Failed to register to Manager: "
+        std::cerr << "Failed to register to Manager: " 
                   << (response.contains("message") ? response["message"].get<std::string>() : "Unknown error")
                   << std::endl;
         return false;
@@ -314,6 +327,20 @@ bool Agent::startHttpServer(int port) {
             }).dump(), "application/json");
         }
     });
+
+    // 新增：节点控制API
+    server->Post("/api/node/control", [this](const httplib::Request& req, httplib::Response& res) {
+        try {
+            auto request = nlohmann::json::parse(req.body);
+            auto response = handleNodeControlRequest(request);
+            res.set_content(response.dump(), "application/json");
+        } catch (const std::exception& e) {
+            res.set_content(nlohmann::json({
+                {"status", "error"},
+                {"message", std::string("Invalid request: ") + e.what()}
+            }).dump(), "application/json");
+        }
+    });
     
     // 启动服务器
     std::cout << "Starting HTTP server on port " << port << std::endl;
@@ -357,4 +384,43 @@ nlohmann::json Agent::handleStopRequest(const nlohmann::json& request) {
     
     // 调用组件管理器停止组件
     return component_manager_->stopComponent(component_id, business_id, container_id);
+}
+
+nlohmann::json Agent::handleNodeControlRequest(const nlohmann::json& request) {
+    if (!request.contains("action")) {
+        return {{"status", "error"}, {"message", "Missing action field"}};
+    }
+    std::string action = request["action"];
+    if (!node_controller_) {
+        return {{"status", "error"}, {"message", "NodeController not initialized"}};
+    }
+    if (action == "shutdown") {
+        return node_controller_->shutdown();
+    } else if (action == "reboot") {
+        return node_controller_->reboot();
+    } else {
+        return {{"status", "error"}, {"message", "Unknown action: " + action}};
+    }
+}
+
+void Agent::sendHeartbeat() {
+    if (!agent_id_.empty()) {
+        nlohmann::json response = http_client_->heartbeat(agent_id_);
+        if (response.contains("status") && response["status"] == "success") {
+            std::cout << "Heartbeat sent successfully" << std::endl;
+        } else {
+            std::cerr << "Failed to send heartbeat: "
+                      << (response.contains("message") ? response["message"].get<std::string>() : "Unknown error")
+                      << std::endl;
+        }
+    }
+}
+
+void Agent::heartbeatThread() {
+    while (heartbeat_running_) {
+        sendHeartbeat();
+        for (int i = 0; i < 3 && heartbeat_running_; ++i) {
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+        }
+    }
 }

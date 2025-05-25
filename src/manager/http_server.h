@@ -11,6 +11,7 @@
 // 前向声明
 class DatabaseManager;
 class BusinessManager;
+class AgentControlManager;
 
 /**
  * HTTPServer类 - HTTP服务器
@@ -24,10 +25,12 @@ public:
      * 
      * @param db_manager 数据库管理器
      * @param business_manager 业务管理器
+     * @param agent_control_manager Agent控制管理器
      * @param port 监听端口
      */
     HTTPServer(std::shared_ptr<DatabaseManager> db_manager, 
               std::shared_ptr<BusinessManager> business_manager,
+              std::shared_ptr<AgentControlManager> agent_control_manager,
               int port = 8080);
     
     /**
@@ -77,7 +80,7 @@ private:
      * 处理获取节点资源历史
      */
     void handleGetNodeResourceHistory(const httplib::Request& req, httplib::Response& res);
-
+    
     /**
      * 处理获取节点资源
      */
@@ -188,9 +191,16 @@ private:
      */
     void handleGetClusterMetricsHistory(const httplib::Request& req, httplib::Response& res);
 
+    // 新增：处理Agent心跳
+    void handleAgentHeartbeat(const httplib::Request& req, httplib::Response& res);
+
+    // 新增：处理Agent控制
+    void handleAgentControl(const httplib::Request& req, httplib::Response& res);
+
 private:
     std::shared_ptr<DatabaseManager> db_manager_;    // 数据库管理器
     std::shared_ptr<BusinessManager> business_manager_;  // 业务管理器
+    std::shared_ptr<AgentControlManager> agent_control_manager_; // Agent控制管理器
     int port_;  // 监听端口
     httplib::Server server_;  // HTTP服务器
     bool running_;  // 是否正在运行

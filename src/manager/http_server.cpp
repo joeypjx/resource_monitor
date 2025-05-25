@@ -1,15 +1,18 @@
 #include "http_server.h"
 #include "database_manager.h"
 #include "business_manager.h"
+#include "agent_control_manager.h"
 #include <iostream>
 #include <sstream>
 #include <uuid/uuid.h>
 
 HTTPServer::HTTPServer(std::shared_ptr<DatabaseManager> db_manager,
                        std::shared_ptr<BusinessManager> business_manager,
+                       std::shared_ptr<AgentControlManager> agent_control_manager,
                        int port)
-    : db_manager_(db_manager), business_manager_(business_manager), port_(port), running_(false)
+    : db_manager_(db_manager), business_manager_(business_manager), agent_control_manager_(agent_control_manager), port_(port), running_(false)
 {
+    // agent_control_manager_ 由外部注入，不再在此创建
 }
 
 HTTPServer::~HTTPServer()
@@ -53,6 +56,9 @@ void HTTPServer::initRoutes()
 
     server_.Post("/api/report", [this](const httplib::Request &req, httplib::Response &res)
                  { handleResourceReport(req, res); });
+
+    server_.Post("/api/heartbeat/:agent_id", [this](const httplib::Request &req, httplib::Response &res)
+                { handleAgentHeartbeat(req, res); });
 
     server_.Get("/api/agents", [this](const httplib::Request &req, httplib::Response &res)
                 { handleGetNodes(req, res); });
@@ -131,6 +137,9 @@ void HTTPServer::initRoutes()
 
     server_.Get("/api/cluster/metrics/history", [this](const httplib::Request &req, httplib::Response &res)
                 { handleGetClusterMetricsHistory(req, res); });
+
+    server_.Post("/api/agents/:agent_id/control", [this](const httplib::Request &req, httplib::Response &res)
+                 { handleAgentControl(req, res); });
 }
 
 // 处理节点注册
@@ -631,5 +640,36 @@ void HTTPServer::handleGetClusterMetricsHistory(const httplib::Request& req, htt
         res.set_content("{\"status\":\"success\",\"history\":" + history.dump() + "}", "application/json");
     } catch (const std::exception& e) {
         res.set_content((nlohmann::json{{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
+    }
+}
+
+// 新增：处理Agent心跳
+void HTTPServer::handleAgentHeartbeat(const httplib::Request &req, httplib::Response &res)
+{
+    try {
+        std::string agent_id = req.path_params.at("agent_id");
+        if (db_manager_->updateAgentLastSeen(agent_id)) {
+            res.set_content("{\"status\":\"success\",\"message\":\"Heartbeat updated\"}", "application/json");
+        } else {
+            res.set_content("{\"status\":\"error\",\"message\":\"Failed to update heartbeat\"}", "application/json");
+        }
+    } catch (const std::exception &e) {
+        res.set_content("{\"status\":\"error\",\"message\":\"" + std::string(e.what()) + "\"}", "application/json");
+    }
+}
+
+// 新增：处理Agent节点控制
+void HTTPServer::handleAgentControl(const httplib::Request& req, httplib::Response& res) {
+    try {
+        std::string agent_id = req.path_params.at("agent_id");
+        auto request_json = nlohmann::json::parse(req.body);
+        if (!agent_control_manager_) {
+            res.set_content(nlohmann::json({{"status", "error"}, {"message", "AgentControlManager not initialized"}}).dump(), "application/json");
+            return;
+        }
+        auto result = agent_control_manager_->controlAgent(agent_id, request_json);
+        res.set_content(result.dump(), "application/json");
+    } catch (const std::exception& e) {
+        res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
     }
 }

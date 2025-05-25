@@ -14,6 +14,7 @@
 class ResourceCollector;
 class HttpClient;
 class ComponentManager;
+class NodeController;
 
 namespace httplib {
     class Server;
@@ -61,6 +62,8 @@ public:
      */
     std::string getAgentId() const;
 
+    void sendHeartbeat();
+
 private:
     /**
      * 向Manager注册
@@ -107,6 +110,11 @@ private:
      */
     nlohmann::json handleStopRequest(const nlohmann::json& request);
 
+    // 新增：处理节点控制请求
+    nlohmann::json handleNodeControlRequest(const nlohmann::json& request);
+
+    void heartbeatThread();
+
 private:
     std::string manager_url_;                      // Manager的URL地址
     std::string hostname_;                         // 主机名
@@ -122,9 +130,13 @@ private:
     std::shared_ptr<ComponentManager> component_manager_; // 组件管理器
     
     std::thread worker_thread_;                    // 工作线程
+    std::thread heartbeat_thread_;
+    bool heartbeat_running_ = false;
     
     httplib::Server* http_server_;                 // HTTP服务器
     std::atomic<bool> server_running_;             // 服务器运行标志
+
+    std::shared_ptr<NodeController> node_controller_;
 };
 
 #endif // RESOURCE_MONITOR_AGENT_H

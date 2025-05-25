@@ -130,3 +130,8 @@ nlohmann::json HttpClient::post(const std::string& endpoint,
         return nlohmann::json({{"status", "error"}, {"message", error_msg}});
     }
 }
+
+nlohmann::json HttpClient::heartbeat(const std::string& agent_id) {
+    std::string endpoint = "/api/heartbeat/" + agent_id;
+    return post(endpoint, nlohmann::json::object());
+}

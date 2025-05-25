@@ -2,6 +2,7 @@
 #include "http_server.h"
 #include "database_manager.h"
 #include "business_manager.h"
+#include "agent_control_manager.h"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -45,9 +46,12 @@ bool Manager::initialize() {
         std::cerr << "Failed to initialize template tables" << std::endl;
         return false;
     }
+
+    // 新增：创建Agent控制管理器
+    agent_control_manager_ = std::make_shared<AgentControlManager>(db_manager_);
     
     // 创建HTTP服务器
-    http_server_ = std::make_unique<HTTPServer>(db_manager_, business_manager_, port_);
+    http_server_ = std::make_unique<HTTPServer>(db_manager_, business_manager_, agent_control_manager_, port_);
     
     std::cout << "Manager initialized successfully" << std::endl;
     return true;

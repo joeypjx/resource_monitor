@@ -40,8 +40,8 @@ bool DatabaseManager::initialize()
                 hostname TEXT NOT NULL,
                 ip_address TEXT NOT NULL,
                 os_info TEXT NOT NULL,
-                first_seen TIMESTAMP NOT NULL,
-                last_seen TIMESTAMP NOT NULL,
+                created_at TIMESTAMP NOT NULL,
+                updated_at TIMESTAMP NOT NULL,
                 status TEXT NOT NULL DEFAULT 'online'
             )
         )");
@@ -211,7 +211,7 @@ bool DatabaseManager::saveAgent(const nlohmann::json &agent_info)
         {
             // Agent已存在，更新信息
             SQLite::Statement update(*db_,
-                                     "UPDATE agents SET hostname = ?, ip_address = ?, os_info = ?, last_seen = ? WHERE agent_id = ?");
+                                     "UPDATE agents SET hostname = ?, ip_address = ?, os_info = ?, updated_at = ? WHERE agent_id = ?");
             update.bind(1, agent_info["hostname"].get<std::string>());
             update.bind(2, agent_info["ip_address"].get<std::string>());
             update.bind(3, agent_info["os_info"].get<std::string>());
@@ -223,7 +223,7 @@ bool DatabaseManager::saveAgent(const nlohmann::json &agent_info)
         {
             // 新Agent，插入记录
             SQLite::Statement insert(*db_,
-                                     "INSERT INTO agents (agent_id, hostname, ip_address, os_info, first_seen, last_seen) VALUES (?, ?, ?, ?, ?, ?)");
+                                     "INSERT INTO agents (agent_id, hostname, ip_address, os_info, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)");
             insert.bind(1, agent_info["agent_id"].get<std::string>());
             insert.bind(2, agent_info["hostname"].get<std::string>());
             insert.bind(3, agent_info["ip_address"].get<std::string>());
@@ -251,7 +251,7 @@ bool DatabaseManager::updateAgentLastSeen(const std::string &agent_id)
         auto timestamp = std::chrono::system_clock::to_time_t(now);
 
         // 更新Agent最后活动时间和状态为在线
-        SQLite::Statement update(*db_, "UPDATE agents SET last_seen = ?, status = 'online' WHERE agent_id = ?");
+        SQLite::Statement update(*db_, "UPDATE agents SET updated_at = ?, status = 'online' WHERE agent_id = ?");
         update.bind(1, static_cast<int64_t>(timestamp));
         update.bind(2, agent_id);
         update.exec();
@@ -304,14 +304,14 @@ void DatabaseManager::startNodeStatusMonitor()
                 auto current_timestamp = std::chrono::system_clock::to_time_t(now);
                 
                 // 查询所有节点
-                SQLite::Statement query(*db_, "SELECT agent_id, last_seen FROM agents");
+                SQLite::Statement query(*db_, "SELECT agent_id, updated_at FROM agents");
                 
                 while (query.executeStep()) {
                     std::string agent_id = query.getColumn(0).getString();
-                    int64_t last_seen = query.getColumn(1).getInt64();
+                    int64_t updated_at = query.getColumn(1).getInt64();
                     
                     // 如果超过5秒没有上报，则标记为离线
-                    if (current_timestamp - last_seen > 5) {
+                    if (current_timestamp - updated_at > 5) {
                         updateAgentStatus(agent_id, "offline");
                     }
                 }
@@ -579,7 +579,7 @@ nlohmann::json DatabaseManager::getAgents()
         nlohmann::json result = nlohmann::json::array();
 
         // 查询所有Agent
-        SQLite::Statement query(*db_, "SELECT agent_id, hostname, ip_address, os_info, first_seen, last_seen, status FROM agents");
+        SQLite::Statement query(*db_, "SELECT agent_id, hostname, ip_address, os_info, created_at, updated_at, status FROM agents");
 
         while (query.executeStep())
         {
@@ -588,8 +588,8 @@ nlohmann::json DatabaseManager::getAgents()
             agent["hostname"] = query.getColumn(1).getString();
             agent["ip_address"] = query.getColumn(2).getString();
             agent["os_info"] = query.getColumn(3).getString();
-            agent["first_seen"] = query.getColumn(4).getInt64();
-            agent["last_seen"] = query.getColumn(5).getInt64();
+            agent["created_at"] = query.getColumn(4).getInt64();
+            agent["updated_at"] = query.getColumn(5).getInt64();
             agent["status"] = query.getColumn(6).getString();
 
             result.push_back(agent);
@@ -868,8 +868,8 @@ nlohmann::json DatabaseManager::getNode(const std::string &node_id)
             node["hostname"] = query.getColumn(1).getString();
             node["ip_address"] = query.getColumn(2).getString();
             node["os_info"] = query.getColumn(3).getString();
-            node["first_seen"] = query.getColumn(4).getInt64();
-            node["last_seen"] = query.getColumn(5).getInt64();
+            node["created_at"] = query.getColumn(4).getInt64();
+            node["updated_at"] = query.getColumn(5).getInt64();
             node["status"] = query.getColumn(6).getString();
 
             return node;
