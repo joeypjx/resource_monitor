@@ -166,7 +166,7 @@ bool Agent::registerToManager() {
     nlohmann::json register_info;
     if (!agent_id_.empty()) {
         // 已有agent_id，带上注册
-        register_info["agent_id"] = agent_id_;
+        register_info["board_id"] = agent_id_;
     }
     register_info["hostname"] = hostname_;
     register_info["ip_address"] = ip_address_;
@@ -177,9 +177,9 @@ bool Agent::registerToManager() {
     
     // 检查响应
     if (response.contains("status") && response["status"] == "success") {
-        // 使用服务器返回的Agent ID
-        if (response.contains("agent_id")) {
-            agent_id_ = response["agent_id"];
+        // 使用服务器返回的Board ID
+        if (response.contains("board_id")) {
+            agent_id_ = response["board_id"];
             // 写入本地文件
             std::ofstream fout(agent_id_file);
             if (fout) {
@@ -187,7 +187,7 @@ bool Agent::registerToManager() {
                 fout.close();
         }
         }
-        std::cout << "Successfully registered to Manager with Agent ID: " << agent_id_ << std::endl;
+        std::cout << "Successfully registered to Manager with Board ID: " << agent_id_ << std::endl;
         return true;
     } else {
         std::cerr << "Failed to register to Manager: " 
@@ -199,7 +199,7 @@ bool Agent::registerToManager() {
 
 void Agent::collectAndReportResources() {
     nlohmann::json report_json;
-    report_json["agent_id"] = agent_id_;
+    report_json["board_id"] = agent_id_;
     report_json["timestamp"] = std::time(nullptr);
     nlohmann::json resource_json;
     // 采集各类资源信息，按类型放入resource字段
@@ -213,7 +213,7 @@ void Agent::collectAndReportResources() {
     if (response.contains("status") && response["status"] == "success") {
         std::cout << "Successfully reported resource data to Manager" << std::endl;
     } else {
-        std::cerr << "Failed to report resource data to Manager: "
+        std::cerr << "Failed to report resource data to Manager: " 
                   << (response.contains("message") ? response["message"].get<std::string>() : "Unknown error")
                   << std::endl;
     }

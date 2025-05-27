@@ -48,9 +48,9 @@ MANAGER_SOURCES = $(MANAGER_DIR)/manager.cpp \
                  $(MANAGER_DIR)/http_server.cpp \
                  $(MANAGER_DIR)/database_manager.cpp \
 				 $(MANAGER_DIR)/database_manager_business.cpp \
+				 $(MANAGER_DIR)/database_manager_metric.cpp \
                  $(MANAGER_DIR)/business_manager.cpp \
                  $(MANAGER_DIR)/scheduler.cpp \
-				 $(MANAGER_DIR)/business_manager_template.cpp \
 				 $(MANAGER_DIR)/database_manager_template.cpp \
 				 $(MANAGER_DIR)/agent_control_manager.cpp \
                  $(MANAGER_DIR)/multicast_announcer.cpp \

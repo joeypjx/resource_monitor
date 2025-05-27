@@ -12,7 +12,7 @@ HTTPServer::HTTPServer(std::shared_ptr<DatabaseManager> db_manager,
                        int port)
     : db_manager_(db_manager), business_manager_(business_manager), agent_control_manager_(agent_control_manager), port_(port), running_(false)
 {
-    // agent_control_manager_ 由外部注入，不再在此创建
+    
 }
 
 HTTPServer::~HTTPServer()
@@ -57,22 +57,22 @@ void HTTPServer::initRoutes()
     server_.Post("/api/report", [this](const httplib::Request &req, httplib::Response &res)
                  { handleResourceReport(req, res); });
 
-    server_.Post("/api/heartbeat/:agent_id", [this](const httplib::Request &req, httplib::Response &res)
+    server_.Post("/api/heartbeat/:board_id", [this](const httplib::Request &req, httplib::Response &res)
                 { handleAgentHeartbeat(req, res); });
 
-    server_.Post("/api/agents/:agent_id/control", [this](const httplib::Request &req, httplib::Response &res)
+    server_.Post("/api/boards/:board_id/control", [this](const httplib::Request &req, httplib::Response &res)
                  { handleAgentControl(req, res); });         
 
-    server_.Get("/api/agents", [this](const httplib::Request &req, httplib::Response &res)
+    server_.Get("/api/boards", [this](const httplib::Request &req, httplib::Response &res)
                 { handleGetNodes(req, res); });
 
-    server_.Get("/api/agents/:node_id", [this](const httplib::Request &req, httplib::Response &res)
+    server_.Get("/api/boards/:node_id", [this](const httplib::Request &req, httplib::Response &res)
                 { handleGetNodeDetails(req, res); });
 
-    server_.Get("/api/agents/:agent_id/resources/:resource_type", [this](const httplib::Request &req, httplib::Response &res)
+    server_.Get("/api/boards/:board_id/resources/:resource_type", [this](const httplib::Request &req, httplib::Response &res)
                 { handleGetAgentResources(req, res); });
 
-    server_.Get("/api/agents/:agent_id/resources", [this](const httplib::Request &req, httplib::Response &res)
+    server_.Get("/api/boards/:board_id/resources", [this](const httplib::Request &req, httplib::Response &res)
                 { handleGetNodeResourceHistory(req, res); });
     
     server_.Get("/api/cluster/metrics", [this](const httplib::Request &req, httplib::Response &res)
@@ -148,25 +148,25 @@ void HTTPServer::handleNodeRegistration(const httplib::Request &req, httplib::Re
     try
     {
         auto json = nlohmann::json::parse(req.body);
-        std::string agent_id;
-        if (!json.contains("agent_id") || json["agent_id"].get<std::string>().empty()) {
-            // 生成新的agent_id
+        std::string board_id;
+        if (!json.contains("board_id") || json["board_id"].get<std::string>().empty()) {
+            // 生成新的board_id
             uuid_t uuid;
             char uuid_str[37];
             uuid_generate(uuid);
             uuid_unparse_lower(uuid, uuid_str);
-            agent_id = std::string("node-") + uuid_str;
-            json["agent_id"] = agent_id;
+            board_id = std::string("board-") + uuid_str;
+            json["board_id"] = board_id;
         } else {
-            agent_id = json["agent_id"].get<std::string>();
+            board_id = json["board_id"].get<std::string>();
         }
 
-        if (db_manager_->saveAgent(json))
+        if (db_manager_->saveBoard(json))
         {
             res.set_content((nlohmann::json{
                 {"status", "success"},
                 {"message", "Node registered successfully"},
-                {"agent_id", agent_id}
+                {"board_id", board_id}
             }).dump(), "application/json");
         }
         else
@@ -209,8 +209,8 @@ void HTTPServer::handleGetNodes(const httplib::Request &req, httplib::Response &
 {
     try
     {
-        auto nodes = db_manager_->getAgents();
-        res.set_content("{\"status\":\"success\",\"agents\":" + nodes.dump() + "}", "application/json");
+        auto nodes = db_manager_->getBoards();
+        res.set_content("{\"status\":\"success\",\"boards\":" + nodes.dump() + "}", "application/json");
     }
     catch (const std::exception &e)
     {
@@ -246,7 +246,7 @@ void HTTPServer::handleGetNodeResourceHistory(const httplib::Request &req, httpl
 {
     try
     {
-        std::string node_id = req.path_params.at("agent_id");
+        std::string node_id = req.path_params.at("board_id");
         int limit = req.has_param("limit") ? std::stoi(req.get_param_value("limit")) : 100;
 
         auto history = db_manager_->getNodeResourceHistory(node_id, limit);
@@ -261,8 +261,8 @@ void HTTPServer::handleGetNodeResourceHistory(const httplib::Request &req, httpl
 void HTTPServer::handleGetAgentResources(const httplib::Request &req, httplib::Response &res)
 {
 
-    auto agent_id = req.path_params.at("agent_id");
-    auto resource_type = req.path_params.at("resource_type");
+            auto board_id = req.path_params.at("board_id");
+        auto resource_type = req.path_params.at("resource_type");
     int limit = req.has_param("limit") ? std::stoi(req.get_param_value("limit")) : 100;
 
     try
@@ -274,27 +274,27 @@ void HTTPServer::handleGetAgentResources(const httplib::Request &req, httplib::R
 
         if (resource_type == "cpu")
         {
-            auto cpu_metrics = db_manager_->getCpuMetrics(agent_id, limit);
+            auto cpu_metrics = db_manager_->getCpuMetrics(board_id, limit);
             res.set_content("{\"status\":\"success\",\"cpu_metrics\":" + cpu_metrics.dump() + "}", "application/json");
         }
         else if (resource_type == "memory")
         {
-            auto memory_metrics = db_manager_->getMemoryMetrics(agent_id, limit);
+            auto memory_metrics = db_manager_->getMemoryMetrics(board_id, limit);
             res.set_content("{\"status\":\"success\",\"memory_metrics\":" + memory_metrics.dump() + "}", "application/json");
         }
         else if (resource_type == "disk")
         {
-            auto disk_metrics = db_manager_->getDiskMetrics(agent_id, limit);
+            auto disk_metrics = db_manager_->getDiskMetrics(board_id, limit);
             res.set_content("{\"status\":\"success\",\"disk_metrics\":" + disk_metrics.dump() + "}", "application/json");
         }
         else if (resource_type == "network")
         {
-            auto network_metrics = db_manager_->getNetworkMetrics(agent_id, limit);
+            auto network_metrics = db_manager_->getNetworkMetrics(board_id, limit);
             res.set_content("{\"status\":\"success\",\"network_metrics\":" + network_metrics.dump() + "}", "application/json");
         }
         else if (resource_type == "docker")
         {
-            auto docker_metrics = db_manager_->getDockerMetrics(agent_id, limit);
+            auto docker_metrics = db_manager_->getDockerMetrics(board_id, limit);
             res.set_content("{\"status\":\"success\",\"docker_metrics\":" + docker_metrics.dump() + "}", "application/json");
         }
         else
@@ -649,8 +649,8 @@ void HTTPServer::handleGetClusterMetricsHistory(const httplib::Request& req, htt
 void HTTPServer::handleAgentHeartbeat(const httplib::Request &req, httplib::Response &res)
 {
     try {
-        std::string agent_id = req.path_params.at("agent_id");
-        if (db_manager_->updateAgentLastSeen(agent_id)) {
+        std::string board_id = req.path_params.at("board_id");
+        if (db_manager_->updateBoardLastSeen(board_id)) {
             res.set_content("{\"status\":\"success\",\"message\":\"Heartbeat updated\"}", "application/json");
         } else {
             res.set_content("{\"status\":\"error\",\"message\":\"Failed to update heartbeat\"}", "application/json");
@@ -663,13 +663,13 @@ void HTTPServer::handleAgentHeartbeat(const httplib::Request &req, httplib::Resp
 // 新增：处理Agent节点控制
 void HTTPServer::handleAgentControl(const httplib::Request& req, httplib::Response& res) {
     try {
-        std::string agent_id = req.path_params.at("agent_id");
+        std::string board_id = req.path_params.at("board_id");
         auto request_json = nlohmann::json::parse(req.body);
         if (!agent_control_manager_) {
             res.set_content(nlohmann::json({{"status", "error"}, {"message", "AgentControlManager not initialized"}}).dump(), "application/json");
             return;
         }
-        auto result = agent_control_manager_->controlAgent(agent_id, request_json);
+        auto result = agent_control_manager_->controlAgent(board_id, request_json);
         res.set_content(result.dump(), "application/json");
     } catch (const std::exception& e) {
         res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");

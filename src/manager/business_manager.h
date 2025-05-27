@@ -37,13 +37,6 @@ public:
      * @return 是否成功初始化
      */
     bool initialize();
-
-    /**
-     * 初始化业务相关的数据库表
-     * 
-     * @return 是否成功初始化
-     */
-    bool initializeTables();
     
     /**
      * 部署业务

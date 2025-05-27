@@ -10,7 +10,7 @@ class DatabaseManager;
 class AgentControlManager {
 public:
     AgentControlManager(std::shared_ptr<DatabaseManager> db_manager);
-    nlohmann::json controlAgent(const std::string& agent_id, const nlohmann::json& request_json);
+    nlohmann::json controlAgent(const std::string& board_id, const nlohmann::json& request_json);
 private:
     std::shared_ptr<DatabaseManager> db_manager_;
 };

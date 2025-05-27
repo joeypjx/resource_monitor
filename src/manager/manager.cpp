@@ -41,12 +41,6 @@ bool Manager::initialize() {
         std::cerr << "Failed to initialize business manager" << std::endl;
         return false;
     }
-    
-    // 初始化模板相关的数据库表
-    if (!business_manager_->initializeTables()) {
-        std::cerr << "Failed to initialize template tables" << std::endl;
-        return false;
-    }
 
     // 新增：创建Agent控制管理器
     agent_control_manager_ = std::make_shared<AgentControlManager>(db_manager_);

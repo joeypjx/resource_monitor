@@ -131,7 +131,7 @@ nlohmann::json HttpClient::post(const std::string& endpoint,
     }
 }
 
-nlohmann::json HttpClient::heartbeat(const std::string& agent_id) {
-    std::string endpoint = "/api/heartbeat/" + agent_id;
+nlohmann::json HttpClient::heartbeat(const std::string& board_id) {
+    std::string endpoint = "/api/heartbeat/" + board_id;
     return post(endpoint, nlohmann::json::object());
 }

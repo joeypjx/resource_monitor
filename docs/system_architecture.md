@@ -124,31 +124,31 @@ Agent和Manager之间采用HTTP协议通信，具体接口如下：
     "agent_id": "唯一标识符",
     "timestamp": 1710000000,
     "resource": {
-      "cpu": {
+    "cpu": {
         "usage_percent": 12.5,
         "load_avg_1m": 0.5,
         "load_avg_5m": 0.4,
         "load_avg_15m": 0.3,
         "core_count": 4
-      },
-      "memory": {
+    },
+    "memory": {
         "total": 8192,
         "used": 4096,
         "free": 4096,
         "usage_percent": 50.0
-      },
-      "disk": [
-        {
+    },
+    "disk": [
+      {
           "device": "/dev/sda1",
           "mount_point": "/",
           "total": 100000,
           "used": 50000,
           "free": 50000,
           "usage_percent": 50.0
-        }
-      ],
-      "network": [
-        {
+      }
+    ],
+    "network": [
+      {
           "interface": "eth0",
           "rx_bytes": 123456,
           "tx_bytes": 654321,
@@ -156,24 +156,24 @@ Agent和Manager之间采用HTTP协议通信，具体接口如下：
           "tx_packets": 900,
           "rx_errors": 0,
           "tx_errors": 0
-        }
-      ],
-      "docker": {
+      }
+    ],
+    "docker": {
         "container_count": 2,
         "running_count": 2,
         "paused_count": 0,
         "stopped_count": 0,
-        "containers": [
-          {
+      "containers": [
+        {
             "id": "abc123",
             "name": "nginx",
             "image": "nginx:latest",
             "status": "running",
             "cpu_percent": 1.2,
             "memory_usage": 128
-          }
-        ]
-      }
+        }
+      ]
+    }
     }
   }
   ```

@@ -61,6 +61,14 @@ private:
     nlohmann::json getNodeResourceUsage(const std::string& node_id);
     
     /**
+     * 获取节点完整信息
+     * 
+     * @param node_id 节点ID
+     * @return 节点完整信息
+     */
+    nlohmann::json getNodeInfo(const std::string& node_id);
+    
+    /**
      * 检查节点是否满足组件资源需求
      * 
      * @param node_id 节点ID

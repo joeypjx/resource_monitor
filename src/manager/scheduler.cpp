@@ -68,20 +68,20 @@ nlohmann::json Scheduler::scheduleComponents(const std::string& business_id, con
 }
 
 nlohmann::json Scheduler::getAvailableNodes() {
-    // 从数据库获取所有节点（用 agent 作为节点）
-    auto agents = db_manager_->getAgents();
+    // 从数据库获取所有节点（用 board 作为节点）
+    auto boards = db_manager_->getBoards();
 
     // 过滤出可用节点
     nlohmann::json available_nodes = nlohmann::json::array();
     
-    for (const auto& agent : agents) {
+    for (const auto& board : boards) {
         // 检查节点是否在线（使用数据库中的status字段）
-        if (agent.contains("status") && agent["status"] == "online") {
-            std::string node_id = agent.contains("node_id") ? agent["node_id"].get<std::string>() : agent["agent_id"].get<std::string>();
+        if (board.contains("status") && board["status"] == "online") {
+            std::string node_id = board.contains("node_id") ? board["node_id"].get<std::string>() : board["board_id"].get<std::string>();
             // 获取节点最新资源使用情况
             auto resource_usage = getNodeResourceUsage(node_id);
             // 添加资源使用情况
-            nlohmann::json available_node = agent;
+            nlohmann::json available_node = board;
             available_node["node_id"] = node_id;
             available_node["resource_usage"] = resource_usage;
             // 添加到可用节点列表
@@ -95,6 +95,11 @@ nlohmann::json Scheduler::getAvailableNodes() {
 nlohmann::json Scheduler::getNodeResourceUsage(const std::string& node_id) {
     // 从数据库获取节点最新资源使用情况
     return db_manager_->getNodeResourceInfo(node_id);
+}
+
+nlohmann::json Scheduler::getNodeInfo(const std::string& node_id) {
+    // 从数据库获取节点完整信息
+    return db_manager_->getNode(node_id);
 }
 
 bool Scheduler::checkNodeResourceRequirements(const std::string& node_id, const nlohmann::json& resource_requirements) {
@@ -225,16 +230,127 @@ bool Scheduler::checkNodeResourceRequirementsForBinary(const std::string& node_i
 }
 
 bool Scheduler::checkNodeAffinity(const std::string& node_id, const nlohmann::json& affinity) {
-    auto resource_usage = getNodeResourceUsage(node_id);
+    if (affinity.empty()) {
+        return true;
+    }
     
-    // 检查GPU亲和性
-    if (affinity.contains("gpu") && affinity["gpu"].get<bool>()) {
-        // 检查节点是否有GPU
-        if (!resource_usage.contains("gpu") || !resource_usage["gpu"].get<bool>()) {
+    // 获取节点完整信息
+    auto node_info = getNodeInfo(node_id);
+    if (node_info.empty()) {
+        std::cout << "Failed to get node info for: " << node_id << std::endl;
+        return false;
+    }
+    
+    // 遍历所有亲和性条件
+    for (const auto& [key, value] : affinity.items()) {
+        // 特殊处理GPU亲和性（向后兼容）
+        if (key == "gpu" || key == "require_gpu") {
+            if (value.get<bool>()) {
+                auto resource_usage = getNodeResourceUsage(node_id);
+                if (!resource_usage.contains("gpu") || !resource_usage["gpu"].get<bool>()) {
+                    std::cout << "Node " << node_id << " does not meet GPU requirement" << std::endl;
+                    return false;
+                }
+            }
+            continue;
+        }
+        
+        // 检查IP地址匹配
+        if (key == "ip_address" || key == "ip") {
+            if (node_info.contains("ip_address")) {
+                std::string node_ip = node_info["ip_address"].get<std::string>();
+                std::string required_ip = value.get<std::string>();
+                if (node_ip != required_ip) {
+                    std::cout << "Node " << node_id << " IP (" << node_ip 
+                              << ") does not match required IP (" << required_ip << ")" << std::endl;
+                    return false;
+                }
+            } else {
+                std::cout << "Node " << node_id << " does not have IP address info" << std::endl;
+                return false;
+            }
+            continue;
+        }
+        
+        // 检查主机名匹配
+        if (key == "hostname") {
+            if (node_info.contains("hostname")) {
+                std::string node_hostname = node_info["hostname"].get<std::string>();
+                std::string required_hostname = value.get<std::string>();
+                if (node_hostname != required_hostname) {
+                    std::cout << "Node " << node_id << " hostname (" << node_hostname 
+                              << ") does not match required hostname (" << required_hostname << ")" << std::endl;
+                    return false;
+                }
+            } else {
+                std::cout << "Node " << node_id << " does not have hostname info" << std::endl;
+                return false;
+            }
+            continue;
+        }
+        
+                // 检查board_id匹配
+        if (key == "board_id" || key == "node_id") {
+            std::string required_board_id = value.get<std::string>();
+            if (node_id != required_board_id) {
+                std::cout << "Node " << node_id << " does not match required board_id ("
+                          << required_board_id << ")" << std::endl;
+                return false;
+            }
+            continue;
+        }
+        
+        // 检查操作系统匹配
+        if (key == "os_info" || key == "os") {
+            if (node_info.contains("os_info")) {
+                std::string node_os = node_info["os_info"].get<std::string>();
+                std::string required_os = value.get<std::string>();
+                // 支持部分匹配（包含关系）
+                if (node_os.find(required_os) == std::string::npos) {
+                    std::cout << "Node " << node_id << " OS (" << node_os 
+                              << ") does not match required OS (" << required_os << ")" << std::endl;
+                    return false;
+                }
+            } else {
+                std::cout << "Node " << node_id << " does not have OS info" << std::endl;
+                return false;
+            }
+            continue;
+        }
+        
+        // 检查节点标签匹配（如果节点有标签系统的话）
+        if (key == "labels") {
+            if (node_info.contains("labels") && value.is_object()) {
+                for (const auto& [label_key, label_value] : value.items()) {
+                    if (!node_info["labels"].contains(label_key) || 
+                        node_info["labels"][label_key] != label_value) {
+                        std::cout << "Node " << node_id << " does not have required label: " 
+                                  << label_key << "=" << label_value.dump() << std::endl;
+                        return false;
+                    }
+                }
+            } else {
+                std::cout << "Node " << node_id << " does not have labels or affinity labels not properly formatted" << std::endl;
+                return false;
+            }
+            continue;
+        }
+        
+        // 通用字段匹配
+        if (node_info.contains(key)) {
+            if (node_info[key] != value) {
+                std::cout << "Node " << node_id << " field " << key 
+                          << " (" << node_info[key].dump() << ") does not match required value (" 
+                          << value.dump() << ")" << std::endl;
+                return false;
+            }
+        } else {
+            std::cout << "Node " << node_id << " does not have field: " << key << std::endl;
             return false;
         }
     }
     
+    std::cout << "Node " << node_id << " meets all affinity requirements" << std::endl;
     return true;
 }
 
@@ -261,7 +377,7 @@ std::string Scheduler::selectBestNodeForComponent(const nlohmann::json& componen
     
     // 为每个节点计算得分
     for (const auto& node : available_nodes) {
-        std::string node_id = node["agent_id"];
+        std::string node_id = node["board_id"];
         // best_node_id = node_id; // todo 需要修改
         
         // 检查资源需求

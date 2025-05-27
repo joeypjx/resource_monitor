@@ -56,9 +56,9 @@ public:
     void stop();
     
     /**
-     * 获取Agent ID
+     * 获取Board ID
      * 
-     * @return Agent唯一标识符
+     * @return Board唯一标识符
      */
     std::string getAgentId() const;
 
@@ -118,7 +118,7 @@ private:
 private:
     std::string manager_url_;                      // Manager的URL地址
     std::string hostname_;                         // 主机名
-    std::string agent_id_;                         // Agent唯一标识符
+    std::string agent_id_;                         // Board唯一标识符
     std::string ip_address_;                       // IP地址
     std::string os_info_;                          // 操作系统信息
     

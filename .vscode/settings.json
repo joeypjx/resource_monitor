@@ -64,5 +64,7 @@
         "variant": "cpp",
         "algorithm": "cpp",
         "chrono": "cpp"
-    }
+    },
+    "cmake.configureOnOpen": false,
+    "cmake.configureOnEdit": false
 }

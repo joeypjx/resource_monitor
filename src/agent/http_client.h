@@ -65,10 +65,10 @@ public:
     /**
      * 发送心跳请求
      * 
-     * @param agent_id Agent的ID
+     * @param board_id Board的ID
      * @return 服务器响应的JSON对象
      */
-    nlohmann::json heartbeat(const std::string& agent_id);
+    nlohmann::json heartbeat(const std::string& board_id);
 
 private:
     std::string base_url_;  // 基础URL

@@ -101,7 +101,7 @@ cd build
       }
     ]
   }
-  ```
+```
 
 ### 获取指定Agent的资源历史
 - **GET** `/api/agents/{agent_id}/resources?limit=100`
@@ -175,7 +175,7 @@ cd build
       }
     ]
   }
-  ```
+```
 - **返回示例**
   ```json
   {

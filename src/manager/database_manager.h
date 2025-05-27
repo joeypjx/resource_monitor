@@ -48,10 +48,17 @@ public:
      */
     bool initializeBusinessTables();
     
+    /**
+     * 初始化资源监控相关的数据库表
+     * 
+     * @return 是否成功初始化
+     */
+    bool initializeMetricTables();
+    
     // 资源监控相关方法
-    bool saveAgent(const nlohmann::json& agent_info);
-    bool updateAgentLastSeen(const std::string& agent_id);
-    bool updateAgentStatus(const std::string& agent_id, const std::string& status);
+    bool saveBoard(const nlohmann::json& board_info);
+    bool updateBoardLastSeen(const std::string& board_id);
+    bool updateBoardStatus(const std::string& board_id, const std::string& status);
     
     /**
      * 启动节点状态监控线程
@@ -59,19 +66,19 @@ public:
      */
     void startNodeStatusMonitor();
     bool saveResourceUsage(const nlohmann::json& resource_usage);
-    bool saveCpuMetrics(const std::string& agent_id, long long timestamp, const nlohmann::json& cpu_data);
-    bool saveMemoryMetrics(const std::string& agent_id, long long timestamp, const nlohmann::json& memory_data);
-    bool saveDiskMetrics(const std::string& agent_id, long long timestamp, const nlohmann::json& disk_data);
-    bool saveNetworkMetrics(const std::string& agent_id, long long timestamp, const nlohmann::json& network_data);
-    bool saveDockerMetrics(const std::string& agent_id, long long timestamp, const nlohmann::json& docker_data);
+    bool saveCpuMetrics(const std::string& board_id, long long timestamp, const nlohmann::json& cpu_data);
+    bool saveMemoryMetrics(const std::string& board_id, long long timestamp, const nlohmann::json& memory_data);
+    bool saveDiskMetrics(const std::string& board_id, long long timestamp, const nlohmann::json& disk_data);
+    bool saveNetworkMetrics(const std::string& board_id, long long timestamp, const nlohmann::json& network_data);
+    bool saveDockerMetrics(const std::string& board_id, long long timestamp, const nlohmann::json& docker_data);
     
-    nlohmann::json getAgents();
+    nlohmann::json getBoards();
     nlohmann::json getNode(const std::string& node_id);
-    nlohmann::json getCpuMetrics(const std::string& agent_id, int limit = 100);
-    nlohmann::json getMemoryMetrics(const std::string& agent_id, int limit = 100);
-    nlohmann::json getDiskMetrics(const std::string& agent_id, int limit = 100);
-    nlohmann::json getNetworkMetrics(const std::string& agent_id, int limit = 100);
-    nlohmann::json getDockerMetrics(const std::string& agent_id, int limit = 100);
+    nlohmann::json getCpuMetrics(const std::string& board_id, int limit = 100);
+    nlohmann::json getMemoryMetrics(const std::string& board_id, int limit = 100);
+    nlohmann::json getDiskMetrics(const std::string& board_id, int limit = 100);
+    nlohmann::json getNetworkMetrics(const std::string& board_id, int limit = 100);
+    nlohmann::json getDockerMetrics(const std::string& board_id, int limit = 100);
     nlohmann::json getNodeResourceHistory(const std::string& node_id, int limit = 100);
     
     // 业务部署相关方法

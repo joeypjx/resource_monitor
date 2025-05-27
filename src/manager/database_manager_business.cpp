@@ -41,7 +41,7 @@ bool DatabaseManager::initializeBusinessTables() {
                 started_at TIMESTAMP,
                 updated_at TIMESTAMP,
                 FOREIGN KEY (business_id) REFERENCES businesses(business_id),
-                FOREIGN KEY (node_id) REFERENCES agents(agent_id)
+                FOREIGN KEY (node_id) REFERENCES board(board_id)
             )
         )");
         
@@ -512,7 +512,7 @@ nlohmann::json DatabaseManager::getNodeResourceInfo(const std::string& node_id) 
         {
             SQLite::Statement query(*db_, 
                 "SELECT usage_percent, core_count "
-                "FROM cpu_metrics WHERE agent_id = ? ORDER BY timestamp DESC LIMIT 1");
+                "FROM cpu_metrics WHERE board_id = ? ORDER BY timestamp DESC LIMIT 1");
             query.bind(1, node_id);
             
             if (query.executeStep()) {
@@ -525,7 +525,7 @@ nlohmann::json DatabaseManager::getNodeResourceInfo(const std::string& node_id) 
         {
             SQLite::Statement query(*db_, 
                 "SELECT total, used, free, usage_percent "
-                "FROM memory_metrics WHERE agent_id = ? ORDER BY timestamp DESC LIMIT 1");
+                "FROM memory_metrics WHERE board_id = ? ORDER BY timestamp DESC LIMIT 1");
             query.bind(1, node_id);
             
             if (query.executeStep()) {
@@ -539,7 +539,7 @@ nlohmann::json DatabaseManager::getNodeResourceInfo(const std::string& node_id) 
         // 获取最新的Docker指标
         {
             SQLite::Statement query(*db_, 
-                "SELECT id FROM docker_metrics WHERE agent_id = ? ORDER BY timestamp DESC LIMIT 1");
+                "SELECT id FROM docker_metrics WHERE board_id = ? ORDER BY timestamp DESC LIMIT 1");
             query.bind(1, node_id);
             
             if (query.executeStep()) {
@@ -578,7 +578,7 @@ nlohmann::json DatabaseManager::getNodeGpuInfo(const std::string& node_id) {
         // 这里仅作示例，实际应该有更准确的GPU检测
         SQLite::Statement query(*db_, 
             "SELECT COUNT(*) FROM docker_containers WHERE docker_metric_id IN "
-            "(SELECT id FROM docker_metrics WHERE agent_id = ?) "
+            "(SELECT id FROM docker_metrics WHERE board_id = ?) "
             "AND image LIKE '%gpu%' OR image LIKE '%cuda%'");
         query.bind(1, node_id);
         
