@@ -1,12 +1,12 @@
 # 资源监控与业务部署系统
 
-这是一个基于C++14开发的分布式系统，由Agent和Manager两部分组成。系统不仅能够监控节点资源信息，还能够进行业务部署和管理。
+这是一个基于C++14开发的分布式系统，由Agent和Manager两部分组成。系统不仅能够监控计算板卡(Board)资源信息，还能够进行业务部署和管理，支持机箱级别的组织管理和详细的硬件配置记录。
 
 ## 系统架构
 
 系统由以下两个主要组件构成：
 
-- **Agent**：部署在各个工作节点上，负责采集本地资源信息、部署和管理业务组件
+- **Agent**：部署在各个计算板卡(Board)上，负责采集本地资源信息、部署和管理业务组件
 - **Manager**：作为中心管理节点，接收来自各个Agent的数据，进行资源调度，并存储到SQLite数据库中
 
 ![系统架构](docs/architecture.png)
@@ -14,18 +14,20 @@
 ## 功能特性
 
 ### 资源监控功能
-- 资源监控：CPU、内存、磁盘、网络和Docker容器
-- 自动注册：Agent自动向Manager注册
-- 定时上报：Agent每5秒采集并上报资源数据
-- 数据存储：Manager将数据存储到SQLite数据库
+- **资源监控**：CPU、内存、磁盘、网络、Docker容器和GPU
+- **自动注册**：Agent自动向Manager注册，包含完整硬件配置信息
+- **定时上报**：Agent每5秒采集并上报资源数据
+- **数据存储**：Manager将数据存储到SQLite数据库
+- **机箱管理**：支持机箱级别的组织管理，可将多个Board归属到同一机箱
+- **硬件管理**：详细记录和管理CPU、GPU等硬件配置信息
 
 ### 业务部署功能
-- 业务部署：支持通过JSON配置部署多组件业务（支持Docker和二进制类型组件）
-- 资源调度：根据节点资源情况和亲和性进行智能调度
-- Docker支持：支持Docker容器的部署和管理
-- 二进制支持：支持二进制可执行文件的分发与运行
-- 状态监控：收集业务组件的运行状态
-- 生命周期管理：支持业务的停止、重启和更新
+- **业务部署**：支持通过JSON配置部署多组件业务（支持Docker和二进制类型组件）
+- **资源调度**：根据节点资源情况和亲和性进行智能调度
+- **Docker支持**：支持Docker容器的部署和管理
+- **二进制支持**：支持二进制可执行文件的分发与运行
+- **状态监控**：收集业务组件的运行状态
+- **生命周期管理**：支持业务的停止、重启和更新
 
 ## 编译与安装
 
@@ -84,29 +86,72 @@ cd build
 
 # API接口文档（前端开发专用）
 
-## 1. 节点与资源监控
+## 1. Board与资源监控
 
-### 获取所有Agent列表
-- **GET** `/api/agents`
+### 获取所有Board列表
+- **GET** `/api/boards`
 - **返回示例**
   ```json
   {
     "status": "success",
-    "agents": [
+    "boards": [
       {
-        "agent_id": "node-xxxx",
+        "board_id": "board-xxxx",
         "hostname": "host1",
-        "ip": "192.168.1.10",
-        "last_heartbeat": "2024-05-18 10:00:00"
+        "ip_address": "192.168.1.10", 
+        "os_info": "Ubuntu 20.04",
+        "chassis_id": "chassis-001",
+        "status": "online",
+        "created_at": 1710000000,
+        "updated_at": 1710000005,
+        "cpu_list": [
+          {
+            "processor_id": 0,
+            "model_name": "Intel Core i7-8700K",
+            "vendor": "Intel",
+            "frequency_mhz": 3700.0,
+            "cache_size": "12288 KB",
+            "cores": 6
+          }
+        ],
+        "gpu_list": [
+          {
+            "index": 0,
+            "name": "NVIDIA GeForce RTX 3080",
+            "memory_total_mb": 10240,
+            "temperature_c": 45,
+            "utilization_percent": 0,
+            "type": "discrete"
+          }
+        ]
       }
     ]
   }
-```
+  ```
 
-### 获取指定Agent的资源历史
-- **GET** `/api/agents/{agent_id}/resources?limit=100`
+### 获取指定Board信息
+- **GET** `/api/boards/{board_id}`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "board": {
+      "board_id": "board-xxxx",
+      "hostname": "host1",
+      "ip_address": "192.168.1.10",
+      "os_info": "Ubuntu 20.04",
+      "chassis_id": "chassis-001",
+      "status": "online",
+      "cpu_list": [...],
+      "gpu_list": [...]
+    }
+  }
+  ```
+
+### 获取指定Board的资源历史
+- **GET** `/api/boards/{board_id}/resources?limit=100`
 - **参数**
-  - `agent_id`：节点ID
+  - `board_id`：Board ID
   - `limit`：返回条数（可选，默认100）
 - **返回示例**
   ```json
@@ -124,8 +169,8 @@ cd build
   }
   ```
 
-### 获取指定Agent的某类资源
-- **GET** `/api/agents/{agent_id}/resources/{resource_type}?limit=100`
+### 获取指定Board的某类资源
+- **GET** `/api/boards/{board_id}/resources/{resource_type}?limit=100`
 - **resource_type**：`cpu`/`memory`/`disk`/`network`/`docker`
 - **返回示例**
   ```json
@@ -142,7 +187,200 @@ cd build
 
 ---
 
-## 2. 业务部署与管理
+## 2. 机箱管理
+
+### 创建机箱
+- **POST** `/api/chassis`
+- **请求体**
+  ```json
+  {
+    "chassis_id": "chassis-001",
+    "chassis_name": "主机箱1号",
+    "description": "数据中心A区主机箱",
+    "location": "A区-1排-3号"
+  }
+  ```
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "message": "Chassis created successfully"
+  }
+  ```
+
+### 获取机箱列表
+- **GET** `/api/chassis`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "chassis": [
+      {
+        "chassis_id": "chassis-001",
+        "chassis_name": "主机箱1号",
+        "description": "数据中心A区主机箱",
+        "location": "A区-1排-3号",
+        "created_at": 1710000000,
+        "updated_at": 1710000000
+      }
+    ]
+  }
+  ```
+
+### 获取指定机箱详情
+- **GET** `/api/chassis/{chassis_id}`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "chassis": {
+      "chassis_id": "chassis-001",
+      "chassis_name": "主机箱1号",
+      "description": "数据中心A区主机箱",
+      "location": "A区-1排-3号",
+      "created_at": 1710000000,
+      "updated_at": 1710000000
+    }
+  }
+  ```
+
+### 更新机箱信息
+- **PUT** `/api/chassis/{chassis_id}`
+- **请求体**：同创建机箱
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "message": "Chassis updated successfully"
+  }
+  ```
+
+### 删除机箱
+- **DELETE** `/api/chassis/{chassis_id}`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "message": "Chassis deleted successfully"
+  }
+  ```
+
+### 获取机箱下的Board列表
+- **GET** `/api/chassis/{chassis_id}/boards`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "boards": [
+      {
+        "board_id": "board-xxxx",
+        "hostname": "host1",
+        "chassis_id": "chassis-001",
+        "status": "online",
+        "cpu_list": [...],
+        "gpu_list": [...]
+      }
+    ]
+  }
+  ```
+
+---
+
+## 3. 硬件管理
+
+### 获取指定Board的CPU列表
+- **GET** `/api/boards/{board_id}/cpus`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "cpus": [
+      {
+        "processor_id": 0,
+        "model_name": "Intel Core i7-8700K",
+        "vendor": "Intel",
+        "frequency_mhz": 3700.0,
+        "cache_size": "12288 KB",
+        "cores": 6,
+        "created_at": 1710000000,
+        "updated_at": 1710000000
+      }
+    ]
+  }
+  ```
+
+### 获取指定Board的GPU列表
+- **GET** `/api/boards/{board_id}/gpus`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "gpus": [
+      {
+        "index": 0,
+        "name": "NVIDIA GeForce RTX 3080",
+        "memory_total_mb": 10240,
+        "temperature_c": 45,
+        "utilization_percent": 0,
+        "type": "discrete",
+        "created_at": 1710000000,
+        "updated_at": 1710000000
+      }
+    ]
+  }
+  ```
+
+### 获取所有CPU列表
+- **GET** `/api/cpus`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "cpus": [
+      {
+        "board_id": "board-xxxx",
+        "processor_id": 0,
+        "model_name": "Intel Core i7-8700K",
+        "vendor": "Intel",
+        "frequency_mhz": 3700.0,
+        "cache_size": "12288 KB",
+        "cores": 6,
+        "hostname": "host1",
+        "chassis_id": "chassis-001",
+        "created_at": 1710000000,
+        "updated_at": 1710000000
+      }
+    ]
+  }
+  ```
+
+### 获取所有GPU列表
+- **GET** `/api/gpus`
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "gpus": [
+      {
+        "board_id": "board-xxxx",
+        "gpu_index": 0,
+        "name": "NVIDIA GeForce RTX 3080",
+        "memory_total_mb": 10240,
+        "temperature_c": 45,
+        "utilization_percent": 0,
+        "type": "discrete",
+        "hostname": "host1",
+        "chassis_id": "chassis-001",
+        "created_at": 1710000000,
+        "updated_at": 1710000000
+      }
+    ]
+  }
+  ```
+
+---
+
+## 4. 业务部署与管理
 
 ### 部署业务
 - **POST** `/api/businesses`
@@ -175,7 +413,7 @@ cd build
       }
     ]
   }
-```
+  ```
 - **返回示例**
   ```json
   {
@@ -249,7 +487,7 @@ cd build
         "component_id": "component-1",
         "status": "running",
         "type": "docker",
-        "node_id": "node-xxxx"
+        "board_id": "board-xxxx"
       }
     ]
   }
@@ -273,7 +511,7 @@ cd build
 
 ---
 
-## 3. 组件模板管理
+## 5. 组件模板管理
 
 ### 创建组件模板
 - **POST** `/api/templates/components`
@@ -347,7 +585,7 @@ cd build
 
 ---
 
-## 4. 业务模板管理
+## 6. 业务模板管理
 
 ### 创建业务模板
 - **POST** `/api/templates/businesses`
@@ -454,7 +692,7 @@ cd build
 
 ---
 
-## 5. Agent本地API（组件部署/停止）
+## 7. Agent本地API（组件部署/停止）
 
 ### 部署组件
 - **POST** `/api/deploy`
@@ -488,66 +726,55 @@ cd build
 
 ---
 
-## 字段说明
+## 8. 基础协议接口
 
-- `component_id`：组件唯一标识
-- `component_name`：组件名称
-- `type`：组件类型（docker/binary）
-- `image_url`/`image_name`：docker镜像相关
-- `binary_url`/`binary_path`：二进制组件相关
-- `resource_requirements`：资源需求（cpu_cores、memory_mb、gpu）
-- `environment_variables`：环境变量
-- `config_files`：配置文件数组
-- `affinity`：调度亲和性约束
-- `status`：状态（success/error/running/stopped等）
-
----
-
-如需补充更多接口或字段说明，请随时告知！
-
-## 测试
-
-### 资源监控测试
-
-使用提供的测试脚本进行功能测试：
-
-```bash
-./test.sh
-```
-
-### 业务部署测试
-
-使用提供的业务部署测试脚本：
-
-```bash
-./deployment_test.sh
-```
-
-## 系统架构详情
-
-系统架构详细设计请参考：
-- [资源监控架构](docs/system_architecture.md)
-- [业务部署架构](docs/deployment/deployment_architecture.md)
-
-## 后续改进
-
-- 接口改成异步
-- 接口/agent全部改成/node，数据库字段也改成node
-- node信息完善
-- 完善调度机制
-- 不常用接口检查和删除
-- 前端开发
-
-## 许可证
-
-MIT
+### Board注册接口
+- **POST** `/api/register`
+- **请求体**
+  ```json
+  {
+    "board_id": "board-xxxx",
+    "hostname": "host1",
+    "ip_address": "192.168.1.10",
+    "os_info": "Ubuntu 20.04",
+    "chassis_id": "chassis-001",
+    "cpu_list": [
+      {
+        "processor_id": 0,
+        "model_name": "Intel Core i7-8700K",
+        "vendor": "Intel",
+        "frequency_mhz": 3700.0,
+        "cache_size": "12288 KB",
+        "cores": 6
+      }
+    ],
+    "gpu_list": [
+      {
+        "index": 0,
+        "name": "NVIDIA GeForce RTX 3080",
+        "memory_total_mb": 10240,
+        "temperature_c": 45,
+        "utilization_percent": 0,
+        "type": "discrete"
+      }
+    ]
+  }
+  ```
+- **返回示例**
+  ```json
+  {
+    "status": "success",
+    "message": "Board registered successfully",
+    "board_id": "board-xxxx"
+  }
+  ```
 
 ### 资源上报数据格式（Agent -> Manager）
 - **POST** `/api/report`
 - **请求体**
   ```json
   {
-    "agent_id": "唯一标识符",
+    "board_id": "board-xxxx",
     "timestamp": 1710000000,
     "resource": {
       "cpu": {
@@ -604,3 +831,76 @@ MIT
   }
   ```
 - **说明**：所有资源数据均在 resource 字段下，字段类型和内容如上所示。
+
+---
+
+## 字段说明
+
+### 核心概念
+- `board_id`：计算板卡唯一标识
+- `chassis_id`：机箱唯一标识
+- `component_id`：组件唯一标识
+- `business_id`：业务唯一标识
+
+### 硬件相关
+- `processor_id`：CPU处理器ID
+- `gpu_index`：GPU索引
+- `model_name`：硬件型号名称
+- `vendor`：硬件厂商
+- `frequency_mhz`：CPU频率（MHz）
+- `cache_size`：缓存大小
+- `cores`：CPU核心数
+- `memory_total_mb`：GPU显存总量（MB）
+- `temperature_c`：温度（摄氏度）
+- `utilization_percent`：GPU利用率（百分比）
+
+### 业务相关
+- `component_name`：组件名称
+- `type`：组件类型（docker/binary）
+- `image_url`/`image_name`：docker镜像相关
+- `binary_url`/`binary_path`：二进制组件相关
+- `resource_requirements`：资源需求（cpu_cores、memory_mb、gpu）
+- `environment_variables`：环境变量
+- `config_files`：配置文件数组
+- `affinity`：调度亲和性约束
+- `status`：状态（success/error/running/stopped/online/offline等）
+
+---
+
+## 测试
+
+### 资源监控测试
+
+使用提供的测试脚本进行功能测试：
+
+```bash
+./test.sh
+```
+
+### 业务部署测试
+
+使用提供的业务部署测试脚本：
+
+```bash
+./deployment_test.sh
+```
+
+## 系统架构详情
+
+系统架构详细设计请参考：
+- [资源监控架构](docs/system_architecture.md)
+- [业务部署架构](docs/deployment/deployment_architecture.md)
+
+## 后续改进
+
+- 接口改成异步
+- 完善调度机制
+- 不常用接口检查和删除
+- 前端开发
+- 增加更多硬件类型支持
+- 完善机箱级别的管理功能
+- 添加集群监控和告警功能
+
+## 许可证
+
+MIT

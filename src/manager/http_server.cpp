@@ -81,6 +81,38 @@ void HTTPServer::initRoutes()
     server_.Get("/api/cluster/metrics/history", [this](const httplib::Request &req, httplib::Response &res)
                 { handleGetClusterMetricsHistory(req, res); });
 
+    // 机箱管理API
+    server_.Post("/api/chassis", [this](const httplib::Request &req, httplib::Response &res)
+                 { handleCreateChassis(req, res); });
+
+    server_.Get("/api/chassis", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetChassis(req, res); });
+
+    server_.Get("/api/chassis/:chassis_id", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetChassisDetails(req, res); });
+
+    server_.Put("/api/chassis/:chassis_id", [this](const httplib::Request &req, httplib::Response &res)
+                { handleUpdateChassis(req, res); });
+
+    server_.Delete("/api/chassis/:chassis_id", [this](const httplib::Request &req, httplib::Response &res)
+                   { handleDeleteChassis(req, res); });
+
+    server_.Get("/api/chassis/:chassis_id/boards", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetChassisBoards(req, res); });
+
+    // CPU和GPU管理API
+    server_.Get("/api/boards/:board_id/cpus", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetBoardCpus(req, res); });
+
+    server_.Get("/api/boards/:board_id/gpus", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetBoardGpus(req, res); });
+
+    server_.Get("/api/cpus", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetAllCpus(req, res); });
+
+    server_.Get("/api/gpus", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetAllGpus(req, res); });
+
     // 业务管理API
     server_.Post("/api/businesses", [this](const httplib::Request &req, httplib::Response &res)
                  { handleDeployBusiness(req, res); });
@@ -673,5 +705,201 @@ void HTTPServer::handleAgentControl(const httplib::Request& req, httplib::Respon
         res.set_content(result.dump(), "application/json");
     } catch (const std::exception& e) {
         res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
+    }
+}
+
+// 机箱管理处理函数
+
+void HTTPServer::handleCreateChassis(const httplib::Request& req, httplib::Response& res) {
+    try {
+        auto chassis_info = nlohmann::json::parse(req.body);
+        
+        if (db_manager_->saveChassis(chassis_info)) {
+            res.set_content(nlohmann::json({
+                {"status", "success"},
+                {"message", "Chassis created successfully"}
+            }).dump(), "application/json");
+        } else {
+            res.set_content(nlohmann::json({
+                {"status", "error"},
+                {"message", "Failed to create chassis"}
+            }).dump(), "application/json");
+        }
+    } catch (const std::exception& e) {
+        res.set_content(nlohmann::json({
+            {"status", "error"},
+            {"message", std::string("Invalid request: ") + e.what()}
+        }).dump(), "application/json");
+    }
+}
+
+void HTTPServer::handleGetChassis(const httplib::Request& req, httplib::Response& res) {
+    try {
+        auto chassis_list = db_manager_->getChassis();
+        res.set_content(nlohmann::json({
+            {"status", "success"},
+            {"data", chassis_list}
+        }).dump(), "application/json");
+    } catch (const std::exception& e) {
+        res.set_content(nlohmann::json({
+            {"status", "error"},
+            {"message", e.what()}
+        }).dump(), "application/json");
+    }
+}
+
+void HTTPServer::handleGetChassisDetails(const httplib::Request& req, httplib::Response& res) {
+    try {
+        std::string chassis_id = req.path_params.at("chassis_id");
+        auto chassis = db_manager_->getChassisById(chassis_id);
+        
+        if (chassis.empty()) {
+            res.set_content(nlohmann::json({
+                {"status", "error"},
+                {"message", "Chassis not found"}
+            }).dump(), "application/json");
+        } else {
+            res.set_content(nlohmann::json({
+                {"status", "success"},
+                {"data", chassis}
+            }).dump(), "application/json");
+        }
+    } catch (const std::exception& e) {
+        res.set_content(nlohmann::json({
+            {"status", "error"},
+            {"message", e.what()}
+        }).dump(), "application/json");
+    }
+}
+
+void HTTPServer::handleUpdateChassis(const httplib::Request& req, httplib::Response& res) {
+    try {
+        std::string chassis_id = req.path_params.at("chassis_id");
+        auto chassis_info = nlohmann::json::parse(req.body);
+        
+        if (db_manager_->updateChassis(chassis_id, chassis_info)) {
+            res.set_content(nlohmann::json({
+                {"status", "success"},
+                {"message", "Chassis updated successfully"}
+            }).dump(), "application/json");
+        } else {
+            res.set_content(nlohmann::json({
+                {"status", "error"},
+                {"message", "Failed to update chassis"}
+            }).dump(), "application/json");
+        }
+    } catch (const std::exception& e) {
+        res.set_content(nlohmann::json({
+            {"status", "error"},
+            {"message", std::string("Invalid request: ") + e.what()}
+        }).dump(), "application/json");
+    }
+}
+
+void HTTPServer::handleDeleteChassis(const httplib::Request& req, httplib::Response& res) {
+    try {
+        std::string chassis_id = req.path_params.at("chassis_id");
+        
+        if (db_manager_->deleteChassis(chassis_id)) {
+            res.set_content(nlohmann::json({
+                {"status", "success"},
+                {"message", "Chassis deleted successfully"}
+            }).dump(), "application/json");
+        } else {
+            res.set_content(nlohmann::json({
+                {"status", "error"},
+                {"message", "Failed to delete chassis or chassis has associated boards"}
+            }).dump(), "application/json");
+        }
+    } catch (const std::exception& e) {
+        res.set_content(nlohmann::json({
+            {"status", "error"},
+            {"message", e.what()}
+        }).dump(), "application/json");
+    }
+}
+
+void HTTPServer::handleGetChassisBoards(const httplib::Request& req, httplib::Response& res) {
+    try {
+        std::string chassis_id = req.path_params.at("chassis_id");
+        auto boards = db_manager_->getBoardsByChassis(chassis_id);
+        
+        res.set_content(nlohmann::json({
+            {"status", "success"},
+            {"data", boards}
+        }).dump(), "application/json");
+    } catch (const std::exception& e) {
+        res.set_content(nlohmann::json({
+            {"status", "error"},
+            {"message", e.what()}
+        }).dump(), "application/json");
+    }
+}
+
+// CPU和GPU管理处理函数
+
+void HTTPServer::handleGetBoardCpus(const httplib::Request& req, httplib::Response& res) {
+    try {
+        std::string board_id = req.path_params.at("board_id");
+        auto cpus = db_manager_->getBoardCpus(board_id);
+        
+        res.set_content(nlohmann::json({
+            {"status", "success"},
+            {"data", cpus}
+        }).dump(), "application/json");
+    } catch (const std::exception& e) {
+        res.set_content(nlohmann::json({
+            {"status", "error"},
+            {"message", e.what()}
+        }).dump(), "application/json");
+    }
+}
+
+void HTTPServer::handleGetBoardGpus(const httplib::Request& req, httplib::Response& res) {
+    try {
+        std::string board_id = req.path_params.at("board_id");
+        auto gpus = db_manager_->getBoardGpus(board_id);
+        
+        res.set_content(nlohmann::json({
+            {"status", "success"},
+            {"data", gpus}
+        }).dump(), "application/json");
+    } catch (const std::exception& e) {
+        res.set_content(nlohmann::json({
+            {"status", "error"},
+            {"message", e.what()}
+        }).dump(), "application/json");
+    }
+}
+
+void HTTPServer::handleGetAllCpus(const httplib::Request& req, httplib::Response& res) {
+    try {
+        auto cpus = db_manager_->getAllCpus();
+        
+        res.set_content(nlohmann::json({
+            {"status", "success"},
+            {"data", cpus}
+        }).dump(), "application/json");
+    } catch (const std::exception& e) {
+        res.set_content(nlohmann::json({
+            {"status", "error"},
+            {"message", e.what()}
+        }).dump(), "application/json");
+    }
+}
+
+void HTTPServer::handleGetAllGpus(const httplib::Request& req, httplib::Response& res) {
+    try {
+        auto gpus = db_manager_->getAllGpus();
+        
+        res.set_content(nlohmann::json({
+            {"status", "success"},
+            {"data", gpus}
+        }).dump(), "application/json");
+    } catch (const std::exception& e) {
+        res.set_content(nlohmann::json({
+            {"status", "error"},
+            {"message", e.what()}
+        }).dump(), "application/json");
     }
 }

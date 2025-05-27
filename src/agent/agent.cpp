@@ -17,6 +17,9 @@
 #include <uuid/uuid.h>
 #include <httplib.h>
 #include <fstream>
+#include <cstdlib>
+#include <sstream>
+#include <vector>
 
 Agent::Agent(const std::string& manager_url, 
              const std::string& hostname,
@@ -171,6 +174,9 @@ bool Agent::registerToManager() {
     register_info["hostname"] = hostname_;
     register_info["ip_address"] = ip_address_;
     register_info["os_info"] = os_info_;
+    register_info["chassis_id"] = getChassisId();
+    register_info["cpu_list"] = getCpuList();
+    register_info["gpu_list"] = getGpuList();
     
     // 发送注册请求
     nlohmann::json response = http_client_->registerAgent(register_info);
@@ -421,4 +427,163 @@ void Agent::heartbeatThread() {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     }
+}
+
+std::string Agent::getChassisId() {
+    // 尝试从环境变量获取机箱ID
+    const char* chassis_id_env = std::getenv("CHASSIS_ID");
+    if (chassis_id_env) {
+        return std::string(chassis_id_env);
+    }
+    
+    // 尝试从配置文件读取
+    std::ifstream chassis_file("/etc/chassis_id");
+    if (chassis_file.is_open()) {
+        std::string chassis_id;
+        std::getline(chassis_file, chassis_id);
+        chassis_file.close();
+        if (!chassis_id.empty()) {
+            return chassis_id;
+        }
+    }
+    
+    // 如果都没有，返回默认值
+    return "unknown";
+}
+
+nlohmann::json Agent::getCpuList() {
+    nlohmann::json cpu_list = nlohmann::json::array();
+    
+    try {
+        // 读取/proc/cpuinfo获取CPU信息
+        std::ifstream cpuinfo("/proc/cpuinfo");
+        if (!cpuinfo.is_open()) {
+            return cpu_list;
+        }
+        
+        std::string line;
+        nlohmann::json current_cpu;
+        bool has_processor = false;
+        
+        while (std::getline(cpuinfo, line)) {
+            if (line.empty()) {
+                // 空行表示一个CPU信息结束
+                if (has_processor && !current_cpu.empty()) {
+                    cpu_list.push_back(current_cpu);
+                    current_cpu.clear();
+                    has_processor = false;
+                }
+                continue;
+            }
+            
+            size_t colon_pos = line.find(':');
+            if (colon_pos == std::string::npos) {
+                continue;
+            }
+            
+            std::string key = line.substr(0, colon_pos);
+            std::string value = line.substr(colon_pos + 1);
+            
+            // 去除前后空格
+            key.erase(0, key.find_first_not_of(" \t"));
+            key.erase(key.find_last_not_of(" \t") + 1);
+            value.erase(0, value.find_first_not_of(" \t"));
+            value.erase(value.find_last_not_of(" \t") + 1);
+            
+            if (key == "processor") {
+                has_processor = true;
+                current_cpu["processor_id"] = std::stoi(value);
+            } else if (key == "model name") {
+                current_cpu["model_name"] = value;
+            } else if (key == "cpu MHz") {
+                current_cpu["frequency_mhz"] = std::stod(value);
+            } else if (key == "cache size") {
+                current_cpu["cache_size"] = value;
+            } else if (key == "cpu cores") {
+                current_cpu["cores"] = std::stoi(value);
+            } else if (key == "vendor_id") {
+                current_cpu["vendor"] = value;
+            }
+        }
+        
+        // 处理最后一个CPU
+        if (has_processor && !current_cpu.empty()) {
+            cpu_list.push_back(current_cpu);
+        }
+        
+        cpuinfo.close();
+    } catch (const std::exception& e) {
+        std::cerr << "Error reading CPU information: " << e.what() << std::endl;
+    }
+    
+    return cpu_list;
+}
+
+nlohmann::json Agent::getGpuList() {
+    nlohmann::json gpu_list = nlohmann::json::array();
+    
+    try {
+        // 尝试使用nvidia-ml-py或nvidia-smi获取GPU信息
+        // 这里使用系统命令nvidia-smi作为示例
+        FILE* pipe = popen("nvidia-smi --query-gpu=index,name,memory.total,temperature.gpu,utilization.gpu --format=csv,noheader,nounits 2>/dev/null", "r");
+        if (pipe) {
+            char buffer[256];
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                std::string line(buffer);
+                // 去除换行符
+                if (!line.empty() && line.back() == '\n') {
+                    line.pop_back();
+                }
+                
+                // 解析CSV格式的输出
+                std::vector<std::string> fields;
+                std::stringstream ss(line);
+                std::string field;
+                
+                while (std::getline(ss, field, ',')) {
+                    // 去除前后空格
+                    field.erase(0, field.find_first_not_of(" \t"));
+                    field.erase(field.find_last_not_of(" \t") + 1);
+                    fields.push_back(field);
+                }
+                
+                if (fields.size() >= 5) {
+                    nlohmann::json gpu;
+                    gpu["index"] = std::stoi(fields[0]);
+                    gpu["name"] = fields[1];
+                    gpu["memory_total_mb"] = std::stoi(fields[2]);
+                    gpu["temperature_c"] = std::stoi(fields[3]);
+                    gpu["utilization_percent"] = std::stoi(fields[4]);
+                    gpu_list.push_back(gpu);
+                }
+            }
+            pclose(pipe);
+        }
+        
+        // 如果nvidia-smi没有找到GPU，尝试查看其他GPU信息
+        if (gpu_list.empty()) {
+            // 检查是否有其他类型的GPU（Intel、AMD等）
+            std::ifstream devices("/proc/bus/pci/devices");
+            if (devices.is_open()) {
+                std::string line;
+                int gpu_index = 0;
+                while (std::getline(devices, line)) {
+                    // 简化的GPU检测逻辑
+                    if (line.find("300") != std::string::npos) { // VGA compatible controller
+                        nlohmann::json gpu;
+                        gpu["index"] = gpu_index++;
+                        gpu["name"] = "Unknown GPU";
+                        gpu["type"] = "integrated";
+                        gpu_list.push_back(gpu);
+                    }
+                }
+                devices.close();
+            }
+        }
+        
+    } catch (const std::exception& e) {
+        std::cerr << "Error reading GPU information: " << e.what() << std::endl;
+    }
+    
+    return gpu_list;
 }

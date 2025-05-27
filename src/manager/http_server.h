@@ -197,6 +197,24 @@ private:
     // 新增：处理Agent控制
     void handleAgentControl(const httplib::Request& req, httplib::Response& res);
 
+    /**
+     * 机箱管理相关处理函数
+     */
+    void handleCreateChassis(const httplib::Request& req, httplib::Response& res);
+    void handleGetChassis(const httplib::Request& req, httplib::Response& res);
+    void handleGetChassisDetails(const httplib::Request& req, httplib::Response& res);
+    void handleUpdateChassis(const httplib::Request& req, httplib::Response& res);
+    void handleDeleteChassis(const httplib::Request& req, httplib::Response& res);
+    void handleGetChassisBoards(const httplib::Request& req, httplib::Response& res);
+
+    /**
+     * CPU和GPU管理相关处理函数
+     */
+    void handleGetBoardCpus(const httplib::Request& req, httplib::Response& res);
+    void handleGetBoardGpus(const httplib::Request& req, httplib::Response& res);
+    void handleGetAllCpus(const httplib::Request& req, httplib::Response& res);
+    void handleGetAllGpus(const httplib::Request& req, httplib::Response& res);
+
 private:
     std::shared_ptr<DatabaseManager> db_manager_;    // 数据库管理器
     std::shared_ptr<BusinessManager> business_manager_;  // 业务管理器

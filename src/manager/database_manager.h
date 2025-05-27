@@ -60,6 +60,22 @@ public:
     bool updateBoardLastSeen(const std::string& board_id);
     bool updateBoardStatus(const std::string& board_id, const std::string& status);
     
+    // 机箱管理相关方法
+    bool saveChassis(const nlohmann::json& chassis_info);
+    bool updateChassis(const std::string& chassis_id, const nlohmann::json& chassis_info);
+    bool deleteChassis(const std::string& chassis_id);
+    nlohmann::json getChassis();
+    nlohmann::json getChassisById(const std::string& chassis_id);
+    nlohmann::json getBoardsByChassis(const std::string& chassis_id);
+    
+    // CPU和GPU管理相关方法
+    bool saveBoardCpus(const std::string& board_id, const nlohmann::json& cpu_list);
+    bool saveBoardGpus(const std::string& board_id, const nlohmann::json& gpu_list);
+    nlohmann::json getBoardCpus(const std::string& board_id);
+    nlohmann::json getBoardGpus(const std::string& board_id);
+    nlohmann::json getAllCpus();
+    nlohmann::json getAllGpus();
+    
     /**
      * 启动节点状态监控线程
      * 定期检查节点最后上报时间，超过阈值则标记为离线
