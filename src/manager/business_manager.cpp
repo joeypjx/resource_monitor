@@ -45,7 +45,7 @@ nlohmann::json BusinessManager::deployBusiness(const nlohmann::json& business_in
     } else {
         business_id = generate_uuid();
     }
-
+    
     // 保存业务信息（此时组件可以为空或只包含基本信息）
     // 新建一个业务对象
     nlohmann::json business = business_info;
@@ -94,7 +94,7 @@ nlohmann::json BusinessManager::deployBusiness(const nlohmann::json& business_in
         
         // 部署组件
         auto deploy_result = deployComponent(business_id, component_info, node_id);
-
+        
         if (deploy_result["status"] != "success") {
             // 停止已部署的组件
             for (const auto& deployed_component : deployed_components) {
@@ -503,7 +503,7 @@ nlohmann::json BusinessManager::deployComponent(const std::string& business_id,
         
         // 发送POST请求
         auto res = cli.Post(path, header_map, json_data, "application/json");
-        
+
         // 处理响应
         if (res && res->status == 200) {
             try {
@@ -538,7 +538,7 @@ nlohmann::json BusinessManager::deployComponent(const std::string& business_id,
         
         // 打印组件信息
         std::cout << "save Component info: " << component.dump() << std::endl;
-
+        
         // 保存到数据库
         db_manager_->saveBusinessComponent(component);
     }
@@ -621,7 +621,7 @@ nlohmann::json BusinessManager::stopComponent(const std::string& business_id, co
         
     // 打印停止请求
     std::cout << "Stop request: " << stop_request.dump() << std::endl;
-
+    
     // 发送停止请求
     nlohmann::json response;
     try {

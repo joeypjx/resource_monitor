@@ -99,7 +99,7 @@ nlohmann::json Scheduler::getNodeResourceUsage(const std::string& node_id) {
 
 nlohmann::json Scheduler::getNodeInfo(const std::string& node_id) {
     // 从数据库获取节点完整信息
-    return db_manager_->getNode(node_id);
+    return db_manager_->getBoard(node_id);
 }
 
 bool Scheduler::checkNodeResourceRequirements(const std::string& node_id, const nlohmann::json& resource_requirements) {

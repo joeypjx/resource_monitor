@@ -22,64 +22,37 @@ namespace SQLite {
  */
 class DatabaseManager {
 public:
-    /**
-     * 构造函数
-     * 
-     * @param db_path 数据库文件路径
-     */
+    // 构造与析构
     explicit DatabaseManager(const std::string& db_path);
-    
-    /**
-     * 析构函数
-     */
     ~DatabaseManager();
-    
-    /**
-     * 初始化数据库
-     * 
-     * @return 是否成功初始化
-     */
+
+    // 数据库初始化
     bool initialize();
-    
-    /**
-     * 初始化业务相关的数据库表
-     * 
-     * @return 是否成功初始化
-     */
     bool initializeBusinessTables();
-    
-    /**
-     * 初始化资源监控相关的数据库表
-     * 
-     * @return 是否成功初始化
-     */
     bool initializeMetricTables();
-    
-    // 资源监控相关方法
+
+    // 资源监控相关
     bool saveBoard(const nlohmann::json& board_info);
     bool updateBoardLastSeen(const std::string& board_id);
     bool updateBoardStatus(const std::string& board_id, const std::string& status);
-    
-    // 机箱管理相关方法
+
+    // 机箱管理相关
     bool saveChassis(const nlohmann::json& chassis_info);
     bool updateChassis(const std::string& chassis_id, const nlohmann::json& chassis_info);
     bool deleteChassis(const std::string& chassis_id);
     nlohmann::json getChassis();
     nlohmann::json getChassisById(const std::string& chassis_id);
     nlohmann::json getBoardsByChassis(const std::string& chassis_id);
-    
-    // CPU和GPU管理相关方法
+
+    // CPU和GPU管理相关
     bool saveBoardCpus(const std::string& board_id, const nlohmann::json& cpu_list);
     bool saveBoardGpus(const std::string& board_id, const nlohmann::json& gpu_list);
     nlohmann::json getBoardCpus(const std::string& board_id);
     nlohmann::json getBoardGpus(const std::string& board_id);
     nlohmann::json getAllCpus();
     nlohmann::json getAllGpus();
-    
-    /**
-     * 启动节点状态监控线程
-     * 定期检查节点最后上报时间，超过阈值则标记为离线
-     */
+
+    // 节点监控与资源采集
     void startNodeStatusMonitor();
     bool saveResourceUsage(const nlohmann::json& resource_usage);
     bool saveCpuMetrics(const std::string& board_id, long long timestamp, const nlohmann::json& cpu_data);
@@ -87,35 +60,34 @@ public:
     bool saveDiskMetrics(const std::string& board_id, long long timestamp, const nlohmann::json& disk_data);
     bool saveNetworkMetrics(const std::string& board_id, long long timestamp, const nlohmann::json& network_data);
     bool saveDockerMetrics(const std::string& board_id, long long timestamp, const nlohmann::json& docker_data);
-    
+
     nlohmann::json getBoards();
-    nlohmann::json getNode(const std::string& node_id);
+    nlohmann::json getBoard(const std::string& board_id);
     nlohmann::json getCpuMetrics(const std::string& board_id, int limit = 100);
     nlohmann::json getMemoryMetrics(const std::string& board_id, int limit = 100);
     nlohmann::json getDiskMetrics(const std::string& board_id, int limit = 100);
     nlohmann::json getNetworkMetrics(const std::string& board_id, int limit = 100);
     nlohmann::json getDockerMetrics(const std::string& board_id, int limit = 100);
     nlohmann::json getNodeResourceHistory(const std::string& node_id, int limit = 100);
-    
-    // 业务部署相关方法
+
+    // 业务管理相关
     bool saveBusiness(const nlohmann::json& business_info);
     bool updateBusinessStatus(const std::string& business_id, const std::string& status);
     bool saveBusinessComponent(const nlohmann::json& component_info);
     bool updateComponentStatus(const std::string& component_id, const std::string& status, const std::string& container_id = "");
     bool saveComponentMetrics(const std::string& component_id, long long timestamp, const nlohmann::json& metrics);
-    
     nlohmann::json getBusinesses();
     nlohmann::json getBusinessDetails(const std::string& business_id);
     nlohmann::json getBusinessComponents(const std::string& business_id);
     nlohmann::json getComponentDetails(const std::string& component_id);
     nlohmann::json getComponentMetrics(const std::string& component_id, int limit = 100);
     bool deleteBusiness(const std::string& business_id);
-    
-    // 资源调度相关方法
+
+    // 资源调度相关
     nlohmann::json getNodeResourceInfo(const std::string& node_id);
     nlohmann::json getNodeGpuInfo(const std::string& node_id);
 
-    // 业务模板相关方法
+    // 模板管理相关
     bool createBusinessTemplateTable();
     bool createComponentTemplateTable();
     nlohmann::json getBusinessTemplate(const std::string& template_id);
@@ -123,8 +95,6 @@ public:
     nlohmann::json saveBusinessTemplate(const nlohmann::json& template_info);
     nlohmann::json updateBusinessTemplate(const std::string& template_id, const nlohmann::json& template_info);
     nlohmann::json deleteBusinessTemplate(const std::string& template_id);
-
-    // 组件/业务模板相关接口
     nlohmann::json saveComponentTemplate(const nlohmann::json& template_info);
     nlohmann::json getComponentTemplates();
     nlohmann::json getComponentTemplate(const std::string& template_id);
@@ -132,11 +102,9 @@ public:
 
     // 集群资源聚合
     nlohmann::json getClusterMetrics();
-
-    // 集群资源历史聚合
     nlohmann::json getClusterMetricsHistory(int limit = 100);
 
-    // 新增：告警规则表
+    // 告警规则相关
     bool createAlarmRulesTable();
     nlohmann::json addAlarmRule(const nlohmann::json& rule);
     nlohmann::json deleteAlarmRule(int id);

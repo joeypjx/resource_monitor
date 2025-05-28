@@ -11,7 +11,7 @@ nlohmann::json AgentControlManager::controlAgent(const std::string& board_id, co
     // 1. 查找board的ip地址
     std::cout << "controlBoard: " << board_id << std::endl;
     
-    auto board_info = db_manager_->getNode(board_id);
+    auto board_info = db_manager_->getBoard(board_id);
     if (board_info.is_null() || !board_info.contains("ip_address")) {
         return {{"status", "error"}, {"message", "Board not found or missing ip_address"}};
     }

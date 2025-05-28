@@ -525,7 +525,7 @@ nlohmann::json Agent::getGpuList() {
     try {
         // 尝试使用nvidia-ml-py或nvidia-smi获取GPU信息
         // 这里使用系统命令nvidia-smi作为示例
-        FILE* pipe = popen("nvidia-smi --query-gpu=index,name,memory.total,temperature.gpu,utilization.gpu --format=csv,noheader,nounits 2>/dev/null", "r");
+        FILE* pipe = popen("ixsmi --query-gpu=index,name,memory.total,temperature.gpu,utilization.gpu --format=csv,noheader,nounits 2>/dev/null", "r");
         if (pipe) {
             char buffer[256];
             while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {

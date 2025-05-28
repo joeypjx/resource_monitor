@@ -33,7 +33,7 @@ bool DatabaseManager::initialize()
         // 启用外键约束
         db_->exec("PRAGMA foreign_keys = ON");
 
-        // 创建机箱表
+        // 创建chassis表
         db_->exec(R"(
             CREATE TABLE IF NOT EXISTS chassis (
                 chassis_id TEXT PRIMARY KEY,
@@ -377,19 +377,12 @@ nlohmann::json DatabaseManager::getBoards()
     }
 }
 
-// Get metrics methods moved to database_manager_metric.cpp
-
-// All remaining metrics methods moved to database_manager_metric.cpp
-
-// All metrics query methods moved to database_manager_metric.cpp
-
-
-nlohmann::json DatabaseManager::getNode(const std::string &node_id)
+nlohmann::json DatabaseManager::getBoard(const std::string &board_id)
 {
     try
     {
         SQLite::Statement query(*db_, "SELECT board_id, hostname, ip_address, os_info, chassis_id, created_at, updated_at, status FROM board WHERE board_id = ?");
-        query.bind(1, node_id);
+        query.bind(1, board_id);
 
         while (query.executeStep())
         {
@@ -951,9 +944,3 @@ nlohmann::json DatabaseManager::getAllGpus()
         return nlohmann::json::array();
     }
 }
-
-// saveResourceUsage method moved to database_manager_metric.cpp
-
-// All cluster metrics methods moved to database_manager_metric.cpp
-
-// getClusterMetricsHistory method moved to database_manager_metric.cpp

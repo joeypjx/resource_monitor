@@ -20,186 +20,56 @@ class AgentControlManager;
  */
 class HTTPServer {
 public:
-    /**
-     * 构造函数
-     * 
-     * @param db_manager 数据库管理器
-     * @param business_manager 业务管理器
-     * @param agent_control_manager Agent控制管理器
-     * @param port 监听端口
-     */
+    // 构造与析构
     HTTPServer(std::shared_ptr<DatabaseManager> db_manager, 
               std::shared_ptr<BusinessManager> business_manager,
               std::shared_ptr<AgentControlManager> agent_control_manager,
               int port = 8080);
-    
-    /**
-     * 析构函数
-     */
     ~HTTPServer();
-    
-    /**
-     * 启动服务器
-     * 
-     * @return 是否成功启动
-     */
+
+    // 启动与停止
     bool start();
-    
-    /**
-     * 停止服务器
-     */
     void stop();
 
-private:
-    /**
-     * 初始化路由
-     */
+    // 路由初始化
     void initRoutes();
-    
-    /**
-     * 处理节点注册
-     */
-    void handleNodeRegistration(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理资源上报
-     */
-    void handleResourceReport(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理获取节点列表
-     */
-    void handleGetNodes(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理获取节点详情
-     */
-    void handleGetNodeDetails(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理获取节点资源历史
-     */
-    void handleGetNodeResourceHistory(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理获取节点资源
-     */
-    void handleGetAgentResources(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理业务部署
-     */
+    void initBusinessRoutes();
+    void initTemplateRoutes();
+
+    // 业务管理相关
     void handleDeployBusiness(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理业务停止
-     */
     void handleStopBusiness(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理业务重启
-     */
     void handleRestartBusiness(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理业务更新
-     */
     void handleUpdateBusiness(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理获取业务列表
-     */
     void handleGetBusinesses(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理获取业务详情
-     */
     void handleGetBusinessDetails(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理获取业务组件
-     */
     void handleGetBusinessComponents(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理组件状态上报
-     */
     void handleComponentStatusReport(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理创建组件模板
-     */
+
+    // 模板管理相关
     void handleCreateComponentTemplate(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理获取组件模板列表
-     */
     void handleGetComponentTemplates(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理获取组件模板详情
-     */
     void handleGetComponentTemplateDetails(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理更新组件模板
-     */
     void handleUpdateComponentTemplate(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理删除组件模板
-     */
     void handleDeleteComponentTemplate(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理创建业务模板
-     */
     void handleCreateBusinessTemplate(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理获取业务模板列表
-     */
     void handleGetBusinessTemplates(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理获取业务模板详情
-     */
     void handleGetBusinessTemplateDetails(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理更新业务模板
-     */
     void handleUpdateBusinessTemplate(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理删除业务模板
-     */
     void handleDeleteBusinessTemplate(const httplib::Request& req, httplib::Response& res);
-    
-    /**
-     * 处理获取业务模板作为业务
-     */
     void handleGetBusinessTemplateAsBusiness(const httplib::Request& req, httplib::Response& res);
 
-    /**
-     * 处理获取集群指标
-     */
-    void handleGetClusterMetrics(const httplib::Request& req, httplib::Response& res);
+    // 板卡管理相关
+    void handleBoardRegistration(const httplib::Request& req, httplib::Response& res);
+    void handleResourceReport(const httplib::Request& req, httplib::Response& res);
+    void handleGetBoards(const httplib::Request& req, httplib::Response& res);
+    void handleGetBoardDetails(const httplib::Request& req, httplib::Response& res);
+    void handleGetBoardResourceHistory(const httplib::Request& req, httplib::Response& res);
+    void handleGetBoardResources(const httplib::Request& req, httplib::Response& res);
+    void handleBoardHeartbeat(const httplib::Request& req, httplib::Response& res);
+    void handleBoardControl(const httplib::Request& req, httplib::Response& res);
 
-    /**
-     * 处理获取集群指标历史
-     */
-    void handleGetClusterMetricsHistory(const httplib::Request& req, httplib::Response& res);
-
-    // 新增：处理Agent心跳
-    void handleAgentHeartbeat(const httplib::Request& req, httplib::Response& res);
-
-    // 新增：处理Agent控制
-    void handleAgentControl(const httplib::Request& req, httplib::Response& res);
-
-    /**
-     * 机箱管理相关处理函数
-     */
+    // 机箱管理相关
     void handleCreateChassis(const httplib::Request& req, httplib::Response& res);
     void handleGetChassis(const httplib::Request& req, httplib::Response& res);
     void handleGetChassisDetails(const httplib::Request& req, httplib::Response& res);
@@ -207,20 +77,30 @@ private:
     void handleDeleteChassis(const httplib::Request& req, httplib::Response& res);
     void handleGetChassisBoards(const httplib::Request& req, httplib::Response& res);
 
-    /**
-     * CPU和GPU管理相关处理函数
-     */
+    // CPU/GPU管理相关
     void handleGetBoardCpus(const httplib::Request& req, httplib::Response& res);
     void handleGetBoardGpus(const httplib::Request& req, httplib::Response& res);
     void handleGetAllCpus(const httplib::Request& req, httplib::Response& res);
     void handleGetAllGpus(const httplib::Request& req, httplib::Response& res);
 
-private:
-    std::shared_ptr<DatabaseManager> db_manager_;    // 数据库管理器
+    // 集群指标相关
+    void handleGetClusterMetrics(const httplib::Request& req, httplib::Response& res);
+    void handleGetClusterMetricsHistory(const httplib::Request& req, httplib::Response& res);
+
+    // 响应辅助方法
+    void sendSuccessResponse(httplib::Response& res, const std::string& message);
+    void sendSuccessResponse(httplib::Response& res, const std::string& key, const nlohmann::json& data);
+    void sendErrorResponse(httplib::Response& res, const std::string& message);
+    void sendExceptionResponse(httplib::Response& res, const std::exception& e);
+
+protected:
+    httplib::Server server_;  // HTTP服务器
     std::shared_ptr<BusinessManager> business_manager_;  // 业务管理器
+    std::shared_ptr<DatabaseManager> db_manager_;    // 数据库管理器
+
+private:
     std::shared_ptr<AgentControlManager> agent_control_manager_; // Agent控制管理器
     int port_;  // 监听端口
-    httplib::Server server_;  // HTTP服务器
     bool running_;  // 是否正在运行
 };
 
