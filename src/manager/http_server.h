@@ -35,6 +35,10 @@ public:
     void initRoutes();
     void initBusinessRoutes();
     void initTemplateRoutes();
+    void initChassisRoutes();
+
+    // 路由初始化
+    void initNodeRoutes();
 
     // 业务管理相关
     void handleDeployBusiness(const httplib::Request& req, httplib::Response& res);
@@ -69,29 +73,34 @@ public:
     void handleBoardHeartbeat(const httplib::Request& req, httplib::Response& res);
     void handleBoardControl(const httplib::Request& req, httplib::Response& res);
 
-    // 机箱管理相关
-    void handleCreateChassis(const httplib::Request& req, httplib::Response& res);
-    void handleGetChassis(const httplib::Request& req, httplib::Response& res);
-    void handleGetChassisDetails(const httplib::Request& req, httplib::Response& res);
-    void handleUpdateChassis(const httplib::Request& req, httplib::Response& res);
-    void handleDeleteChassis(const httplib::Request& req, httplib::Response& res);
-    void handleGetChassisBoards(const httplib::Request& req, httplib::Response& res);
-
-    // CPU/GPU管理相关
-    void handleGetBoardCpus(const httplib::Request& req, httplib::Response& res);
-    void handleGetBoardGpus(const httplib::Request& req, httplib::Response& res);
-    void handleGetAllCpus(const httplib::Request& req, httplib::Response& res);
-    void handleGetAllGpus(const httplib::Request& req, httplib::Response& res);
-
     // 集群指标相关
     void handleGetClusterMetrics(const httplib::Request& req, httplib::Response& res);
     void handleGetClusterMetricsHistory(const httplib::Request& req, httplib::Response& res);
+
+    // Chassis和Slot管理相关
+    void handleGetChassisList(const httplib::Request& req, httplib::Response& res);
+    void handleGetChassisInfo(const httplib::Request& req, httplib::Response& res);
+    void handleGetChassisDetailedList(const httplib::Request& req, httplib::Response& res);
+    void handleCreateOrUpdateChassis(const httplib::Request& req, httplib::Response& res);
+    void handleGetSlots(const httplib::Request& req, httplib::Response& res);
+    void handleGetSlotInfo(const httplib::Request& req, httplib::Response& res);
+    void handleUpdateSlot(const httplib::Request& req, httplib::Response& res);
+    void handleUpdateSlotStatus(const httplib::Request& req, httplib::Response& res);
+    void handleGetSlotsWithMetrics(const httplib::Request& req, httplib::Response& res);
+    void handleRegisterSlot(const httplib::Request& req, httplib::Response& res);
+    void handleUpdateSlotMetrics(const httplib::Request& req, httplib::Response& res);
 
     // 响应辅助方法
     void sendSuccessResponse(httplib::Response& res, const std::string& message);
     void sendSuccessResponse(httplib::Response& res, const std::string& key, const nlohmann::json& data);
     void sendErrorResponse(httplib::Response& res, const std::string& message);
     void sendExceptionResponse(httplib::Response& res, const std::exception& e);
+
+    // Chassis专用响应方法（使用统一的API格式）
+    void sendChassisSuccessResponse(httplib::Response& res, const std::string& message);
+    void sendChassisSuccessResponse(httplib::Response& res, const std::string& key, const nlohmann::json& data);
+    void sendChassisErrorResponse(httplib::Response& res, const std::string& message);
+    void sendChassisExceptionResponse(httplib::Response& res, const std::exception& e);
 
 protected:
     httplib::Server server_;  // HTTP服务器

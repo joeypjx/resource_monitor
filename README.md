@@ -19,7 +19,10 @@
 - **定时上报**：Agent每5秒采集并上报资源数据
 - **数据存储**：Manager将数据存储到SQLite数据库
 - **机箱管理**：支持机箱级别的组织管理，可将多个Board归属到同一机箱
+- **Slot管理**：支持slot级别的资源管理，包含board信息和详细的metrics数据
 - **硬件管理**：详细记录和管理CPU、GPU等硬件配置信息
+- **Metrics存储**：支持slot级别的CPU、内存、磁盘、网络、Docker metrics详细记录
+- **状态监控**：自动监控slot状态，支持在线/离线状态切换
 
 ### 业务部署功能
 - **业务部署**：支持通过JSON配置部署多组件业务（支持Docker和二进制类型组件）
@@ -284,9 +287,361 @@ cd build
   }
   ```
 
+### 创建/更新机箱（实际接口）
+- **POST** `/api/chassis`
+- **请求体**
+  ```json
+  {
+    "chassis_id": "chassis-001",
+    "slot_count": 16,
+    "type": "compute"
+  }
+  ```
+- **返回示例**
+  ```json
+  {
+    "success": true,
+    "message": "Chassis saved successfully"
+  }
+  ```
+
+### 获取机箱列表（实际接口）
+- **GET** `/api/chassis`
+- **返回示例**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "chassis_list": [
+        {
+          "id": 1,
+          "chassis_id": "chassis-001",
+          "slot_count": 16,
+          "type": "compute",
+          "created_at": 1710000000,
+          "updated_at": 1710000000
+        }
+      ]
+    }
+  }
+  ```
+
+### 获取指定机箱详情（包含所有slots）
+- **GET** `/api/chassis/{chassis_id}`
+- **返回示例**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "chassis": {
+        "id": 1,
+        "chassis_id": "chassis-001",
+        "slot_count": 16,
+        "type": "compute",
+        "created_at": 1710000000,
+        "updated_at": 1710000000,
+        "slots": [
+          {
+            "slot_index": 1,
+            "status": "online",
+            "board_type": "compute",
+            "board_cpu": "Intel Xeon",
+            "board_cpu_cores": 16,
+            "board_memory": 32768,
+            "board_ip": "192.168.1.10",
+            "board_os": "Ubuntu 20.04",
+            "created_at": 1710000000,
+            "updated_at": 1710000005
+          }
+        ]
+      }
+    }
+  }
+  ```
+
 ---
 
-## 3. 硬件管理
+## 3. Slot管理
+
+### 获取所有slots列表
+- **GET** `/api/slots`
+- **返回示例**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "slots": [
+        {
+          "chassis_id": "chassis-001",
+          "slot_index": 1,
+          "status": "online",
+          "board_type": "compute",
+          "board_cpu": "Intel Xeon",
+          "board_cpu_cores": 16,
+          "board_memory": 32768,
+          "board_ip": "192.168.1.10",
+          "board_os": "Ubuntu 20.04",
+          "chassis_name": "chassis-001",
+          "chassis_type": "compute",
+          "created_at": 1710000000,
+          "updated_at": 1710000005
+        }
+      ]
+    }
+  }
+  ```
+
+### 获取所有slots及其最新metrics
+- **GET** `/api/slots/with-metrics`
+- **返回示例**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "slots_with_metrics": [
+        {
+          "chassis_id": "chassis-001",
+          "slot_index": 1,
+          "status": "online",
+          "board_type": "compute",
+          "board_cpu": "Intel Xeon",
+          "board_cpu_cores": 16,
+          "board_memory": 32768,
+          "board_ip": "192.168.1.10",
+          "board_os": "Ubuntu 20.04",
+          "chassis_name": "chassis-001",
+          "chassis_type": "compute",
+          "created_at": 1710000000,
+          "updated_at": 1710000005,
+          "latest_cpu_metrics": {
+            "timestamp": 1710000005,
+            "usage_percent": 65.5,
+            "load_avg_1m": 2.1,
+            "load_avg_5m": 1.8,
+            "load_avg_15m": 1.5,
+            "core_count": 16
+          },
+          "latest_memory_metrics": {
+            "timestamp": 1710000005,
+            "total": 33554432000,
+            "used": 16777216000,
+            "free": 16777216000,
+            "usage_percent": 50.0
+          },
+          "latest_disk_metrics": {
+            "timestamp": 1710000005,
+            "disk_count": 2,
+            "disks": [
+              {
+                "device": "/dev/sda1",
+                "mount_point": "/",
+                "total": 1073741824000,
+                "used": 536870912000,
+                "free": 536870912000,
+                "usage_percent": 50.0
+              }
+            ]
+          },
+          "latest_network_metrics": {
+            "timestamp": 1710000005,
+            "network_count": 2,
+            "networks": [
+              {
+                "interface": "eth0",
+                "rx_bytes": 1234567890,
+                "tx_bytes": 987654321,
+                "rx_packets": 1000000,
+                "tx_packets": 900000,
+                "rx_errors": 0,
+                "tx_errors": 0
+              }
+            ]
+          },
+          "latest_docker_metrics": {
+            "timestamp": 1710000005,
+            "container_count": 5,
+            "running_count": 3,
+            "paused_count": 0,
+            "stopped_count": 2,
+            "containers": [
+              {
+                "id": "container123",
+                "name": "web-app",
+                "image": "nginx:latest",
+                "status": "running",
+                "cpu_percent": 15.5,
+                "memory_usage": 134217728
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+  ```
+
+### 获取指定slot信息
+- **GET** `/api/chassis/{chassis_id}/slots/{slot_index}`
+- **返回示例**
+  ```json
+  {
+    "success": true,
+    "data": {
+      "slot": {
+        "chassis_id": "chassis-001",
+        "slot_index": 1,
+        "status": "online",
+        "board_type": "compute",
+        "board_cpu": "Intel Xeon",
+        "board_cpu_cores": 16,
+        "board_memory": 32768,
+        "board_ip": "192.168.1.10",
+        "board_os": "Ubuntu 20.04",
+        "chassis_name": "chassis-001",
+        "chassis_type": "compute",
+        "created_at": 1710000000,
+        "updated_at": 1710000005
+      }
+    }
+  }
+  ```
+
+### 更新slot信息
+- **POST** `/api/chassis/{chassis_id}/slots/{slot_index}`
+- **请求体**
+  ```json
+  {
+    "status": "online",
+    "board_type": "compute",
+    "board_cpu": "Intel Xeon",
+    "board_cpu_cores": 16,
+    "board_memory": 32768,
+    "board_ip": "192.168.1.10",
+    "board_os": "Ubuntu 20.04"
+  }
+  ```
+- **返回示例**
+  ```json
+  {
+    "success": true,
+    "message": "Slot updated successfully"
+  }
+  ```
+
+### 注册/更新slot信息（从body获取参数）
+- **POST** `/api/slots/register`
+- **请求体**
+  ```json
+  {
+    "chassis_id": "chassis-001",
+    "slot_index": 1,
+    "status": "online",
+    "board_type": "compute",
+    "board_cpu": "Intel Xeon",
+    "board_cpu_cores": 16,
+    "board_memory": 32768,
+    "board_ip": "192.168.1.10",
+    "board_os": "Ubuntu 20.04"
+  }
+  ```
+- **返回示例**
+  ```json
+  {
+    "success": true,
+    "message": "Slot registered/updated successfully"
+  }
+  ```
+
+### 更新slot的metrics数据
+- **POST** `/api/slots/metrics`
+- **请求体**
+  ```json
+  {
+    "chassis_id": "chassis-001",
+    "slot_index": 1,
+    "timestamp": 1710000000,
+    "resource": {
+      "cpu": {
+        "usage_percent": 65.5,
+        "load_avg_1m": 2.1,
+        "load_avg_5m": 1.8,
+        "load_avg_15m": 1.5,
+        "core_count": 16
+      },
+      "memory": {
+        "total": 33554432000,
+        "used": 16777216000,
+        "free": 16777216000,
+        "usage_percent": 50.0
+      },
+      "disk": [
+        {
+          "device": "/dev/sda1",
+          "mount_point": "/",
+          "total": 1073741824000,
+          "used": 536870912000,
+          "free": 536870912000,
+          "usage_percent": 50.0
+        }
+      ],
+      "network": [
+        {
+          "interface": "eth0",
+          "rx_bytes": 1234567890,
+          "tx_bytes": 987654321,
+          "rx_packets": 1000000,
+          "tx_packets": 900000,
+          "rx_errors": 0,
+          "tx_errors": 0
+        }
+      ],
+      "docker": {
+        "container_count": 5,
+        "running_count": 3,
+        "paused_count": 0,
+        "stopped_count": 2,
+        "containers": [
+          {
+            "id": "container123",
+            "name": "web-app",
+            "image": "nginx:latest",
+            "status": "running",
+            "cpu_percent": 15.5,
+            "memory_usage": 134217728
+          }
+        ]
+      }
+    }
+  }
+  ```
+- **返回示例**
+  ```json
+  {
+    "success": true,
+    "message": "Slot metrics updated successfully"
+  }
+  ```
+- **说明**：专门用于更新slot的性能监控数据，支持CPU、内存、磁盘、网络、Docker等各类metrics，成功保存后会自动将slot状态设为"online"
+
+### 更新slot状态
+- **PUT** `/api/chassis/{chassis_id}/slots/{slot_index}/status`
+- **请求体**
+  ```json
+  {
+    "status": "offline"
+  }
+  ```
+- **返回示例**
+  ```json
+  {
+    "success": true,
+    "message": "Slot status updated successfully"
+  }
+  ```
+
+---
+
+## 4. 硬件管理
 
 ### 获取指定Board的CPU列表
 - **GET** `/api/boards/{board_id}/cpus`
@@ -380,7 +735,7 @@ cd build
 
 ---
 
-## 4. 业务部署与管理
+## 5. 业务部署与管理
 
 ### 部署业务
 - **POST** `/api/businesses`
@@ -428,7 +783,7 @@ cd build
 - **返回示例**
   ```json
   {"status": "success", "message": "Business stopped"}
-  ```
+```
 
 ### 重启业务
 - **POST** `/api/businesses/{business_id}/restart`
@@ -511,7 +866,7 @@ cd build
 
 ---
 
-## 5. 组件模板管理
+## 6. 组件模板管理
 
 ### 创建组件模板
 - **POST** `/api/templates/components`
@@ -585,7 +940,7 @@ cd build
 
 ---
 
-## 6. 业务模板管理
+## 7. 业务模板管理
 
 ### 创建业务模板
 - **POST** `/api/templates/businesses`
@@ -692,7 +1047,7 @@ cd build
 
 ---
 
-## 7. Agent本地API（组件部署/停止）
+## 8. Agent本地API（组件部署/停止）
 
 ### 部署组件
 - **POST** `/api/deploy`
@@ -726,7 +1081,7 @@ cd build
 
 ---
 
-## 8. 基础协议接口
+## 9. 基础协议接口
 
 ### Board注册接口
 - **POST** `/api/register`
@@ -832,6 +1187,96 @@ cd build
   ```
 - **说明**：所有资源数据均在 resource 字段下，字段类型和内容如上所示。
 
+### Slot资源上报数据格式
+- **POST** `/api/resource`
+
+### Slot综合资源上报数据格式（已废弃 - 建议分别使用/api/register和/api/slots/metrics）
+- **说明**：所有资源数据均在 resource 字段下，字段类型和内容如上所示。
+
+### Slot综合资源上报数据格式（已废弃 - 建议分别使用/api/register和/api/slots/metrics）
+
+### Slot注册数据格式
+- **POST** `/api/slots/register`
+- **请求体**
+  ```json
+  {
+    "chassis_id": "chassis-001",
+    "slot_index": 1,
+    "status": "online",
+    "board_type": "compute",
+    "board_cpu": "Intel Xeon",
+    "board_cpu_cores": 16,
+    "board_memory": 32768,
+    "board_ip": "192.168.1.10",
+    "board_os": "Ubuntu 20.04"
+  }
+  ```
+- **说明**：用于Slot的基本信息注册和更新，包含硬件配置信息。
+
+### Slot Metrics数据格式
+- **POST** `/api/slots/metrics`
+- **请求体**
+  ```json
+  {
+    "chassis_id": "chassis-001",
+    "slot_index": 1,
+    "timestamp": 1710000000,
+    "resource": {
+      "cpu": {
+        "usage_percent": 12.5,
+        "load_avg_1m": 0.5,
+        "load_avg_5m": 0.4,
+        "load_avg_15m": 0.3,
+        "core_count": 4
+      },
+      "memory": {
+        "total": 8192,
+        "used": 4096,
+        "free": 4096,
+        "usage_percent": 50.0
+      },
+      "disk": [
+        {
+          "device": "/dev/sda1",
+          "mount_point": "/",
+          "total": 100000,
+          "used": 50000,
+          "free": 50000,
+          "usage_percent": 50.0
+        }
+      ],
+      "network": [
+        {
+          "interface": "eth0",
+          "rx_bytes": 123456,
+          "tx_bytes": 654321,
+          "rx_packets": 1000,
+          "tx_packets": 900,
+          "rx_errors": 0,
+          "tx_errors": 0
+        }
+      ],
+      "docker": {
+        "container_count": 2,
+        "running_count": 2,
+        "paused_count": 0,
+        "stopped_count": 0,
+        "containers": [
+          {
+            "id": "abc123",
+            "name": "nginx",
+            "image": "nginx:latest",
+            "status": "running",
+            "cpu_percent": 1.2,
+            "memory_usage": 128
+          }
+        ]
+      }
+    }
+  }
+  ```
+- **说明**：专门用于Slot的性能监控数据上报，使用chassis_id和slot_index标识，支持updateSlotMetrics()方法进行批量处理，成功保存后自动将slot状态设为"online"。
+
 ---
 
 ## 字段说明
@@ -839,6 +1284,7 @@ cd build
 ### 核心概念
 - `board_id`：计算板卡唯一标识
 - `chassis_id`：机箱唯一标识
+- `slot_index`：插槽在机箱中的索引位置
 - `component_id`：组件唯一标识
 - `business_id`：业务唯一标识
 
@@ -864,6 +1310,17 @@ cd build
 - `config_files`：配置文件数组
 - `affinity`：调度亲和性约束
 - `status`：状态（success/error/running/stopped/online/offline等）
+
+### Slot管理相关
+- `chassis_id`：机箱标识
+- `slot_index`：插槽索引
+- `board_type`：板卡类型
+- `board_cpu`：板卡CPU型号
+- `board_cpu_cores`：板卡CPU核心数
+- `board_memory`：板卡内存大小（字节）
+- `board_ip`：板卡IP地址
+- `board_os`：板卡操作系统
+- `latest_*_metrics`：最新的各类资源metrics数据
 
 ---
 

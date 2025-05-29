@@ -57,6 +57,10 @@ MANAGER_SOURCES = $(MANAGER_DIR)/manager.cpp \
 				 $(MANAGER_DIR)/agent_control_manager.cpp \
                  $(MANAGER_DIR)/multicast_announcer.cpp \
 				 $(MANAGER_DIR)/database_manager_alarm.cpp \
+				 $(MANAGER_DIR)/database_manager_chassis.cpp \
+				 $(MANAGER_DIR)/http_server_chassis.cpp \
+				 $(MANAGER_DIR)/http_server_node.cpp \
+				 $(MANAGER_DIR)/database_manager_node.cpp \
                  $(SRC_DIR)/manager_main.cpp 
 
 # 目标文件

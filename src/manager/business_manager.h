@@ -37,7 +37,7 @@ public:
      * @return 是否成功初始化
      */
     bool initialize();
-    
+
     /**
      * 部署业务
      * 

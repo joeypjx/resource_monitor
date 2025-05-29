@@ -228,7 +228,7 @@ bool DatabaseManager::saveBusinessComponent(const nlohmann::json& component_info
 
         // 打印组件信息
         std::cout << "2 save Component info: " << component_info.dump() << std::endl;
-
+        
         return true;
     } catch (const std::exception& e) {
         std::cerr << "Save business component error: " << e.what() << std::endl;
@@ -335,7 +335,7 @@ nlohmann::json DatabaseManager::getBusinessDetails(const std::string& business_i
             
             // 查询业务组件
             business["components"] = getBusinessComponents(business_id);
-                        
+            
             return business;
         }
         
@@ -358,7 +358,7 @@ nlohmann::json DatabaseManager::getBusinessComponents(const std::string& busines
             "node_id, container_id, status, started_at, updated_at "
             "FROM business_components WHERE business_id = ?");
         query.bind(1, business_id);
-
+        
         while (query.executeStep()) {
             nlohmann::json component;
             component["component_id"] = query.getColumn(0).getString();

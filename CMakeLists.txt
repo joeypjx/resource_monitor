@@ -75,6 +75,7 @@ set(MANAGER_SOURCES
     src/manager/http_server_business.cpp
     src/manager/http_server_template.cpp
     src/manager/database_manager.cpp
+    src/manager/database_manager_node.cpp
     src/manager/database_manager_metric.cpp
     src/manager/database_manager_business.cpp
     src/manager/database_manager_alarm.cpp

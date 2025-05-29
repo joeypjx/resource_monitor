@@ -9,6 +9,7 @@
 #include <vector>
 #include <optional>
 #include <mutex>
+#include <atomic>
 
 // 前向声明
 namespace SQLite {
@@ -30,27 +31,13 @@ public:
     bool initialize();
     bool initializeBusinessTables();
     bool initializeMetricTables();
+    bool initializeChassisAndSlots();
+    bool initializeBoardTables();
 
     // 资源监控相关
     bool saveBoard(const nlohmann::json& board_info);
     bool updateBoardLastSeen(const std::string& board_id);
     bool updateBoardStatus(const std::string& board_id, const std::string& status);
-
-    // 机箱管理相关
-    bool saveChassis(const nlohmann::json& chassis_info);
-    bool updateChassis(const std::string& chassis_id, const nlohmann::json& chassis_info);
-    bool deleteChassis(const std::string& chassis_id);
-    nlohmann::json getChassis();
-    nlohmann::json getChassisById(const std::string& chassis_id);
-    nlohmann::json getBoardsByChassis(const std::string& chassis_id);
-
-    // CPU和GPU管理相关
-    bool saveBoardCpus(const std::string& board_id, const nlohmann::json& cpu_list);
-    bool saveBoardGpus(const std::string& board_id, const nlohmann::json& gpu_list);
-    nlohmann::json getBoardCpus(const std::string& board_id);
-    nlohmann::json getBoardGpus(const std::string& board_id);
-    nlohmann::json getAllCpus();
-    nlohmann::json getAllGpus();
 
     // 节点监控与资源采集
     void startNodeStatusMonitor();
@@ -112,12 +99,47 @@ public:
     nlohmann::json getAlarmRule(int id);
     nlohmann::json getAlarmRules();
 
+    // Chassis and Slot Management
+    bool saveChassis(const nlohmann::json& chassis_info);
+    bool saveSlot(const nlohmann::json& slot_info);
+    bool updateSlotStatusOnly(const std::string& chassis_id, int slot_index, const std::string& new_status);
+    void startSlotStatusMonitorThread();
+    
+    // Chassis and Slot Query Methods
+    nlohmann::json getSlots();
+    nlohmann::json getSlot(const std::string& chassis_id, int slot_index);
+    nlohmann::json getChassisList();
+    nlohmann::json getChassisInfo(const std::string& chassis_id);
+    nlohmann::json getChassisDetailedList();
+    nlohmann::json getSlotsWithLatestMetrics();
+
+    // Slot Metrics Methods
+    bool saveSlotCpuMetrics(const std::string& chassis_id, int slot_index, long long timestamp, const nlohmann::json& cpu_data);
+    bool saveSlotMemoryMetrics(const std::string& chassis_id, int slot_index, long long timestamp, const nlohmann::json& memory_data);
+    bool saveSlotDiskMetrics(const std::string& chassis_id, int slot_index, long long timestamp, const nlohmann::json& disk_data);
+    bool saveSlotNetworkMetrics(const std::string& chassis_id, int slot_index, long long timestamp, const nlohmann::json& network_data);
+    bool saveSlotDockerMetrics(const std::string& chassis_id, int slot_index, long long timestamp, const nlohmann::json& docker_data);
+    
+    nlohmann::json getSlotCpuMetrics(const std::string& chassis_id, int slot_index, int limit = 100);
+    nlohmann::json getSlotMemoryMetrics(const std::string& chassis_id, int slot_index, int limit = 100);
+    nlohmann::json getSlotDiskMetrics(const std::string& chassis_id, int slot_index, int limit = 100);
+    nlohmann::json getSlotNetworkMetrics(const std::string& chassis_id, int slot_index, int limit = 100);
+    nlohmann::json getSlotDockerMetrics(const std::string& chassis_id, int slot_index, int limit = 100);
+    
+    bool saveSlotResourceUsage(const nlohmann::json& resource_usage);
+    bool updateSlotMetrics(const nlohmann::json& metrics_data);
+
 private:
     std::string db_path_;                     // 数据库文件路径
     std::unique_ptr<SQLite::Database> db_;    // 数据库连接
 
     bool node_monitor_running_;               // 节点监控线程运行标志
     std::unique_ptr<std::thread> node_monitor_thread_; // 节点监控线程
+
+    // Slot Status Monitor
+    std::unique_ptr<std::thread> slot_status_monitor_thread_;
+    std::atomic<bool> slot_status_monitor_running_{false}; // Initialize to false
+    void slotStatusMonitorLoop(); // Method to be run by slot_status_monitor_thread_
 };
 
 // 告警规则的C++结构体 (与表字段对应)

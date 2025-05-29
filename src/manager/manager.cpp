@@ -63,11 +63,17 @@ bool Manager::start() {
     
     std::cout << "Starting Manager..." << std::endl;
     
-    // 启动HTTP服务器
-    if (!http_server_->start()) {
-        std::cerr << "Failed to start HTTP server" << std::endl;
-        return false;
-    }
+    // 在单独的线程中启动HTTP服务器以避免阻塞
+    std::thread server_thread([this]() {
+        if (!http_server_->start()) {
+            std::cerr << "Failed to start HTTP server" << std::endl;
+            running_ = false;
+        }
+    });
+    server_thread.detach(); // 分离线程，让它在后台运行
+    
+    // 给HTTP服务器一点时间启动
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     
     // 新增：启动组播公告
     if (multicast_announcer_) {
