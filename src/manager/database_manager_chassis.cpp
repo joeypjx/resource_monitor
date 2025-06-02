@@ -48,7 +48,32 @@ bool DatabaseManager::initializeChassisAndSlots() {
             );
         )");
 
+        // 创建 node 表
+        db_->exec(R"(
+            CREATE TABLE IF NOT EXISTS node (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                box_id INTEGER NOT NULL,
+                slot_id INTEGER NOT NULL,
+                cpu_id INTEGER NOT NULL,
+                srio_id INTEGER NOT NULL,
+                hostIp TEXT NOT NULL,
+                hostname TEXT NOT NULL,
+                service_port INTEGER NOT NULL,
+                box_type TEXT NOT NULL,
+                board_type TEXT NOT NULL,
+                cpu_type TEXT NOT NULL,
+                os_type TEXT NOT NULL,
+                resource_type TEXT NOT NULL,
+                cpu_arch TEXT NOT NULL,
+                gpu TEXT,
+                created_at TIMESTAMP NOT NULL,
+                updated_at TIMESTAMP NOT NULL,
+                UNIQUE(box_id, slot_id, cpu_id)
+            );
+        )");
+
         std::cout << "Chassis and slots tables initialized successfully via DatabaseManager member." << std::endl;
+        std::cout << "Node table initialized successfully." << std::endl;
         
         // 创建slot相关的metrics表
         
@@ -56,8 +81,7 @@ bool DatabaseManager::initializeChassisAndSlots() {
         db_->exec(R"(
             CREATE TABLE IF NOT EXISTS slot_cpu_metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                chassis_id TEXT NOT NULL,
-                slot_index INTEGER NOT NULL,
+                hostIp TEXT NOT NULL,
                 timestamp TIMESTAMP NOT NULL,
                 usage_percent REAL NOT NULL,
                 load_avg_1m REAL NOT NULL,
@@ -71,8 +95,7 @@ bool DatabaseManager::initializeChassisAndSlots() {
         db_->exec(R"(
             CREATE TABLE IF NOT EXISTS slot_memory_metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                chassis_id TEXT NOT NULL,
-                slot_index INTEGER NOT NULL,
+                hostIp TEXT NOT NULL,
                 timestamp TIMESTAMP NOT NULL,
                 total BIGINT NOT NULL,
                 used BIGINT NOT NULL,
@@ -85,8 +108,7 @@ bool DatabaseManager::initializeChassisAndSlots() {
         db_->exec(R"(
             CREATE TABLE IF NOT EXISTS slot_disk_metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                chassis_id TEXT NOT NULL,
-                slot_index INTEGER NOT NULL,
+                hostIp TEXT NOT NULL,
                 timestamp TIMESTAMP NOT NULL,
                 disk_count INTEGER NOT NULL
             );
@@ -106,13 +128,41 @@ bool DatabaseManager::initializeChassisAndSlots() {
                 FOREIGN KEY (slot_disk_metrics_id) REFERENCES slot_disk_metrics(id)
             );
         )");
+        
+        // 创建slot_gpu_metrics表（只保存汇总信息）
+        db_->exec(R"(
+            CREATE TABLE IF NOT EXISTS slot_gpu_metrics (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                hostIp TEXT NOT NULL,
+                timestamp TIMESTAMP NOT NULL,
+                gpu_count INTEGER NOT NULL
+            );
+        )");
+
+        // 创建slot_gpu_usage表（保存每个GPU详细信息）
+        db_->exec(R"(
+            CREATE TABLE IF NOT EXISTS slot_gpu_usage (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                slot_gpu_metrics_id INTEGER NOT NULL,
+                gpu_index INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                compute_usage REAL NOT NULL,
+                mem_usage REAL NOT NULL,
+                mem_used BIGINT NOT NULL,
+                mem_total BIGINT NOT NULL,
+                temperature REAL NOT NULL,
+                voltage REAL NOT NULL,
+                current REAL NOT NULL,
+                power REAL NOT NULL,
+                FOREIGN KEY (slot_gpu_metrics_id) REFERENCES slot_gpu_metrics(id)
+            );
+        )");
 
         // 创建slot_network_metrics表（只保存汇总信息）
         db_->exec(R"(
             CREATE TABLE IF NOT EXISTS slot_network_metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                chassis_id TEXT NOT NULL,
-                slot_index INTEGER NOT NULL,
+                hostIp TEXT NOT NULL,
                 timestamp TIMESTAMP NOT NULL,
                 network_count INTEGER NOT NULL
             );
@@ -138,8 +188,7 @@ bool DatabaseManager::initializeChassisAndSlots() {
         db_->exec(R"(
             CREATE TABLE IF NOT EXISTS slot_docker_metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                chassis_id TEXT NOT NULL,
-                slot_index INTEGER NOT NULL,
+                hostIp TEXT NOT NULL,
                 timestamp TIMESTAMP NOT NULL,
                 container_count INTEGER NOT NULL,
                 running_count INTEGER NOT NULL,
@@ -164,16 +213,18 @@ bool DatabaseManager::initializeChassisAndSlots() {
         )");
 
         // 创建索引以提高查询性能
-        db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_cpu_metrics_chassis_slot ON slot_cpu_metrics(chassis_id, slot_index)");
+        db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_cpu_metrics_hostIp ON slot_cpu_metrics(hostIp)");
         db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_cpu_metrics_timestamp ON slot_cpu_metrics(timestamp)");
-        db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_memory_metrics_chassis_slot ON slot_memory_metrics(chassis_id, slot_index)");
+        db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_memory_metrics_hostIp ON slot_memory_metrics(hostIp)");
         db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_memory_metrics_timestamp ON slot_memory_metrics(timestamp)");
-        db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_disk_metrics_chassis_slot ON slot_disk_metrics(chassis_id, slot_index)");
+        db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_disk_metrics_hostIp ON slot_disk_metrics(hostIp)");
         db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_disk_metrics_timestamp ON slot_disk_metrics(timestamp)");
-        db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_network_metrics_chassis_slot ON slot_network_metrics(chassis_id, slot_index)");
+        db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_network_metrics_hostIp ON slot_network_metrics(hostIp)");
         db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_network_metrics_timestamp ON slot_network_metrics(timestamp)");
-        db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_docker_metrics_chassis_slot ON slot_docker_metrics(chassis_id, slot_index)");
+        db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_docker_metrics_hostIp ON slot_docker_metrics(hostIp)");
         db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_docker_metrics_timestamp ON slot_docker_metrics(timestamp)");
+        db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_gpu_metrics_hostIp ON slot_gpu_metrics(hostIp)");
+        db_->exec("CREATE INDEX IF NOT EXISTS idx_slot_gpu_metrics_timestamp ON slot_gpu_metrics(timestamp)");
 
         std::cout << "Slot metrics tables initialized successfully." << std::endl;
         return true;
@@ -331,7 +382,7 @@ bool DatabaseManager::saveSlot(const nlohmann::json& slot_info) {
 }
 
 // Helper function to update only the status of a slot
-bool DatabaseManager::updateSlotStatusOnly(const std::string& chassis_id, int slot_index, const std::string& new_status) {
+bool DatabaseManager::updateSlotStatusOnly(const std::string& hostIp, const std::string& new_status) {
     if (!db_) {
         std::cerr << "Database connection not initialized in updateSlotStatusOnly." << std::endl;
         return false;
@@ -340,15 +391,14 @@ bool DatabaseManager::updateSlotStatusOnly(const std::string& chassis_id, int sl
         SQLite::Statement update(*db_, R"(
             UPDATE slots 
             SET status = ?
-            WHERE chassis_id = ? AND slot_index = ?
+            WHERE hostIp = ?
         )");
         update.bind(1, new_status);
-        update.bind(2, chassis_id);
-        update.bind(3, slot_index);
+        update.bind(2, hostIp);
         int rows_affected = update.exec();
         return rows_affected > 0;
     } catch (const std::exception& e) {
-        std::cerr << "Error setting slot status for chassis " << chassis_id << ", slot " << slot_index << ": " << e.what() << std::endl;
+        std::cerr << "Error setting slot status for host " << hostIp << ": " << e.what() << std::endl;
         return false;
     }
 }
@@ -379,19 +429,18 @@ void DatabaseManager::slotStatusMonitorLoop() {
             std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
             int64_t now_epoch = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
             
-            SQLite::Statement query(*db_, "SELECT chassis_id, slot_index, updated_at, status FROM slots");
+            SQLite::Statement query(*db_, "SELECT board_ip, updated_at, status FROM slots");
             
             while (query.executeStep()) {
-                std::string current_chassis_id = query.getColumn(0).getString();
-                int current_slot_index = query.getColumn(1).getInt();
-                int64_t last_updated_at = query.getColumn(2).getInt64();
-                std::string current_status = query.getColumn(3).getString();
+                std::string hostIp = query.getColumn(0).getString();
+                int64_t last_updated_at = query.getColumn(1).getInt64();
+                std::string current_status = query.getColumn(2).getString();
 
                 if (current_status != "empty" && current_status != "offline") {
                     if ((now_epoch - last_updated_at) > 5) { // 5 seconds threshold
-                        std::cout << "Slot " << current_chassis_id << "/" << current_slot_index 
+                        std::cout << "Slot with hostIp " << hostIp 
                                   << " is inactive. Setting status to offline via DatabaseManager." << std::endl;
-                        this->updateSlotStatusOnly(current_chassis_id, current_slot_index, "offline"); 
+                        this->updateSlotStatusOnly(hostIp, "offline"); 
                     }
                 }
             }
@@ -406,6 +455,281 @@ void DatabaseManager::slotStatusMonitorLoop() {
         std::this_thread::sleep_for(std::chrono::seconds(1)); // Check every second
     }
     std::cout << "DatabaseManager slot status monitor loop finished." << std::endl;
+}
+
+// Node Management Implementation
+
+// 保存节点信息 (如果节点已存在则更新)
+bool DatabaseManager::saveNode(const nlohmann::json& node_info) {
+    if (!db_) {
+        std::cerr << "Database connection not initialized in saveNode." << std::endl;
+        return false;
+    }
+    
+    // 检查必要字段是否存在
+    if (!node_info.contains("box_id") || !node_info.contains("slot_id") || !node_info.contains("cpu_id")) {
+        std::cerr << "Node box_id, slot_id and cpu_id are required." << std::endl;
+        return false;
+    }
+
+    auto now = std::chrono::system_clock::now();
+    auto timestamp = std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch()).count();
+
+    int box_id = node_info["box_id"].get<int>();
+    int slot_id = node_info["slot_id"].get<int>();
+    int cpu_id = node_info["cpu_id"].get<int>();
+    int srio_id = node_info.value("srio_id", 0);
+    std::string hostIp = node_info.value("hostIp", "");
+    std::string hostname = node_info.value("hostname", "");
+    int service_port = node_info.value("service_port", 0);
+    std::string box_type = node_info.value("box_type", "");
+    std::string board_type = node_info.value("board_type", "");
+    std::string cpu_type = node_info.value("cpu_type", "");
+    std::string os_type = node_info.value("os_type", "");
+    std::string resource_type = node_info.value("resource_type", "");
+    std::string cpu_arch = node_info.value("cpu_arch", "");
+    
+    // 处理GPU信息，将JSON数组转换为字符串存储
+    std::string gpu_json = "[]";
+    if (node_info.contains("gpu") && node_info["gpu"].is_array()) {
+        gpu_json = node_info["gpu"].dump();
+    }
+
+    try {
+        SQLite::Statement query(*db_, "SELECT id FROM node WHERE box_id = ? AND slot_id = ? AND cpu_id = ?");
+        query.bind(1, box_id);
+        query.bind(2, slot_id);
+        query.bind(3, cpu_id);
+
+        if (query.executeStep()) { // Node exists, update it
+            SQLite::Statement update(*db_, R"(
+                UPDATE node 
+                SET srio_id = ?, hostIp = ?, hostname = ?, service_port = ?, 
+                    box_type = ?, board_type = ?, cpu_type = ?, os_type = ?, 
+                    resource_type = ?, cpu_arch = ?, gpu = ?, updated_at = ?
+                WHERE box_id = ? AND slot_id = ? AND cpu_id = ?
+            )");
+            update.bind(1, srio_id);
+            update.bind(2, hostIp);
+            update.bind(3, hostname);
+            update.bind(4, service_port);
+            update.bind(5, box_type);
+            update.bind(6, board_type);
+            update.bind(7, cpu_type);
+            update.bind(8, os_type);
+            update.bind(9, resource_type);
+            update.bind(10, cpu_arch);
+            update.bind(11, gpu_json);
+            update.bind(12, timestamp);
+            update.bind(13, box_id);
+            update.bind(14, slot_id);
+            update.bind(15, cpu_id);
+            update.exec();
+        } else { // Node does not exist, insert it
+            SQLite::Statement insert(*db_, R"(
+                INSERT INTO node (box_id, slot_id, cpu_id, srio_id, hostIp, hostname, service_port, 
+                                box_type, board_type, cpu_type, os_type, resource_type, cpu_arch, 
+                                gpu, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            )");
+            insert.bind(1, box_id);
+            insert.bind(2, slot_id);
+            insert.bind(3, cpu_id);
+            insert.bind(4, srio_id);
+            insert.bind(5, hostIp);
+            insert.bind(6, hostname);
+            insert.bind(7, service_port);
+            insert.bind(8, box_type);
+            insert.bind(9, board_type);
+            insert.bind(10, cpu_type);
+            insert.bind(11, os_type);
+            insert.bind(12, resource_type);
+            insert.bind(13, cpu_arch);
+            insert.bind(14, gpu_json);
+            insert.bind(15, timestamp);
+            insert.bind(16, timestamp);
+            insert.exec();
+        }
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Error saving node: " << e.what() << std::endl;
+        return false;
+    }
+}
+
+// 更新节点信息
+bool DatabaseManager::updateNode(const nlohmann::json& node_info) {
+    // 由于saveNode已经实现了更新功能，这里直接调用saveNode
+    return saveNode(node_info);
+}
+
+// 根据box_id, slot_id和cpu_id获取节点信息
+nlohmann::json DatabaseManager::getNode(int box_id, int slot_id, int cpu_id) {
+    if (!db_) {
+        std::cerr << "Database connection not initialized in getNode." << std::endl;
+        return nlohmann::json::object();
+    }
+    
+    try {
+        SQLite::Statement query(*db_, R"(
+            SELECT id, box_id, slot_id, cpu_id, srio_id, hostIp, hostname, service_port, 
+                   box_type, board_type, cpu_type, os_type, resource_type, cpu_arch, 
+                   gpu, created_at, updated_at 
+            FROM node 
+            WHERE box_id = ? AND slot_id = ? AND cpu_id = ?
+        )");
+        query.bind(1, box_id);
+        query.bind(2, slot_id);
+        query.bind(3, cpu_id);
+        
+        if (query.executeStep()) {
+            nlohmann::json node;
+            node["id"] = query.getColumn(0).getInt();
+            node["box_id"] = query.getColumn(1).getInt();
+            node["slot_id"] = query.getColumn(2).getInt();
+            node["cpu_id"] = query.getColumn(3).getInt();
+            node["srio_id"] = query.getColumn(4).getInt();
+            node["hostIp"] = query.getColumn(5).getString();
+            node["hostname"] = query.getColumn(6).getString();
+            node["service_port"] = query.getColumn(7).getInt();
+            node["box_type"] = query.getColumn(8).getString();
+            node["board_type"] = query.getColumn(9).getString();
+            node["cpu_type"] = query.getColumn(10).getString();
+            node["os_type"] = query.getColumn(11).getString();
+            node["resource_type"] = query.getColumn(12).getString();
+            node["cpu_arch"] = query.getColumn(13).getString();
+            
+            // 解析GPU JSON字符串为JSON数组
+            std::string gpu_json = query.getColumn(14).getString();
+            try {
+                node["gpu"] = nlohmann::json::parse(gpu_json);
+            } catch (const std::exception& e) {
+                std::cerr << "Error parsing GPU JSON: " << e.what() << std::endl;
+                node["gpu"] = nlohmann::json::array();
+            }
+            
+            node["created_at"] = query.getColumn(15).getInt64();
+            node["updated_at"] = query.getColumn(16).getInt64();
+            
+            return node;
+        }
+        return nlohmann::json::object(); // 返回空对象表示未找到
+    } catch (const std::exception& e) {
+        std::cerr << "Error getting node: " << e.what() << std::endl;
+        return nlohmann::json::object();
+    }
+}
+
+// 根据hostIp获取节点信息
+nlohmann::json DatabaseManager::getNodeByHostIp(const std::string& hostIp) {
+    if (!db_) {
+        std::cerr << "Database connection not initialized in getNodeByHostIp." << std::endl;
+        return nlohmann::json::object();
+    }
+    
+    try {
+        SQLite::Statement query(*db_, R"(
+            SELECT id, box_id, slot_id, cpu_id, srio_id, hostIp, hostname, service_port, 
+                   box_type, board_type, cpu_type, os_type, resource_type, cpu_arch, 
+                   gpu, created_at, updated_at 
+            FROM node 
+            WHERE hostIp = ?
+        )");
+        query.bind(1, hostIp);
+        
+        if (query.executeStep()) {
+            nlohmann::json node;
+            node["id"] = query.getColumn(0).getInt();
+            node["box_id"] = query.getColumn(1).getInt();
+            node["slot_id"] = query.getColumn(2).getInt();
+            node["cpu_id"] = query.getColumn(3).getInt();
+            node["srio_id"] = query.getColumn(4).getInt();
+            node["hostIp"] = query.getColumn(5).getString();
+            node["hostname"] = query.getColumn(6).getString();
+            node["service_port"] = query.getColumn(7).getInt();
+            node["box_type"] = query.getColumn(8).getString();
+            node["board_type"] = query.getColumn(9).getString();
+            node["cpu_type"] = query.getColumn(10).getString();
+            node["os_type"] = query.getColumn(11).getString();
+            node["resource_type"] = query.getColumn(12).getString();
+            node["cpu_arch"] = query.getColumn(13).getString();
+            
+            // 解析GPU JSON字符串为JSON数组
+            std::string gpu_json = query.getColumn(14).getString();
+            try {
+                node["gpu"] = nlohmann::json::parse(gpu_json);
+            } catch (const std::exception& e) {
+                std::cerr << "Error parsing GPU JSON: " << e.what() << std::endl;
+                node["gpu"] = nlohmann::json::array();
+            }
+            
+            node["created_at"] = query.getColumn(15).getInt64();
+            node["updated_at"] = query.getColumn(16).getInt64();
+            
+            return node;
+        }
+        return nlohmann::json::object(); // 返回空对象表示未找到
+    } catch (const std::exception& e) {
+        std::cerr << "Error getting node by hostIp: " << e.what() << std::endl;
+        return nlohmann::json::object();
+    }
+}
+
+// 获取所有节点信息
+nlohmann::json DatabaseManager::getAllNodes() {
+    if (!db_) {
+        std::cerr << "Database connection not initialized in getAllNodes." << std::endl;
+        return nlohmann::json::array();
+    }
+    
+    try {
+        nlohmann::json result = nlohmann::json::array();
+        
+        SQLite::Statement query(*db_, R"(
+            SELECT id, box_id, slot_id, cpu_id, srio_id, hostIp, hostname, service_port, 
+                   box_type, board_type, cpu_type, os_type, resource_type, cpu_arch, 
+                   gpu, created_at, updated_at 
+            FROM node 
+            ORDER BY box_id, slot_id, cpu_id
+        )");
+        
+        while (query.executeStep()) {
+            nlohmann::json node;
+            node["id"] = query.getColumn(0).getInt();
+            node["box_id"] = query.getColumn(1).getInt();
+            node["slot_id"] = query.getColumn(2).getInt();
+            node["cpu_id"] = query.getColumn(3).getInt();
+            node["srio_id"] = query.getColumn(4).getInt();
+            node["hostIp"] = query.getColumn(5).getString();
+            node["hostname"] = query.getColumn(6).getString();
+            node["service_port"] = query.getColumn(7).getInt();
+            node["box_type"] = query.getColumn(8).getString();
+            node["board_type"] = query.getColumn(9).getString();
+            node["cpu_type"] = query.getColumn(10).getString();
+            node["os_type"] = query.getColumn(11).getString();
+            node["resource_type"] = query.getColumn(12).getString();
+            node["cpu_arch"] = query.getColumn(13).getString();
+            
+            // 解析GPU JSON字符串为JSON数组
+            std::string gpu_json = query.getColumn(14).getString();
+            try {
+                node["gpu"] = nlohmann::json::parse(gpu_json);
+            } catch (const std::exception& e) {
+                std::cerr << "Error parsing GPU JSON: " << e.what() << std::endl;
+                node["gpu"] = nlohmann::json::array();
+            }
+            
+            node["created_at"] = query.getColumn(15).getInt64();
+            node["updated_at"] = query.getColumn(16).getInt64();
+            
+            result.push_back(node);
+        }
+        
+        return result;
+    } catch (const std::exception& e) {
+        std::cerr << "Error getting all nodes: " << e.what() << std::endl;
+        return nlohmann::json::array();
+    }
 }
 
 // Chassis and Slot Query Methods Implementation
@@ -612,44 +936,41 @@ nlohmann::json DatabaseManager::getSlotsWithLatestMetrics() {
         
         // 首先获取所有slots的基本信息
         SQLite::Statement query(*db_, R"(
-            SELECT s.chassis_id, s.slot_index, s.status, s.board_type, s.board_cpu, 
+            SELECT s.hostIp, s.status, s.board_type, s.board_cpu, 
                    s.board_cpu_cores, s.board_memory, s.board_ip, s.board_os, s.created_at, s.updated_at,
                    c.chassis_id as chassis_name, c.type as chassis_type
             FROM slots s
-            LEFT JOIN chassis c ON s.chassis_id = c.chassis_id
-            ORDER BY s.chassis_id, s.slot_index
+            LEFT JOIN chassis c ON s.hostIp = c.hostIp
+            ORDER BY s.hostIp
         )");
         
         while (query.executeStep()) {
             nlohmann::json slot;
             
             // 基本信息
-            std::string chassis_id = query.getColumn(0).getString();
-            int slot_index = query.getColumn(1).getInt();
+            std::string hostIp = query.getColumn(0).getString();
             
-            slot["chassis_id"] = chassis_id;
-            slot["slot_index"] = slot_index;
-            slot["status"] = query.getColumn(2).isNull() ? "" : query.getColumn(2).getString();
-            slot["board_type"] = query.getColumn(3).isNull() ? "" : query.getColumn(3).getString();
-            slot["board_cpu"] = query.getColumn(4).isNull() ? "" : query.getColumn(4).getString();
-            slot["board_cpu_cores"] = query.getColumn(5).isNull() ? 0 : query.getColumn(5).getInt();
-            slot["board_memory"] = query.getColumn(6).isNull() ? 0 : query.getColumn(6).getInt64();
-            slot["board_ip"] = query.getColumn(7).isNull() ? "" : query.getColumn(7).getString();
-            slot["board_os"] = query.getColumn(8).isNull() ? "" : query.getColumn(8).getString();
-            slot["created_at"] = query.getColumn(9).getInt64();
-            slot["updated_at"] = query.getColumn(10).getInt64();
-            slot["chassis_name"] = query.getColumn(11).isNull() ? "" : query.getColumn(11).getString();
-            slot["chassis_type"] = query.getColumn(12).isNull() ? "" : query.getColumn(12).getString();
+            slot["hostIp"] = hostIp;
+            slot["status"] = query.getColumn(1).isNull() ? "" : query.getColumn(1).getString();
+            slot["board_type"] = query.getColumn(2).isNull() ? "" : query.getColumn(2).getString();
+            slot["board_cpu"] = query.getColumn(3).isNull() ? "" : query.getColumn(3).getString();
+            slot["board_cpu_cores"] = query.getColumn(4).isNull() ? 0 : query.getColumn(4).getInt();
+            slot["board_memory"] = query.getColumn(5).isNull() ? 0 : query.getColumn(5).getInt64();
+            slot["board_ip"] = query.getColumn(6).isNull() ? "" : query.getColumn(6).getString();
+            slot["board_os"] = query.getColumn(7).isNull() ? "" : query.getColumn(7).getString();
+            slot["created_at"] = query.getColumn(8).getInt64();
+            slot["updated_at"] = query.getColumn(9).getInt64();
+            slot["chassis_name"] = query.getColumn(10).isNull() ? "" : query.getColumn(10).getString();
+            slot["chassis_type"] = query.getColumn(11).isNull() ? "" : query.getColumn(11).getString();
             
             // 获取最新的CPU metrics
             SQLite::Statement cpu_query(*db_, R"(
                 SELECT timestamp, usage_percent, load_avg_1m, load_avg_5m, load_avg_15m, core_count 
                 FROM slot_cpu_metrics 
-                WHERE chassis_id = ? AND slot_index = ? 
+                WHERE hostIp = ? 
                 ORDER BY timestamp DESC LIMIT 1
             )");
-            cpu_query.bind(1, chassis_id);
-            cpu_query.bind(2, slot_index);
+            cpu_query.bind(1, hostIp);
             
             if (cpu_query.executeStep()) {
                 nlohmann::json cpu_metrics;
@@ -668,11 +989,10 @@ nlohmann::json DatabaseManager::getSlotsWithLatestMetrics() {
             SQLite::Statement mem_query(*db_, R"(
                 SELECT timestamp, total, used, free, usage_percent 
                 FROM slot_memory_metrics 
-                WHERE chassis_id = ? AND slot_index = ? 
+                WHERE hostIp = ? 
                 ORDER BY timestamp DESC LIMIT 1
             )");
-            mem_query.bind(1, chassis_id);
-            mem_query.bind(2, slot_index);
+            mem_query.bind(1, hostIp);
             
             if (mem_query.executeStep()) {
                 nlohmann::json memory_metrics;
@@ -690,11 +1010,10 @@ nlohmann::json DatabaseManager::getSlotsWithLatestMetrics() {
             SQLite::Statement disk_query(*db_, R"(
                 SELECT id, timestamp, disk_count 
                 FROM slot_disk_metrics 
-                WHERE chassis_id = ? AND slot_index = ? 
+                WHERE hostIp = ? 
                 ORDER BY timestamp DESC LIMIT 1
             )");
-            disk_query.bind(1, chassis_id);
-            disk_query.bind(2, slot_index);
+            disk_query.bind(1, hostIp);
             
             if (disk_query.executeStep()) {
                 nlohmann::json disk_metrics;
@@ -731,11 +1050,10 @@ nlohmann::json DatabaseManager::getSlotsWithLatestMetrics() {
             SQLite::Statement net_query(*db_, R"(
                 SELECT id, timestamp, network_count 
                 FROM slot_network_metrics 
-                WHERE chassis_id = ? AND slot_index = ? 
+                WHERE hostIp = ? 
                 ORDER BY timestamp DESC LIMIT 1
             )");
-            net_query.bind(1, chassis_id);
-            net_query.bind(2, slot_index);
+            net_query.bind(1, hostIp);
             
             if (net_query.executeStep()) {
                 nlohmann::json network_metrics;
@@ -773,11 +1091,10 @@ nlohmann::json DatabaseManager::getSlotsWithLatestMetrics() {
             SQLite::Statement docker_query(*db_, R"(
                 SELECT id, timestamp, container_count, running_count, paused_count, stopped_count 
                 FROM slot_docker_metrics 
-                WHERE chassis_id = ? AND slot_index = ? 
+                WHERE hostIp = ? 
                 ORDER BY timestamp DESC LIMIT 1
             )");
-            docker_query.bind(1, chassis_id);
-            docker_query.bind(2, slot_index);
+            docker_query.bind(1, hostIp);
             
             if (docker_query.executeStep()) {
                 nlohmann::json docker_metrics;
@@ -813,6 +1130,50 @@ nlohmann::json DatabaseManager::getSlotsWithLatestMetrics() {
                 slot["latest_docker_metrics"] = nlohmann::json::object();
             }
             
+            // 获取最新的GPU metrics
+            SQLite::Statement gpu_query(*db_, R"(
+                SELECT id, timestamp, gpu_count 
+                FROM slot_gpu_metrics 
+                WHERE hostIp = ? 
+                ORDER BY timestamp DESC LIMIT 1
+            )");
+            gpu_query.bind(1, hostIp);
+            
+            if (gpu_query.executeStep()) {
+                nlohmann::json gpu_metrics;
+                long long slot_gpu_metrics_id = gpu_query.getColumn(0).getInt64();
+                gpu_metrics["timestamp"] = gpu_query.getColumn(1).getInt64();
+                gpu_metrics["gpu_count"] = gpu_query.getColumn(2).getInt();
+                
+                // 获取GPU详细信息
+                SQLite::Statement gpu_usage_query(*db_, R"(
+                    SELECT gpu_index, name, compute_usage, mem_usage, mem_used, mem_total, temperature, voltage, current, power 
+                    FROM slot_gpu_usage 
+                    WHERE slot_gpu_metrics_id = ?
+                )");
+                gpu_usage_query.bind(1, static_cast<int64_t>(slot_gpu_metrics_id));
+                
+                nlohmann::json gpus = nlohmann::json::array();
+                while (gpu_usage_query.executeStep()) {
+                    nlohmann::json gpu;
+                    gpu["index"] = gpu_usage_query.getColumn(0).getInt();
+                    gpu["name"] = gpu_usage_query.getColumn(1).getString();
+                    gpu["compute_usage"] = gpu_usage_query.getColumn(2).getDouble();
+                    gpu["mem_usage"] = gpu_usage_query.getColumn(3).getDouble();
+                    gpu["mem_used"] = gpu_usage_query.getColumn(4).getInt64();
+                    gpu["mem_total"] = gpu_usage_query.getColumn(5).getInt64();
+                    gpu["temperature"] = gpu_usage_query.getColumn(6).getDouble();
+                    gpu["voltage"] = gpu_usage_query.getColumn(7).getDouble();
+                    gpu["current"] = gpu_usage_query.getColumn(8).getDouble();
+                    gpu["power"] = gpu_usage_query.getColumn(9).getDouble();
+                    gpus.push_back(gpu);
+                }
+                gpu_metrics["gpus"] = gpus;
+                slot["latest_gpu_metrics"] = gpu_metrics;
+            } else {
+                slot["latest_gpu_metrics"] = nlohmann::json::object();
+            }
+            
             result.push_back(slot);
         }
         
@@ -826,7 +1187,7 @@ nlohmann::json DatabaseManager::getSlotsWithLatestMetrics() {
 // Slot Metrics Methods Implementation
 
 // 保存slot CPU指标
-bool DatabaseManager::saveSlotCpuMetrics(const std::string& chassis_id, int slot_index, 
+bool DatabaseManager::saveSlotCpuMetrics(const std::string& hostIp,
                                          long long timestamp, const nlohmann::json& cpu_data) {
     try {
         // 检查必要字段
@@ -838,16 +1199,15 @@ bool DatabaseManager::saveSlotCpuMetrics(const std::string& chassis_id, int slot
 
         // 插入CPU指标
         SQLite::Statement insert(*db_,
-            "INSERT INTO slot_cpu_metrics (chassis_id, slot_index, timestamp, usage_percent, load_avg_1m, load_avg_5m, load_avg_15m, core_count) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
-        insert.bind(1, chassis_id);
-        insert.bind(2, slot_index);
-        insert.bind(3, static_cast<int64_t>(timestamp));
-        insert.bind(4, cpu_data["usage_percent"].get<double>());
-        insert.bind(5, cpu_data["load_avg_1m"].get<double>());
-        insert.bind(6, cpu_data["load_avg_5m"].get<double>());
-        insert.bind(7, cpu_data["load_avg_15m"].get<double>());
-        insert.bind(8, cpu_data["core_count"].get<int>());
+            "INSERT INTO slot_cpu_metrics (hostIp, timestamp, usage_percent, load_avg_1m, load_avg_5m, load_avg_15m, core_count) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)");
+        insert.bind(1, hostIp);
+        insert.bind(2, static_cast<int64_t>(timestamp));
+        insert.bind(3, cpu_data["usage_percent"].get<double>());
+        insert.bind(4, cpu_data["load_avg_1m"].get<double>());
+        insert.bind(5, cpu_data["load_avg_5m"].get<double>());
+        insert.bind(6, cpu_data["load_avg_15m"].get<double>());
+        insert.bind(7, cpu_data["core_count"].get<int>());
         insert.exec();
 
         return true;
@@ -858,7 +1218,7 @@ bool DatabaseManager::saveSlotCpuMetrics(const std::string& chassis_id, int slot
 }
 
 // 保存slot内存指标
-bool DatabaseManager::saveSlotMemoryMetrics(const std::string& chassis_id, int slot_index,
+bool DatabaseManager::saveSlotMemoryMetrics(const std::string& hostIp,
                                             long long timestamp, const nlohmann::json& memory_data) {
     try {
         // 检查必要字段
@@ -869,15 +1229,14 @@ bool DatabaseManager::saveSlotMemoryMetrics(const std::string& chassis_id, int s
 
         // 插入内存指标
         SQLite::Statement insert(*db_,
-            "INSERT INTO slot_memory_metrics (chassis_id, slot_index, timestamp, total, used, free, usage_percent) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)");
-        insert.bind(1, chassis_id);
-        insert.bind(2, slot_index);
-        insert.bind(3, static_cast<int64_t>(timestamp));
-        insert.bind(4, static_cast<int64_t>(memory_data["total"].get<unsigned long long>()));
-        insert.bind(5, static_cast<int64_t>(memory_data["used"].get<unsigned long long>()));
-        insert.bind(6, static_cast<int64_t>(memory_data["free"].get<unsigned long long>()));
-        insert.bind(7, memory_data["usage_percent"].get<double>());
+            "INSERT INTO slot_memory_metrics (hostIp, timestamp, total, used, free, usage_percent) "
+            "VALUES (?, ?, ?, ?, ?, ?)");
+        insert.bind(1, hostIp);
+        insert.bind(2, static_cast<int64_t>(timestamp));
+        insert.bind(3, static_cast<int64_t>(memory_data["total"].get<unsigned long long>()));
+        insert.bind(4, static_cast<int64_t>(memory_data["used"].get<unsigned long long>()));
+        insert.bind(5, static_cast<int64_t>(memory_data["free"].get<unsigned long long>()));
+        insert.bind(6, memory_data["usage_percent"].get<double>());
         insert.exec();
 
         return true;
@@ -888,7 +1247,7 @@ bool DatabaseManager::saveSlotMemoryMetrics(const std::string& chassis_id, int s
 }
 
 // 保存slot磁盘指标
-bool DatabaseManager::saveSlotDiskMetrics(const std::string& chassis_id, int slot_index,
+bool DatabaseManager::saveSlotDiskMetrics(const std::string& hostIp,
                                           long long timestamp, const nlohmann::json& disk_data) {
     try {
         if (!disk_data.is_array()) {
@@ -899,11 +1258,10 @@ bool DatabaseManager::saveSlotDiskMetrics(const std::string& chassis_id, int slo
 
         // 1. 插入slot_disk_metrics汇总信息
         SQLite::Statement insert_metrics(*db_,
-            "INSERT INTO slot_disk_metrics (chassis_id, slot_index, timestamp, disk_count) VALUES (?, ?, ?, ?)");
-        insert_metrics.bind(1, chassis_id);
-        insert_metrics.bind(2, slot_index);
-        insert_metrics.bind(3, static_cast<int64_t>(timestamp));
-        insert_metrics.bind(4, disk_count);
+            "INSERT INTO slot_disk_metrics (hostIp, timestamp, disk_count) VALUES (?, ?, ?)");
+        insert_metrics.bind(1, hostIp);
+        insert_metrics.bind(2, static_cast<int64_t>(timestamp));
+        insert_metrics.bind(3, disk_count);
         insert_metrics.exec();
 
         long long slot_disk_metrics_id = db_->getLastInsertRowid();
@@ -937,7 +1295,7 @@ bool DatabaseManager::saveSlotDiskMetrics(const std::string& chassis_id, int slo
 }
 
 // 保存slot网络指标
-bool DatabaseManager::saveSlotNetworkMetrics(const std::string& chassis_id, int slot_index,
+bool DatabaseManager::saveSlotNetworkMetrics(const std::string& hostIp,
                                              long long timestamp, const nlohmann::json& network_data) {
     try {
         if (!network_data.is_array()) {
@@ -948,11 +1306,10 @@ bool DatabaseManager::saveSlotNetworkMetrics(const std::string& chassis_id, int 
 
         // 1. 插入slot_network_metrics汇总信息
         SQLite::Statement insert_metrics(*db_,
-            "INSERT INTO slot_network_metrics (chassis_id, slot_index, timestamp, network_count) VALUES (?, ?, ?, ?)");
-        insert_metrics.bind(1, chassis_id);
-        insert_metrics.bind(2, slot_index);
-        insert_metrics.bind(3, static_cast<int64_t>(timestamp));
-        insert_metrics.bind(4, network_count);
+            "INSERT INTO slot_network_metrics (hostIp, timestamp, network_count) VALUES (?, ?, ?)");
+        insert_metrics.bind(1, hostIp);
+        insert_metrics.bind(2, static_cast<int64_t>(timestamp));
+        insert_metrics.bind(3, network_count);
         insert_metrics.exec();
 
         long long slot_network_metrics_id = db_->getLastInsertRowid();
@@ -987,8 +1344,63 @@ bool DatabaseManager::saveSlotNetworkMetrics(const std::string& chassis_id, int 
     }
 }
 
+// 保存slot GPU指标
+bool DatabaseManager::saveSlotGpuMetrics(const std::string& hostIp,
+                                         long long timestamp, const nlohmann::json& gpu_data) {
+    try {
+        if (!gpu_data.is_array()) {
+            return false;
+        }
+
+        int gpu_count = gpu_data.size();
+
+        // 1. 插入slot_gpu_metrics汇总信息
+        SQLite::Statement insert_metrics(*db_,
+            "INSERT INTO slot_gpu_metrics (hostIp, timestamp, gpu_count) VALUES (?, ?, ?)");
+        insert_metrics.bind(1, hostIp);
+        insert_metrics.bind(2, static_cast<int64_t>(timestamp));
+        insert_metrics.bind(3, gpu_count);
+        insert_metrics.exec();
+
+        long long slot_gpu_metrics_id = db_->getLastInsertRowid();
+
+        // 2. 插入每个GPU详细信息到slot_gpu_usage
+        for (const auto& gpu : gpu_data) {
+            if (!gpu.contains("index") || !gpu.contains("name") ||
+                !gpu.contains("compute_usage") || !gpu.contains("mem_usage") ||
+                !gpu.contains("mem_used") || !gpu.contains("mem_total") ||
+                !gpu.contains("temperature") || !gpu.contains("voltage") ||
+                !gpu.contains("current") || !gpu.contains("power")) {
+                continue;
+            }
+
+            SQLite::Statement insert_usage(*db_,
+                "INSERT INTO slot_gpu_usage (slot_gpu_metrics_id, gpu_index, name, compute_usage, mem_usage, "
+                "mem_used, mem_total, temperature, voltage, current, power) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            insert_usage.bind(1, static_cast<int64_t>(slot_gpu_metrics_id));
+            insert_usage.bind(2, gpu["index"].get<int>());
+            insert_usage.bind(3, gpu["name"].get<std::string>());
+            insert_usage.bind(4, gpu["compute_usage"].get<double>());
+            insert_usage.bind(5, gpu["mem_usage"].get<double>());
+            insert_usage.bind(6, static_cast<int64_t>(gpu["mem_used"].get<unsigned long long>()));
+            insert_usage.bind(7, static_cast<int64_t>(gpu["mem_total"].get<unsigned long long>()));
+            insert_usage.bind(8, gpu["temperature"].get<double>());
+            insert_usage.bind(9, gpu["voltage"].get<double>());
+            insert_usage.bind(10, gpu["current"].get<double>());
+            insert_usage.bind(11, gpu["power"].get<double>());
+            insert_usage.exec();
+        }
+
+        return true;
+    } catch (const std::exception& e) {
+        std::cerr << "Save slot gpu metrics error: " << e.what() << std::endl;
+        return false;
+    }
+}
+
 // 保存slot Docker指标
-bool DatabaseManager::saveSlotDockerMetrics(const std::string& chassis_id, int slot_index,
+bool DatabaseManager::saveSlotDockerMetrics(const std::string& hostIp,
                                             long long timestamp, const nlohmann::json& docker_data) {
     try {
         // 检查必要字段
@@ -1000,15 +1412,14 @@ bool DatabaseManager::saveSlotDockerMetrics(const std::string& chassis_id, int s
 
         // 插入Docker指标
         SQLite::Statement insert(*db_,
-            "INSERT INTO slot_docker_metrics (chassis_id, slot_index, timestamp, container_count, running_count, paused_count, stopped_count) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?)");
-        insert.bind(1, chassis_id);
-        insert.bind(2, slot_index);
-        insert.bind(3, static_cast<int64_t>(timestamp));
-        insert.bind(4, docker_data["container_count"].get<int>());
-        insert.bind(5, docker_data["running_count"].get<int>());
-        insert.bind(6, docker_data["paused_count"].get<int>());
-        insert.bind(7, docker_data["stopped_count"].get<int>());
+            "INSERT INTO slot_docker_metrics (hostIp, timestamp, container_count, running_count, paused_count, stopped_count) "
+            "VALUES (?, ?, ?, ?, ?, ?)");
+        insert.bind(1, hostIp);
+        insert.bind(2, static_cast<int64_t>(timestamp));
+        insert.bind(3, docker_data["container_count"].get<int>());
+        insert.bind(4, docker_data["running_count"].get<int>());
+        insert.bind(5, docker_data["paused_count"].get<int>());
+        insert.bind(6, docker_data["stopped_count"].get<int>());
         insert.exec();
 
         // 获取插入的Docker指标ID
@@ -1045,17 +1456,16 @@ bool DatabaseManager::saveSlotDockerMetrics(const std::string& chassis_id, int s
 }
 
 // 获取slot CPU指标
-nlohmann::json DatabaseManager::getSlotCpuMetrics(const std::string& chassis_id, int slot_index, int limit) {
+nlohmann::json DatabaseManager::getSlotCpuMetrics(const std::string& hostIp, int limit) {
     try {
         nlohmann::json result = nlohmann::json::array();
 
         // 查询CPU指标
         SQLite::Statement query(*db_,
             "SELECT timestamp, usage_percent, load_avg_1m, load_avg_5m, load_avg_15m, core_count "
-            "FROM slot_cpu_metrics WHERE chassis_id = ? AND slot_index = ? ORDER BY timestamp DESC LIMIT ?");
-        query.bind(1, chassis_id);
-        query.bind(2, slot_index);
-        query.bind(3, limit);
+            "FROM slot_cpu_metrics WHERE hostIp = ? ORDER BY timestamp DESC LIMIT ?");
+        query.bind(1, hostIp);
+        query.bind(2, limit);
 
         while (query.executeStep()) {
             nlohmann::json metric;
@@ -1077,17 +1487,16 @@ nlohmann::json DatabaseManager::getSlotCpuMetrics(const std::string& chassis_id,
 }
 
 // 获取slot内存指标
-nlohmann::json DatabaseManager::getSlotMemoryMetrics(const std::string& chassis_id, int slot_index, int limit) {
+nlohmann::json DatabaseManager::getSlotMemoryMetrics(const std::string& hostIp, int limit) {
     try {
         nlohmann::json result = nlohmann::json::array();
 
         // 查询内存指标
         SQLite::Statement query(*db_,
             "SELECT timestamp, total, used, free, usage_percent "
-            "FROM slot_memory_metrics WHERE chassis_id = ? AND slot_index = ? ORDER BY timestamp DESC LIMIT ?");
-        query.bind(1, chassis_id);
-        query.bind(2, slot_index);
-        query.bind(3, limit);
+            "FROM slot_memory_metrics WHERE hostIp = ? ORDER BY timestamp DESC LIMIT ?");
+        query.bind(1, hostIp);
+        query.bind(2, limit);
 
         while (query.executeStep()) {
             nlohmann::json metric;
@@ -1108,16 +1517,15 @@ nlohmann::json DatabaseManager::getSlotMemoryMetrics(const std::string& chassis_
 }
 
 // 获取slot磁盘指标
-nlohmann::json DatabaseManager::getSlotDiskMetrics(const std::string& chassis_id, int slot_index, int limit) {
+nlohmann::json DatabaseManager::getSlotDiskMetrics(const std::string& hostIp, int limit) {
     try {
         nlohmann::json result = nlohmann::json::array();
 
         // 查询slot_disk_metrics
         SQLite::Statement query(*db_,
-            "SELECT id, timestamp, disk_count FROM slot_disk_metrics WHERE chassis_id = ? AND slot_index = ? ORDER BY timestamp DESC LIMIT ?");
-        query.bind(1, chassis_id);
-        query.bind(2, slot_index);
-        query.bind(3, limit);
+            "SELECT id, timestamp, disk_count FROM slot_disk_metrics WHERE hostIp = ? ORDER BY timestamp DESC LIMIT ?");
+        query.bind(1, hostIp);
+        query.bind(2, limit);
 
         while (query.executeStep()) {
             nlohmann::json metric;
@@ -1153,16 +1561,15 @@ nlohmann::json DatabaseManager::getSlotDiskMetrics(const std::string& chassis_id
 }
 
 // 获取slot网络指标
-nlohmann::json DatabaseManager::getSlotNetworkMetrics(const std::string& chassis_id, int slot_index, int limit) {
+nlohmann::json DatabaseManager::getSlotNetworkMetrics(const std::string& hostIp, int limit) {
     try {
         nlohmann::json result = nlohmann::json::array();
 
         // 查询slot_network_metrics
         SQLite::Statement query(*db_,
-            "SELECT id, timestamp, network_count FROM slot_network_metrics WHERE chassis_id = ? AND slot_index = ? ORDER BY timestamp DESC LIMIT ?");
-        query.bind(1, chassis_id);
-        query.bind(2, slot_index);
-        query.bind(3, limit);
+            "SELECT id, timestamp, network_count FROM slot_network_metrics WHERE hostIp = ? ORDER BY timestamp DESC LIMIT ?");
+        query.bind(1, hostIp);
+        query.bind(2, limit);
 
         while (query.executeStep()) {
             nlohmann::json metric;
@@ -1198,18 +1605,66 @@ nlohmann::json DatabaseManager::getSlotNetworkMetrics(const std::string& chassis
     }
 }
 
+// 获取slot GPU指标
+nlohmann::json DatabaseManager::getSlotGpuMetrics(const std::string& hostIp, int limit) {
+    try {
+        nlohmann::json result = nlohmann::json::array();
+
+        // 查询slot_gpu_metrics
+        SQLite::Statement query(*db_,
+            "SELECT id, timestamp, gpu_count FROM slot_gpu_metrics WHERE hostIp = ? ORDER BY timestamp DESC LIMIT ?");
+        query.bind(1, hostIp);
+        query.bind(2, limit);
+
+        while (query.executeStep()) {
+            nlohmann::json metric;
+            long long slot_gpu_metrics_id = query.getColumn(0).getInt64();
+            metric["timestamp"] = query.getColumn(1).getInt64();
+            metric["gpu_count"] = query.getColumn(2).getInt();
+
+            // 查询该时间点所有GPU详细信息
+            SQLite::Statement usage_query(*db_,
+                "SELECT gpu_index, name, compute_usage, mem_usage, mem_used, mem_total, temperature, voltage, current, power "
+                "FROM slot_gpu_usage WHERE slot_gpu_metrics_id = ?");
+            usage_query.bind(1, static_cast<int64_t>(slot_gpu_metrics_id));
+
+            nlohmann::json gpus = nlohmann::json::array();
+            while (usage_query.executeStep()) {
+                nlohmann::json gpu;
+                gpu["index"] = usage_query.getColumn(0).getInt();
+                gpu["name"] = usage_query.getColumn(1).getString();
+                gpu["compute_usage"] = usage_query.getColumn(2).getDouble();
+                gpu["mem_usage"] = usage_query.getColumn(3).getDouble();
+                gpu["mem_used"] = usage_query.getColumn(4).getInt64();
+                gpu["mem_total"] = usage_query.getColumn(5).getInt64();
+                gpu["temperature"] = usage_query.getColumn(6).getDouble();
+                gpu["voltage"] = usage_query.getColumn(7).getDouble();
+                gpu["current"] = usage_query.getColumn(8).getDouble();
+                gpu["power"] = usage_query.getColumn(9).getDouble();
+                gpus.push_back(gpu);
+            }
+            metric["gpus"] = gpus;
+            result.push_back(metric);
+        }
+
+        return result;
+    } catch (const std::exception& e) {
+        std::cerr << "Get slot gpu metrics error: " << e.what() << std::endl;
+        return nlohmann::json::array();
+    }
+}
+
 // 获取slot Docker指标
-nlohmann::json DatabaseManager::getSlotDockerMetrics(const std::string& chassis_id, int slot_index, int limit) {
+nlohmann::json DatabaseManager::getSlotDockerMetrics(const std::string& hostIp, int limit) {
     try {
         nlohmann::json result = nlohmann::json::array();
 
         // 查询Docker指标
         SQLite::Statement query(*db_,
             "SELECT id, timestamp, container_count, running_count, paused_count, stopped_count "
-            "FROM slot_docker_metrics WHERE chassis_id = ? AND slot_index = ? ORDER BY timestamp DESC LIMIT ?");
-        query.bind(1, chassis_id);
-        query.bind(2, slot_index);
-        query.bind(3, limit);
+            "FROM slot_docker_metrics WHERE hostIp = ? ORDER BY timestamp DESC LIMIT ?");
+        query.bind(1, hostIp);
+        query.bind(2, limit);
 
         while (query.executeStep()) {
             nlohmann::json metric;
@@ -1255,38 +1710,30 @@ nlohmann::json DatabaseManager::getSlotDockerMetrics(const std::string& chassis_
 // 保存slot资源使用情况（综合方法）
 bool DatabaseManager::saveSlotResourceUsage(const nlohmann::json& resource_usage) {
     // 检查必要字段
-    if (!resource_usage.contains("chassis_id") || !resource_usage.contains("slot_index") || 
+    if (!resource_usage.contains("hostIp") || 
         !resource_usage.contains("timestamp") || !resource_usage.contains("resource")) {
         return false;
     }
     
-    std::string chassis_id = resource_usage["chassis_id"];
-    int slot_index = resource_usage["slot_index"];
+    std::string hostIp = resource_usage["hostIp"];
     long long timestamp = resource_usage["timestamp"];
     const auto& resource = resource_usage["resource"];
     
-    // 更新Slot状态和时间戳（如果存在的话）
-    nlohmann::json slot_update;
-    slot_update["chassis_id"] = chassis_id;
-    slot_update["slot_index"] = slot_index;
-    slot_update["status"] = "online"; // 资源上报说明slot在线
-    this->saveSlot(slot_update);
-    
     // 保存各类资源数据
     if (resource.contains("cpu")) {
-        saveSlotCpuMetrics(chassis_id, slot_index, timestamp, resource["cpu"]);
+        saveSlotCpuMetrics(hostIp, timestamp, resource["cpu"]);
     }
     if (resource.contains("memory")) {
-        saveSlotMemoryMetrics(chassis_id, slot_index, timestamp, resource["memory"]);
+        saveSlotMemoryMetrics(hostIp, timestamp, resource["memory"]);
     }
     if (resource.contains("disk")) {
-        saveSlotDiskMetrics(chassis_id, slot_index, timestamp, resource["disk"]);
+        saveSlotDiskMetrics(hostIp, timestamp, resource["disk"]);
     }
     if (resource.contains("network")) {
-        saveSlotNetworkMetrics(chassis_id, slot_index, timestamp, resource["network"]);
+        saveSlotNetworkMetrics(hostIp, timestamp, resource["network"]);
     }
     if (resource.contains("docker")) {
-        saveSlotDockerMetrics(chassis_id, slot_index, timestamp, resource["docker"]);
+        saveSlotDockerMetrics(hostIp, timestamp, resource["docker"]);
     }
     return true;
 }
@@ -1294,14 +1741,13 @@ bool DatabaseManager::saveSlotResourceUsage(const nlohmann::json& resource_usage
 // 更新slot的metrics数据（综合方法）
 bool DatabaseManager::updateSlotMetrics(const nlohmann::json& metrics_data) {
     // 检查必要字段
-    if (!metrics_data.contains("chassis_id") || !metrics_data.contains("slot_index") || 
+    if (!metrics_data.contains("hostIp") || 
         !metrics_data.contains("timestamp") || !metrics_data.contains("resource")) {
-        std::cerr << "Missing required fields: chassis_id, slot_index, timestamp, resource" << std::endl;
+        std::cerr << "Missing required fields: hostIp, timestamp, resource" << std::endl;
         return false;
     }
     
-    std::string chassis_id = metrics_data["chassis_id"];
-    int slot_index = metrics_data["slot_index"];
+    std::string hostIp = metrics_data["hostIp"];
     long long timestamp = metrics_data["timestamp"];
     const auto& resource = metrics_data["resource"];
     
@@ -1310,44 +1756,51 @@ bool DatabaseManager::updateSlotMetrics(const nlohmann::json& metrics_data) {
         
         // 保存各类资源metrics数据
         if (resource.contains("cpu")) {
-            if (!saveSlotCpuMetrics(chassis_id, slot_index, timestamp, resource["cpu"])) {
-                std::cerr << "Failed to save CPU metrics for slot " << chassis_id << "/" << slot_index << std::endl;
+            if (!saveSlotCpuMetrics(hostIp, timestamp, resource["cpu"])) {
+                std::cerr << "Failed to save CPU metrics for host " << hostIp << std::endl;
                 success = false;
             }
         }
         
         if (resource.contains("memory")) {
-            if (!saveSlotMemoryMetrics(chassis_id, slot_index, timestamp, resource["memory"])) {
-                std::cerr << "Failed to save Memory metrics for slot " << chassis_id << "/" << slot_index << std::endl;
+            if (!saveSlotMemoryMetrics(hostIp, timestamp, resource["memory"])) {
+                std::cerr << "Failed to save Memory metrics for host " << hostIp << std::endl;
                 success = false;
             }
         }
         
         if (resource.contains("disk")) {
-            if (!saveSlotDiskMetrics(chassis_id, slot_index, timestamp, resource["disk"])) {
-                std::cerr << "Failed to save Disk metrics for slot " << chassis_id << "/" << slot_index << std::endl;
+            if (!saveSlotDiskMetrics(hostIp, timestamp, resource["disk"])) {
+                std::cerr << "Failed to save Disk metrics for host " << hostIp << std::endl;
                 success = false;
             }
         }
         
         if (resource.contains("network")) {
-            if (!saveSlotNetworkMetrics(chassis_id, slot_index, timestamp, resource["network"])) {
-                std::cerr << "Failed to save Network metrics for slot " << chassis_id << "/" << slot_index << std::endl;
+            if (!saveSlotNetworkMetrics(hostIp, timestamp, resource["network"])) {
+                std::cerr << "Failed to save Network metrics for host " << hostIp << std::endl;
                 success = false;
             }
         }
         
         if (resource.contains("docker")) {
-            if (!saveSlotDockerMetrics(chassis_id, slot_index, timestamp, resource["docker"])) {
-                std::cerr << "Failed to save Docker metrics for slot " << chassis_id << "/" << slot_index << std::endl;
+            if (!saveSlotDockerMetrics(hostIp, timestamp, resource["docker"])) {
+                std::cerr << "Failed to save Docker metrics for host " << hostIp << std::endl;
+                success = false;
+            }
+        }
+        
+        if (resource.contains("gpu")) {
+            if (!saveSlotGpuMetrics(hostIp, timestamp, resource["gpu"])) {
+                std::cerr << "Failed to save GPU metrics for host " << hostIp << std::endl;
                 success = false;
             }
         }
         
         // 如果成功保存了metrics，则更新slot状态为online（但不修改其他slot信息）
         if (success) {
-            if (!updateSlotStatusOnly(chassis_id, slot_index, "online")) {
-                std::cerr << "Failed to update slot status to online for " << chassis_id << "/" << slot_index << std::endl;
+            if (!updateSlotStatusOnly(hostIp, "online")) {
+                std::cerr << "Failed to update slot status to online for host " << hostIp << std::endl;
                 // 不影响整体成功状态，metrics保存成功更重要
             }
         }
@@ -1426,4 +1879,4 @@ nlohmann::json DatabaseManager::getChassisDetailedList() {
         std::cerr << "Error getting chassis detailed list: " << e.what() << std::endl;
         return nlohmann::json::array();
     }
-} 
+}

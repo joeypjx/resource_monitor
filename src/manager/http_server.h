@@ -89,6 +89,8 @@ public:
     void handleGetSlotsWithMetrics(const httplib::Request& req, httplib::Response& res);
     void handleRegisterSlot(const httplib::Request& req, httplib::Response& res);
     void handleUpdateSlotMetrics(const httplib::Request& req, httplib::Response& res);
+    void handleResourceUpdate(const httplib::Request& req, httplib::Response& res);
+    void handleHeartbeat(const httplib::Request& req, httplib::Response& res);
 
     // 响应辅助方法
     void sendSuccessResponse(httplib::Response& res, const std::string& message);

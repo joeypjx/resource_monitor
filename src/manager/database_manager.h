@@ -102,8 +102,15 @@ public:
     // Chassis and Slot Management
     bool saveChassis(const nlohmann::json& chassis_info);
     bool saveSlot(const nlohmann::json& slot_info);
-    bool updateSlotStatusOnly(const std::string& chassis_id, int slot_index, const std::string& new_status);
+    bool updateSlotStatusOnly(const std::string& hostIp, const std::string& new_status);
     void startSlotStatusMonitorThread();
+    
+    // Node Management
+    bool saveNode(const nlohmann::json& node_info);
+    bool updateNode(const nlohmann::json& node_info);
+    nlohmann::json getNode(int box_id, int slot_id, int cpu_id);
+    nlohmann::json getNodeByHostIp(const std::string& hostIp);
+    nlohmann::json getAllNodes();
     
     // Chassis and Slot Query Methods
     nlohmann::json getSlots();
@@ -114,17 +121,19 @@ public:
     nlohmann::json getSlotsWithLatestMetrics();
 
     // Slot Metrics Methods
-    bool saveSlotCpuMetrics(const std::string& chassis_id, int slot_index, long long timestamp, const nlohmann::json& cpu_data);
-    bool saveSlotMemoryMetrics(const std::string& chassis_id, int slot_index, long long timestamp, const nlohmann::json& memory_data);
-    bool saveSlotDiskMetrics(const std::string& chassis_id, int slot_index, long long timestamp, const nlohmann::json& disk_data);
-    bool saveSlotNetworkMetrics(const std::string& chassis_id, int slot_index, long long timestamp, const nlohmann::json& network_data);
-    bool saveSlotDockerMetrics(const std::string& chassis_id, int slot_index, long long timestamp, const nlohmann::json& docker_data);
+    bool saveSlotCpuMetrics(const std::string& hostIp, long long timestamp, const nlohmann::json& cpu_data);
+    bool saveSlotMemoryMetrics(const std::string& hostIp, long long timestamp, const nlohmann::json& memory_data);
+    bool saveSlotDiskMetrics(const std::string& hostIp, long long timestamp, const nlohmann::json& disk_data);
+    bool saveSlotNetworkMetrics(const std::string& hostIp, long long timestamp, const nlohmann::json& network_data);
+    bool saveSlotDockerMetrics(const std::string& hostIp, long long timestamp, const nlohmann::json& docker_data);
+    bool saveSlotGpuMetrics(const std::string& hostIp, long long timestamp, const nlohmann::json& gpu_data);
     
-    nlohmann::json getSlotCpuMetrics(const std::string& chassis_id, int slot_index, int limit = 100);
-    nlohmann::json getSlotMemoryMetrics(const std::string& chassis_id, int slot_index, int limit = 100);
-    nlohmann::json getSlotDiskMetrics(const std::string& chassis_id, int slot_index, int limit = 100);
-    nlohmann::json getSlotNetworkMetrics(const std::string& chassis_id, int slot_index, int limit = 100);
-    nlohmann::json getSlotDockerMetrics(const std::string& chassis_id, int slot_index, int limit = 100);
+    nlohmann::json getSlotCpuMetrics(const std::string& hostIp, int limit = 100);
+    nlohmann::json getSlotMemoryMetrics(const std::string& hostIp, int limit = 100);
+    nlohmann::json getSlotDiskMetrics(const std::string& hostIp, int limit = 100);
+    nlohmann::json getSlotNetworkMetrics(const std::string& hostIp, int limit = 100);
+    nlohmann::json getSlotDockerMetrics(const std::string& hostIp, int limit = 100);
+    nlohmann::json getSlotGpuMetrics(const std::string& hostIp, int limit = 100);
     
     bool saveSlotResourceUsage(const nlohmann::json& resource_usage);
     bool updateSlotMetrics(const nlohmann::json& metrics_data);

@@ -47,11 +47,18 @@ void MulticastAnnouncer::run() {
     addr.sin_port = htons(multicast_port_);
 
     std::string local_ip = getLocalIp();
+    int counter = 0; // 计数器，用于控制/resource消息的发送频率
     while (running_) {
-        // 构造JSON格式的多播消息
-        nlohmann::json msg_json = {
+        // 构造/heartbeat多播消息
+        nlohmann::json data_json = {
             {"manager_ip", local_ip},
-            {"port", port_}
+            {"manager_port", port_},
+            {"url", "/heartbeat"} // 默认使用/heartbeat作为URL
+        };
+        
+        nlohmann::json msg_json = {
+            {"api_version", 1},
+            {"data", data_json}
         };
         std::string msg = msg_json.dump();
         // 发送多播消息
@@ -59,6 +66,29 @@ void MulticastAnnouncer::run() {
         if (ret < 0) {
             std::cerr << "Failed to send multicast: " << strerror(errno) << std::endl;
         }
+        
+        // 每隔3次发送/resource消息
+        if (counter % 3 == 0) {
+            // 构造/resource多播消息
+            nlohmann::json resource_data_json = {
+                {"manager_ip", local_ip},
+                {"manager_port", port_},
+                {"url", "/resource"} // 使用/resource作为URL
+            };
+            
+            nlohmann::json resource_msg_json = {
+                {"api_version", 1},
+                {"data", resource_data_json}
+            };
+            std::string resource_msg = resource_msg_json.dump();
+            // 发送多播消息
+            int resource_ret = sendto(sock, resource_msg.c_str(), resource_msg.size(), 0, (sockaddr*)&addr, sizeof(addr));
+            if (resource_ret < 0) {
+                std::cerr << "Failed to send resource multicast: " << strerror(errno) << std::endl;
+            }
+        }
+        
+        counter++;
         // 间隔等待
         std::this_thread::sleep_for(std::chrono::seconds(interval_sec_));
     }
@@ -80,4 +110,4 @@ std::string MulticastAnnouncer::getLocalIp() {
         }
     }
     return "127.0.0.1";
-} 
+}

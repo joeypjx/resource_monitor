@@ -1,6 +1,7 @@
 #include "http_server.h"
 #include "database_manager.h"
 #include <iostream>
+#include <chrono>
 #include <nlohmann/json.hpp>
 
 // Chassis专用响应方法实现
@@ -44,6 +45,10 @@ void HTTPServer::sendChassisExceptionResponse(httplib::Response& res, const std:
 // 初始化chassis和slot管理路由
 void HTTPServer::initChassisRoutes()
 {
+    // 节点心跳API
+    server_.Post("/heartbeat", [this](const httplib::Request &req, httplib::Response &res)
+                { handleHeartbeat(req, res); });
+                
     // Chassis管理API
     server_.Get("/api/chassis", [this](const httplib::Request &req, httplib::Response &res)
                 { handleGetChassisList(req, res); });
@@ -78,9 +83,13 @@ void HTTPServer::initChassisRoutes()
     server_.Post("/register", [this](const httplib::Request &req, httplib::Response &res)
                  { handleRegisterSlot(req, res); });
 
-    // POST /resource - 更新slot的metrics数据
-    server_.Post("/resource", [this](const httplib::Request &req, httplib::Response &res)
+    // POST /updateMetrics - 更新slot的metrics数据
+    server_.Post("/updateMetrics", [this](const httplib::Request &req, httplib::Response &res)
                  { handleUpdateSlotMetrics(req, res); });
+                 
+    // POST /resource - 更新资源使用情况数据
+    server_.Post("/resource", [this](const httplib::Request &req, httplib::Response &res)
+                 { handleResourceUpdate(req, res); });
 }
 
 // 处理获取chassis列表
@@ -259,13 +268,24 @@ void HTTPServer::handleUpdateSlotStatus(const httplib::Request &req, httplib::Re
         
         std::string new_status = json["status"].get<std::string>();
         
-        if (db_manager_->updateSlotStatusOnly(chassis_id, slot_index, new_status))
-        {
-            sendChassisSuccessResponse(res, "Slot status updated successfully");
-        }
-        else
-        {
-            sendChassisErrorResponse(res, "Failed to update slot status");
+        // 获取hostIp
+        SQLite::Statement query(*db_, "SELECT board_ip FROM slots WHERE chassis_id = ? AND slot_index = ?");
+        query.bind(1, chassis_id);
+        query.bind(2, slot_index);
+        
+        if (query.executeStep()) {
+            std::string hostIp = query.getColumn(0).getString();
+            
+            if (db_manager_->updateSlotStatusOnly(hostIp, new_status))
+            {
+                sendChassisSuccessResponse(res, "Slot status updated successfully");
+            }
+            else
+            {
+                sendChassisErrorResponse(res, "Failed to update slot status");
+            }
+        } else {
+            sendChassisErrorResponse(res, "Slot not found");
         }
     }
     catch (const std::exception &e)
@@ -374,4 +394,88 @@ void HTTPServer::handleGetChassisDetailedList(const httplib::Request &req, httpl
     {
         sendChassisExceptionResponse(res, e);
     }
-} 
+}
+
+// 处理节点心跳请求
+void HTTPServer::handleHeartbeat(const httplib::Request &req, httplib::Response &res)
+{
+    try
+    {
+        auto request_json = nlohmann::json::parse(req.body);
+        
+        // 检查API版本和data字段
+        if (!request_json.contains("api_version") || !request_json.contains("data"))
+        {
+            sendChassisErrorResponse(res, "Missing api_version or data field in request");
+            return;
+        }
+        
+        auto data = request_json["data"];
+        
+        // 检查必要字段
+        if (!data.contains("box_id") || !data.contains("slot_id") || !data.contains("cpu_id"))
+        {
+            sendChassisErrorResponse(res, "box_id, slot_id and cpu_id are required in data");
+            return;
+        }
+        
+        // 调用updateNode保存节点信息
+        if (db_manager_->updateNode(data))
+        {
+            sendChassisSuccessResponse(res, "Node information updated successfully");
+        }
+        else
+        {
+            sendChassisErrorResponse(res, "Failed to update node information");
+        }
+    }
+    catch (const std::exception &e)
+    {
+        sendChassisExceptionResponse(res, e);
+    }
+}
+
+// 处理资源更新请求
+void HTTPServer::handleResourceUpdate(const httplib::Request &req, httplib::Response &res)
+{
+    try
+    {
+        auto request_json = nlohmann::json::parse(req.body);
+        
+        // 检查API版本和data字段
+        if (!request_json.contains("api_version") || !request_json.contains("data"))
+        {
+            sendChassisErrorResponse(res, "Missing api_version or data field in request");
+            return;
+        }
+        
+        auto data = request_json["data"];
+        
+        // 检查必要字段
+        if (!data.contains("hostIp") || !data.contains("resource"))
+        {
+            sendChassisErrorResponse(res, "hostIp and resource are required in request body");
+            return;
+        }
+        
+        // 构建metrics_data对象
+        nlohmann::json metrics_data;
+        metrics_data["hostIp"] = data["hostIp"];
+        metrics_data["timestamp"] = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::system_clock::now().time_since_epoch()).count();
+        metrics_data["resource"] = data["resource"];
+        
+        if (db_manager_->updateSlotMetrics(metrics_data))
+        {
+            sendChassisSuccessResponse(res, "Resource data updated successfully");
+        }
+        else
+        {
+            sendChassisErrorResponse(res, "Failed to update resource data");
+        }
+    }
+    catch (const std::exception &e)
+    {
+        sendChassisExceptionResponse(res, e);
+    }
+}
