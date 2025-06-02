@@ -90,6 +90,10 @@ void HTTPServer::initChassisRoutes()
     // POST /resource - 更新资源使用情况数据
     server_.Post("/resource", [this](const httplib::Request &req, httplib::Response &res)
                  { handleResourceUpdate(req, res); });
+                 
+    // GET /node - 获取所有节点信息
+    server_.Get("/node", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetAllNodes(req, res); });
 }
 
 // 处理获取chassis列表
@@ -473,6 +477,20 @@ void HTTPServer::handleResourceUpdate(const httplib::Request &req, httplib::Resp
         {
             sendChassisErrorResponse(res, "Failed to update resource data");
         }
+    }
+    catch (const std::exception &e)
+    {
+        sendChassisExceptionResponse(res, e);
+    }
+}
+
+// 处理获取所有节点信息
+void HTTPServer::handleGetAllNodes(const httplib::Request &req, httplib::Response &res)
+{
+    try
+    {
+        auto nodes = db_manager_->getAllNodes();
+        sendChassisSuccessResponse(res, "nodes", nodes);
     }
     catch (const std::exception &e)
     {

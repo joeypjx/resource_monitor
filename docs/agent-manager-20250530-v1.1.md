@@ -110,31 +110,7 @@ POST /resource
                     "power": "double 功耗，瓦特"
                 }
             ]
-        },
-        "component": [
-            {
-                "type": "docker/bar，string，组件运行方式",
-                "uuid": "string，组件实例uuid",
-                "config": {
-                    "name": "string，docker name或者bar name",
-                    "id": "string，容器ID/int bar进程pid", // docker id
-                },
-                "state": "PENDING/RUNNING/FAILED/STOPPED/SLEEPING，string，程序运行状态",
-                "resource":{
-                    "cpu" : {
-                        "load": "double,负载率，百分比"
-                    },
-                    "memory": {
-                        "memUsed" : "uint64_t，内存占用，字节",
-                        "memLimit" : "uint64_t，内存限制，字节",
-                    },
-                    "network": {
-                        "tx": "uint64_t，发送字节，字节",
-                        "rx": "uint64_t，接收字节，字节"
-                    }
-                }
-            }
-        ]
+        }
     }
 }
 ```
