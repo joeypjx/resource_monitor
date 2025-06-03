@@ -9,8 +9,6 @@
 class HTTPServer;
 class DatabaseManager;
 class BusinessManager;
-class AgentControlManager;
-class MulticastAnnouncer;
 
 /**
  * Manager类 - 管理器
@@ -72,8 +70,6 @@ private:
     std::shared_ptr<DatabaseManager> db_manager_;       // 数据库管理器
     std::shared_ptr<BusinessManager> business_manager_; // 业务管理器
     std::shared_ptr<Scheduler> scheduler_; // 调度器
-    std::shared_ptr<AgentControlManager> agent_control_manager_; // 新增：Agent控制管理器
-    std::unique_ptr<MulticastAnnouncer> multicast_announcer_; // 新增：组播公告器
 };
 
 #endif // MANAGER_H

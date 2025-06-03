@@ -215,14 +215,12 @@ void HTTPServer::handleGetBusinessTemplateAsBusiness(const httplib::Request &req
         {
             nlohmann::json c;
             // 兼容模板中有component_id/component_name
-            if (comp.contains("component_id"))
-                c["component_id"] = comp["component_id"];
-            if (comp.contains("component_name"))
-                c["component_name"] = comp["component_name"];
             if (comp.contains("template_details"))
             {
                 const auto &details = comp["template_details"];
                 c["type"] = details["type"];
+                c["component_id"] = details["component_template_id"];
+                c["component_name"] = details["template_name"];
                 // 合并config内容
                 for (auto it = details["config"].begin(); it != details["config"].end(); ++it)
                 {

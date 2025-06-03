@@ -76,24 +76,9 @@ bool DatabaseManager::initialize()
             std::cerr << "Business template table initialization error" << std::endl;
             return false;
         }
-
-        // 新增：初始化告警规则表
-        if (!createAlarmRulesTable()) {
-            std::cerr << "Failed to create alarm_rules table" << std::endl;
-            return false;
-        }
-
-        // 初始化机箱和插槽相关的表
-        if (!initializeChassisAndSlots()) {
-            std::cerr << "Chassis and Slot tables initialization error" << std::endl;
-            return false;
-        }
         
         // 启动节点状态监控线程
         startNodeStatusMonitor();
-
-        // 启动插槽状态监控线程
-        startSlotStatusMonitorThread();
         
         return true;
     }

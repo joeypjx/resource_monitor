@@ -33,14 +33,10 @@ LIB_DIRS = -L/usr/local/lib \
 AGENT_SOURCES = $(AGENT_DIR)/agent.cpp \
                $(AGENT_DIR)/cpu_collector.cpp \
                $(AGENT_DIR)/memory_collector.cpp \
-               $(AGENT_DIR)/disk_collector.cpp \
-               $(AGENT_DIR)/network_collector.cpp \
-               $(AGENT_DIR)/docker_collector.cpp \
                $(AGENT_DIR)/http_client.cpp \
 			   $(AGENT_DIR)/component_manager.cpp \
 			   $(AGENT_DIR)/docker_manager.cpp \
 			   $(AGENT_DIR)/binary_manager.cpp \
-			   $(AGENT_DIR)/node_controller.cpp \
                $(SRC_DIR)/agent_main.cpp
 
 # Manager源文件
@@ -51,16 +47,11 @@ MANAGER_SOURCES = $(MANAGER_DIR)/manager.cpp \
                  $(MANAGER_DIR)/database_manager.cpp \
 				 $(MANAGER_DIR)/database_manager_business.cpp \
 				 $(MANAGER_DIR)/database_manager_metric.cpp \
+				 $(MANAGER_DIR)/database_manager_node.cpp \
                  $(MANAGER_DIR)/business_manager.cpp \
                  $(MANAGER_DIR)/scheduler.cpp \
 				 $(MANAGER_DIR)/database_manager_template.cpp \
-				 $(MANAGER_DIR)/agent_control_manager.cpp \
-                 $(MANAGER_DIR)/multicast_announcer.cpp \
-				 $(MANAGER_DIR)/database_manager_alarm.cpp \
-				 $(MANAGER_DIR)/database_manager_chassis.cpp \
-				 $(MANAGER_DIR)/http_server_chassis.cpp \
 				 $(MANAGER_DIR)/http_server_node.cpp \
-				 $(MANAGER_DIR)/database_manager_node.cpp \
                  $(SRC_DIR)/manager_main.cpp 
 
 # 目标文件

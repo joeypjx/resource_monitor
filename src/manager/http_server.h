@@ -11,7 +11,6 @@
 // 前向声明
 class DatabaseManager;
 class BusinessManager;
-class AgentControlManager;
 
 /**
  * HTTPServer类 - HTTP服务器
@@ -23,7 +22,6 @@ public:
     // 构造与析构
     HTTPServer(std::shared_ptr<DatabaseManager> db_manager, 
               std::shared_ptr<BusinessManager> business_manager,
-              std::shared_ptr<AgentControlManager> agent_control_manager,
               int port = 8080);
     ~HTTPServer();
 
@@ -35,7 +33,6 @@ public:
     void initRoutes();
     void initBusinessRoutes();
     void initTemplateRoutes();
-    void initChassisRoutes();
 
     // 路由初始化
     void initNodeRoutes();
@@ -71,27 +68,6 @@ public:
     void handleGetBoardResourceHistory(const httplib::Request& req, httplib::Response& res);
     void handleGetBoardResources(const httplib::Request& req, httplib::Response& res);
     void handleBoardHeartbeat(const httplib::Request& req, httplib::Response& res);
-    void handleBoardControl(const httplib::Request& req, httplib::Response& res);
-
-    // 集群指标相关
-    void handleGetClusterMetrics(const httplib::Request& req, httplib::Response& res);
-    void handleGetClusterMetricsHistory(const httplib::Request& req, httplib::Response& res);
-
-    // Chassis和Slot管理相关
-    void handleGetChassisList(const httplib::Request& req, httplib::Response& res);
-    void handleGetChassisInfo(const httplib::Request& req, httplib::Response& res);
-    void handleGetChassisDetailedList(const httplib::Request& req, httplib::Response& res);
-    void handleCreateOrUpdateChassis(const httplib::Request& req, httplib::Response& res);
-    void handleGetSlots(const httplib::Request& req, httplib::Response& res);
-    void handleGetSlotInfo(const httplib::Request& req, httplib::Response& res);
-    void handleUpdateSlot(const httplib::Request& req, httplib::Response& res);
-    void handleUpdateSlotStatus(const httplib::Request& req, httplib::Response& res);
-    void handleGetSlotsWithMetrics(const httplib::Request& req, httplib::Response& res);
-    void handleRegisterSlot(const httplib::Request& req, httplib::Response& res);
-    void handleUpdateSlotMetrics(const httplib::Request& req, httplib::Response& res);
-    void handleResourceUpdate(const httplib::Request& req, httplib::Response& res);
-    void handleGetAllNodes(const httplib::Request& req, httplib::Response& res);
-    void handleHeartbeat(const httplib::Request& req, httplib::Response& res);
 
     // 响应辅助方法
     void sendSuccessResponse(httplib::Response& res, const std::string& message);
@@ -99,19 +75,12 @@ public:
     void sendErrorResponse(httplib::Response& res, const std::string& message);
     void sendExceptionResponse(httplib::Response& res, const std::exception& e);
 
-    // Chassis专用响应方法（使用统一的API格式）
-    void sendChassisSuccessResponse(httplib::Response& res, const std::string& message);
-    void sendChassisSuccessResponse(httplib::Response& res, const std::string& key, const nlohmann::json& data);
-    void sendChassisErrorResponse(httplib::Response& res, const std::string& message);
-    void sendChassisExceptionResponse(httplib::Response& res, const std::exception& e);
-
 protected:
     httplib::Server server_;  // HTTP服务器
     std::shared_ptr<BusinessManager> business_manager_;  // 业务管理器
     std::shared_ptr<DatabaseManager> db_manager_;    // 数据库管理器
 
 private:
-    std::shared_ptr<AgentControlManager> agent_control_manager_; // Agent控制管理器
     int port_;  // 监听端口
     bool running_;  // 是否正在运行
 };

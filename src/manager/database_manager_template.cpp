@@ -104,7 +104,7 @@ nlohmann::json DatabaseManager::saveComponentTemplate(const nlohmann::json& temp
 // 获取组件模板列表
 nlohmann::json DatabaseManager::getComponentTemplates() {
     try {
-        SQLite::Statement query(*db_, "SELECT component_template_id, template_name, description, type, created_at, updated_at FROM component_templates ORDER BY created_at DESC");
+        SQLite::Statement query(*db_, "SELECT component_template_id, template_name, description, type, config, created_at, updated_at FROM component_templates ORDER BY created_at DESC");
         nlohmann::json templates = nlohmann::json::array();
         while (query.executeStep()) {
             nlohmann::json template_info;
@@ -112,8 +112,9 @@ nlohmann::json DatabaseManager::getComponentTemplates() {
             template_info["template_name"] = query.getColumn(1).getString();
             template_info["description"] = query.getColumn(2).isNull() ? "" : query.getColumn(2).getString();
             template_info["type"] = query.getColumn(3).getString();
-            template_info["created_at"] = query.getColumn(4).getString();
-            template_info["updated_at"] = query.getColumn(5).getString();
+            template_info["config"] = nlohmann::json::parse(query.getColumn(4).getString());
+            template_info["created_at"] = query.getColumn(5).getString();
+            template_info["updated_at"] = query.getColumn(6).getString();
             templates.push_back(template_info);
         }
         return {{"status", "success"}, {"templates", templates}};
@@ -218,15 +219,29 @@ nlohmann::json DatabaseManager::saveBusinessTemplate(const nlohmann::json& templ
 // 获取业务模板列表
 nlohmann::json DatabaseManager::getBusinessTemplates() {
     try {
-        SQLite::Statement query(*db_, "SELECT business_template_id, template_name, description, created_at, updated_at FROM business_templates ORDER BY created_at DESC");
+        SQLite::Statement query(*db_, "SELECT business_template_id, template_name, description, components, created_at, updated_at FROM business_templates ORDER BY created_at DESC");
         nlohmann::json templates = nlohmann::json::array();
         while (query.executeStep()) {
             nlohmann::json template_info;
             template_info["business_template_id"] = query.getColumn(0).getString();
             template_info["template_name"] = query.getColumn(1).getString();
             template_info["description"] = query.getColumn(2).isNull() ? "" : query.getColumn(2).getString();
-            template_info["created_at"] = query.getColumn(3).getString();
-            template_info["updated_at"] = query.getColumn(4).getString();
+            auto components = nlohmann::json::parse(query.getColumn(3).getString());
+            nlohmann::json components_with_details = nlohmann::json::array();
+            for (const auto& component : components) {
+                nlohmann::json component_with_details = component;
+                if (component.contains("component_template_id")) {
+                    std::string component_template_id = component["component_template_id"];
+                    auto template_result = getComponentTemplate(component_template_id);
+                    if (template_result["status"] == "success") {
+                        component_with_details["template_details"] = template_result["template"];
+                    }
+                }
+                components_with_details.push_back(component_with_details);
+            }
+            template_info["components"] = components_with_details;
+            template_info["created_at"] = query.getColumn(4).getString();
+            template_info["updated_at"] = query.getColumn(5).getString();
             templates.push_back(template_info);
         }
         return {{"status", "success"}, {"templates", templates}};

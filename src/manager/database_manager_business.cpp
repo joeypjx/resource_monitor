@@ -564,32 +564,3 @@ nlohmann::json DatabaseManager::getNodeResourceInfo(const std::string& node_id) 
         return nlohmann::json();
     }
 }
-
-// 获取节点GPU信息
-nlohmann::json DatabaseManager::getNodeGpuInfo(const std::string& node_id) {
-    // 这里简化处理，通过Docker容器信息推断节点是否有GPU
-    // 实际应用中应该有专门的GPU信息采集
-    try {
-        nlohmann::json result;
-        result["has_gpu"] = false;
-        result["gpu_count"] = 0;
-        
-        // 检查节点是否有GPU相关容器
-        // 这里仅作示例，实际应该有更准确的GPU检测
-        SQLite::Statement query(*db_, 
-            "SELECT COUNT(*) FROM docker_containers WHERE docker_metric_id IN "
-            "(SELECT id FROM docker_metrics WHERE board_id = ?) "
-            "AND image LIKE '%gpu%' OR image LIKE '%cuda%'");
-        query.bind(1, node_id);
-        
-        if (query.executeStep() && query.getColumn(0).getInt() > 0) {
-            result["has_gpu"] = true;
-            result["gpu_count"] = 1;  // 简化处理，假设有1个GPU
-        }
-        
-        return result;
-    } catch (const std::exception& e) {
-        std::cerr << "Get node GPU info error: " << e.what() << std::endl;
-        return nlohmann::json({{"has_gpu", false}, {"gpu_count", 0}});
-    }
-}

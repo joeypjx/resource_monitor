@@ -83,7 +83,6 @@ set(MANAGER_SOURCES
     src/manager/business_manager.cpp
     src/manager/scheduler.cpp
     src/manager/agent_control_manager.cpp
-    src/manager/multicast_announcer.cpp
 )
 
 # Agent可执行文件

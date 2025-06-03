@@ -86,26 +86,6 @@ private:
 
     void getOsInfo();
     
-    /**
-     * 获取机箱ID
-     * 
-     * @return 机箱唯一标识符
-     */
-    std::string getChassisId();
-    
-    /**
-     * 获取CPU列表
-     * 
-     * @return CPU信息的JSON数组
-     */
-    nlohmann::json getCpuList();
-    
-    /**
-     * 获取GPU列表
-     * 
-     * @return GPU信息的JSON数组
-     */
-    nlohmann::json getGpuList();
 
     /**
      * 启动HTTP服务器
@@ -130,9 +110,6 @@ private:
      * @return 响应内容
      */
     nlohmann::json handleStopRequest(const nlohmann::json& request);
-
-    // 新增：处理节点控制请求
-    nlohmann::json handleNodeControlRequest(const nlohmann::json& request);
 
     void heartbeatThread();
 

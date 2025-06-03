@@ -2,8 +2,6 @@
 #include "http_server.h"
 #include "database_manager.h"
 #include "business_manager.h"
-#include "agent_control_manager.h"
-#include "multicast_announcer.h"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -41,15 +39,9 @@ bool Manager::initialize() {
         std::cerr << "Failed to initialize business manager" << std::endl;
         return false;
     }
-
-    // 新增：创建Agent控制管理器
-    agent_control_manager_ = std::make_shared<AgentControlManager>(db_manager_);
     
     // 创建HTTP服务器
-    http_server_ = std::make_unique<HTTPServer>(db_manager_, business_manager_, agent_control_manager_, port_);
-    
-    // 新增：创建组播公告器
-    multicast_announcer_ = std::make_unique<MulticastAnnouncer>(port_);
+    http_server_ = std::make_unique<HTTPServer>(db_manager_, business_manager_, port_);
     
     std::cout << "Manager initialized successfully" << std::endl;
     return true;
@@ -74,11 +66,6 @@ bool Manager::start() {
     
     // 给HTTP服务器一点时间启动
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    
-    // 新增：启动组播公告
-    if (multicast_announcer_) {
-        multicast_announcer_->start();
-    }
     
     running_ = true;
     std::cout << "Manager started successfully" << std::endl;

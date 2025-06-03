@@ -1,14 +1,12 @@
 #include "http_server.h"
 #include "database_manager.h"
 #include "business_manager.h"
-#include "agent_control_manager.h"
 #include <iostream>
 
 HTTPServer::HTTPServer(std::shared_ptr<DatabaseManager> db_manager,
                        std::shared_ptr<BusinessManager> business_manager,
-                       std::shared_ptr<AgentControlManager> agent_control_manager,
                        int port)
-    : db_manager_(db_manager), business_manager_(business_manager), agent_control_manager_(agent_control_manager), port_(port), running_(false)
+    : db_manager_(db_manager), business_manager_(business_manager), port_(port), running_(false)
 {
     
 }
@@ -33,9 +31,6 @@ bool HTTPServer::start()
 
     // 初始化业务管理路由
     initBusinessRoutes();
-
-    // 初始化chassis和slot管理路由
-    initChassisRoutes();
 
     // 启动服务器
     running_ = true;
