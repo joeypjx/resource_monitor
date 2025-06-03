@@ -248,54 +248,54 @@ void HTTPServer::handleUpdateSlot(const httplib::Request &req, httplib::Response
 // 处理更新slot状态
 void HTTPServer::handleUpdateSlotStatus(const httplib::Request &req, httplib::Response &res)
 {
-    try
-    {
-        std::string chassis_id = req.path_params.at("chassis_id");
-        int slot_index = std::stoi(req.path_params.at("slot_index"));
+    // try
+    // {
+    //     std::string chassis_id = req.path_params.at("chassis_id");
+    //     int slot_index = std::stoi(req.path_params.at("slot_index"));
         
-        auto request_json = nlohmann::json::parse(req.body);
+    //     auto request_json = nlohmann::json::parse(req.body);
         
-        // 检查data字段
-        if (!request_json.contains("data"))
-        {
-            sendChassisErrorResponse(res, "Missing data field in request");
-            return;
-        }
+    //     // 检查data字段
+    //     if (!request_json.contains("data"))
+    //     {
+    //         sendChassisErrorResponse(res, "Missing data field in request");
+    //         return;
+    //     }
         
-        auto json = request_json["data"];
+    //     auto json = request_json["data"];
         
-        if (!json.contains("status"))
-        {
-            sendChassisErrorResponse(res, "status is required");
-            return;
-        }
+    //     if (!json.contains("status"))
+    //     {
+    //         sendChassisErrorResponse(res, "status is required");
+    //         return;
+    //     }
         
-        std::string new_status = json["status"].get<std::string>();
+    //     std::string new_status = json["status"].get<std::string>();
         
-        // 获取hostIp
-        SQLite::Statement query(*db_, "SELECT board_ip FROM slots WHERE chassis_id = ? AND slot_index = ?");
-        query.bind(1, chassis_id);
-        query.bind(2, slot_index);
+    //     // 获取hostIp
+    //     SQLite::Statement query(*db_, "SELECT board_ip FROM slots WHERE chassis_id = ? AND slot_index = ?");
+    //     query.bind(1, chassis_id);
+    //     query.bind(2, slot_index);
         
-        if (query.executeStep()) {
-            std::string hostIp = query.getColumn(0).getString();
+    //     if (query.executeStep()) {
+    //         std::string hostIp = query.getColumn(0).getString();
             
-            if (db_manager_->updateSlotStatusOnly(hostIp, new_status))
-            {
-                sendChassisSuccessResponse(res, "Slot status updated successfully");
-            }
-            else
-            {
-                sendChassisErrorResponse(res, "Failed to update slot status");
-            }
-        } else {
-            sendChassisErrorResponse(res, "Slot not found");
-        }
-    }
-    catch (const std::exception &e)
-    {
-        sendChassisExceptionResponse(res, e);
-    }
+    //         if (db_manager_->updateSlotStatusOnly(hostIp, new_status))
+    //         {
+    //             sendChassisSuccessResponse(res, "Slot status updated successfully");
+    //         }
+    //         else
+    //         {
+    //             sendChassisErrorResponse(res, "Failed to update slot status");
+    //         }
+    //     } else {
+    //         sendChassisErrorResponse(res, "Slot not found");
+    //     }
+    // }
+    // catch (const std::exception &e)
+    // {
+    //     sendChassisExceptionResponse(res, e);
+    // }
 }
 
 // 处理获取所有slots及其最新metrics
