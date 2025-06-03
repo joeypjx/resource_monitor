@@ -32,6 +32,9 @@ bool HTTPServer::start()
     // 初始化业务管理路由
     initBusinessRoutes();
 
+    // web ui
+    server_.set_mount_point("/", "./web");
+
     // 启动服务器
     running_ = true;
     server_.set_default_headers({{"Access-Control-Allow-Origin", "*"}, {"Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS"}, {"Access-Control-Allow-Headers", "Content-Type"}});
