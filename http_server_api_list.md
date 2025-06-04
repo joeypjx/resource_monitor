@@ -201,7 +201,10 @@
     "image_name": "ai-infer",
     "environment_variables": {
       "MODEL_PATH": "/models/default"
-    }
+    },
+    "affinity": {
+			"require_gpu": false
+		}
   }
 }
 ```
@@ -235,7 +238,10 @@
     "image_name": "ai-infer",
     "environment_variables": {
       "MODEL_PATH": "/models/default"
-    }
+    },
+    "affinity": {
+			"require_gpu": false
+		}
   },
   "created_at": "2024-06-01 12:00:00",
   "updated_at": "2024-06-01 12:00:00"
@@ -268,6 +274,9 @@
       "image_name": "ai-infer",
       "environment_variables": {
         "MODEL_PATH": "/models/default"
+      },
+      "affinity": {
+        "require_gpu": false
       }
     },
     "created_at": "2024-06-01 12:00:00",

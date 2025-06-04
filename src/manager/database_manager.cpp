@@ -43,10 +43,10 @@ bool DatabaseManager::initialize()
         // 启用外键约束
         db_->exec("PRAGMA foreign_keys = ON");
         
-        // 初始化Board相关的数据库表
-        if (!initializeBoardTables())
+        // 初始化Node相关的数据库表
+        if (!initializeNodeTables())
         {
-            std::cerr << "Board tables initialization error" << std::endl;
+            std::cerr << "Node tables initialization error" << std::endl;
             return false;
         }
         

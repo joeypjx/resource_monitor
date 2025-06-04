@@ -61,13 +61,13 @@ public:
     void handleGetBusinessTemplateAsBusiness(const httplib::Request& req, httplib::Response& res);
 
     // 板卡管理相关
-    void handleBoardRegistration(const httplib::Request& req, httplib::Response& res);
+    void handleNodeRegistration(const httplib::Request& req, httplib::Response& res);
     void handleResourceReport(const httplib::Request& req, httplib::Response& res);
-    void handleGetBoards(const httplib::Request& req, httplib::Response& res);
-    void handleGetBoardDetails(const httplib::Request& req, httplib::Response& res);
-    void handleGetBoardResourceHistory(const httplib::Request& req, httplib::Response& res);
-    void handleGetBoardResources(const httplib::Request& req, httplib::Response& res);
-    void handleBoardHeartbeat(const httplib::Request& req, httplib::Response& res);
+    void handleGetNodes(const httplib::Request& req, httplib::Response& res);
+    void handleGetNodeDetails(const httplib::Request& req, httplib::Response& res);
+    void handleGetNodeResourceHistory(const httplib::Request& req, httplib::Response& res);
+    void handleGetNodeResources(const httplib::Request& req, httplib::Response& res);
+    void handleNodeHeartbeat(const httplib::Request& req, httplib::Response& res);
 
     // 响应辅助方法
     void sendSuccessResponse(httplib::Response& res, const std::string& message);

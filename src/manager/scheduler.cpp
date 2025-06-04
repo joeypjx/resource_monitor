@@ -69,19 +69,19 @@ nlohmann::json Scheduler::scheduleComponents(const std::string& business_id, con
 
 nlohmann::json Scheduler::getAvailableNodes() {
     // 从数据库获取所有节点（用 board 作为节点）
-    auto boards = db_manager_->getBoards();
+    auto nodes = db_manager_->getNodes();
 
     // 过滤出可用节点
     nlohmann::json available_nodes = nlohmann::json::array();
     
-    for (const auto& board : boards) {
+    for (const auto& node : nodes) {
         // 检查节点是否在线（使用数据库中的status字段）
-        if (board.contains("status") && board["status"] == "online") {
-            std::string node_id = board.contains("node_id") ? board["node_id"].get<std::string>() : board["board_id"].get<std::string>();
+        if (node.contains("status") && node["status"] == "online") {
+            std::string node_id = node.contains("node_id") ? node["node_id"].get<std::string>() : node["board_id"].get<std::string>();
             // 获取节点最新资源使用情况
             auto resource_usage = getNodeResourceUsage(node_id);
             // 添加资源使用情况
-            nlohmann::json available_node = board;
+            nlohmann::json available_node = node;
             available_node["node_id"] = node_id;
             available_node["resource_usage"] = resource_usage;
             // 添加到可用节点列表
@@ -99,7 +99,7 @@ nlohmann::json Scheduler::getNodeResourceUsage(const std::string& node_id) {
 
 nlohmann::json Scheduler::getNodeInfo(const std::string& node_id) {
     // 从数据库获取节点完整信息
-    return db_manager_->getBoard(node_id);
+    return db_manager_->getNode(node_id);
 }
 
 bool Scheduler::checkNodeResourceRequirements(const std::string& node_id, const nlohmann::json& resource_requirements) {

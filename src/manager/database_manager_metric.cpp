@@ -15,14 +15,14 @@ bool DatabaseManager::initializeMetricTables()
         db_->exec(R"(
             CREATE TABLE IF NOT EXISTS cpu_metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                board_id TEXT NOT NULL,
+                node_id TEXT NOT NULL,
                 timestamp TIMESTAMP NOT NULL,
                 usage_percent REAL NOT NULL,
                 load_avg_1m REAL NOT NULL,
                 load_avg_5m REAL NOT NULL,
                 load_avg_15m REAL NOT NULL,
                 core_count INTEGER NOT NULL,
-                FOREIGN KEY (board_id) REFERENCES board(board_id)
+                FOREIGN KEY (node_id) REFERENCES node(node_id)
             )
         )");
 
@@ -30,20 +30,20 @@ bool DatabaseManager::initializeMetricTables()
         db_->exec(R"(
             CREATE TABLE IF NOT EXISTS memory_metrics (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                board_id TEXT NOT NULL,
+                node_id TEXT NOT NULL,
                 timestamp TIMESTAMP NOT NULL,
                 total BIGINT NOT NULL,
                 used BIGINT NOT NULL,
                 free BIGINT NOT NULL,
                 usage_percent REAL NOT NULL,
-                FOREIGN KEY (board_id) REFERENCES board(board_id)
+                FOREIGN KEY (node_id) REFERENCES node(node_id)
             )
         )");
 
         // 创建索引以提高查询性能
-        db_->exec("CREATE INDEX IF NOT EXISTS idx_cpu_metrics_board_id ON cpu_metrics(board_id)");
+        db_->exec("CREATE INDEX IF NOT EXISTS idx_cpu_metrics_node_id ON cpu_metrics(node_id)");
         db_->exec("CREATE INDEX IF NOT EXISTS idx_cpu_metrics_timestamp ON cpu_metrics(timestamp)");
-        db_->exec("CREATE INDEX IF NOT EXISTS idx_memory_metrics_board_id ON memory_metrics(board_id)");
+        db_->exec("CREATE INDEX IF NOT EXISTS idx_memory_metrics_node_id ON memory_metrics(node_id)");
         db_->exec("CREATE INDEX IF NOT EXISTS idx_memory_metrics_timestamp ON memory_metrics(timestamp)");
 
         return true;
@@ -55,7 +55,7 @@ bool DatabaseManager::initializeMetricTables()
     }
 }
 
-bool DatabaseManager::saveCpuMetrics(const std::string &board_id,
+bool DatabaseManager::saveCpuMetrics(const std::string &node_id,
                                      long long timestamp,
                                      const nlohmann::json &cpu_data)
 {
@@ -71,9 +71,9 @@ bool DatabaseManager::saveCpuMetrics(const std::string &board_id,
 
         // 插入CPU指标
         SQLite::Statement insert(*db_,
-                                 "INSERT INTO cpu_metrics (board_id, timestamp, usage_percent, load_avg_1m, load_avg_5m, load_avg_15m, core_count) "
+                                 "INSERT INTO cpu_metrics (node_id, timestamp, usage_percent, load_avg_1m, load_avg_5m, load_avg_15m, core_count) "
                                  "VALUES (?, ?, ?, ?, ?, ?, ?)");
-        insert.bind(1, board_id);
+        insert.bind(1, node_id);
         insert.bind(2, static_cast<int64_t>(timestamp));
         insert.bind(3, cpu_data["usage_percent"].get<double>());
         insert.bind(4, cpu_data["load_avg_1m"].get<double>());
@@ -91,7 +91,7 @@ bool DatabaseManager::saveCpuMetrics(const std::string &board_id,
     }
 }
 
-bool DatabaseManager::saveMemoryMetrics(const std::string &board_id,
+bool DatabaseManager::saveMemoryMetrics(const std::string &node_id,
                                         long long timestamp,
                                         const nlohmann::json &memory_data)
 {
@@ -106,9 +106,9 @@ bool DatabaseManager::saveMemoryMetrics(const std::string &board_id,
 
         // 插入内存指标
         SQLite::Statement insert(*db_,
-                                 "INSERT INTO memory_metrics (board_id, timestamp, total, used, free, usage_percent) "
+                                 "INSERT INTO memory_metrics (node_id, timestamp, total, used, free, usage_percent) "
                                  "VALUES (?, ?, ?, ?, ?, ?)");
-        insert.bind(1, board_id);
+        insert.bind(1, node_id);
         insert.bind(2, static_cast<int64_t>(timestamp));
         insert.bind(3, static_cast<int64_t>(memory_data["total"].get<unsigned long long>()));
         insert.bind(4, static_cast<int64_t>(memory_data["used"].get<unsigned long long>()));
@@ -125,7 +125,7 @@ bool DatabaseManager::saveMemoryMetrics(const std::string &board_id,
     }
 }
 
-nlohmann::json DatabaseManager::getCpuMetrics(const std::string &board_id, int limit)
+nlohmann::json DatabaseManager::getCpuMetrics(const std::string &node_id, int limit)
 {
     try
     {
@@ -134,8 +134,8 @@ nlohmann::json DatabaseManager::getCpuMetrics(const std::string &board_id, int l
         // 查询CPU指标
         SQLite::Statement query(*db_,
                                 "SELECT timestamp, usage_percent, load_avg_1m, load_avg_5m, load_avg_15m, core_count "
-                                "FROM cpu_metrics WHERE board_id = ? ORDER BY timestamp DESC LIMIT ?");
-        query.bind(1, board_id);
+                                "FROM cpu_metrics WHERE node_id = ? ORDER BY timestamp DESC LIMIT ?");
+        query.bind(1, node_id);
         query.bind(2, limit);
 
         while (query.executeStep())
@@ -160,7 +160,7 @@ nlohmann::json DatabaseManager::getCpuMetrics(const std::string &board_id, int l
     }
 }
 
-nlohmann::json DatabaseManager::getMemoryMetrics(const std::string &board_id, int limit)
+nlohmann::json DatabaseManager::getMemoryMetrics(const std::string &node_id, int limit)
 {
     try
     {
@@ -169,8 +169,8 @@ nlohmann::json DatabaseManager::getMemoryMetrics(const std::string &board_id, in
         // 查询内存指标
         SQLite::Statement query(*db_,
                                 "SELECT timestamp, total, used, free, usage_percent "
-                                "FROM memory_metrics WHERE board_id = ? ORDER BY timestamp DESC LIMIT ?");
-        query.bind(1, board_id);
+                                "FROM memory_metrics WHERE node_id = ? ORDER BY timestamp DESC LIMIT ?");
+        query.bind(1, node_id);
         query.bind(2, limit);
 
         while (query.executeStep())
@@ -211,20 +211,20 @@ nlohmann::json DatabaseManager::getNodeResourceHistory(const std::string& node_i
 bool DatabaseManager::saveResourceUsage(const nlohmann::json &resource_usage)
 {
     // 检查必要字段
-    if (!resource_usage.contains("board_id") || !resource_usage.contains("timestamp") || !resource_usage.contains("resource")) {
+    if (!resource_usage.contains("node_id") || !resource_usage.contains("timestamp") || !resource_usage.contains("resource")) {
         return false;
     }
-    std::string board_id = resource_usage["board_id"];
+    std::string node_id = resource_usage["node_id"];
     long long timestamp = resource_usage["timestamp"];
     const auto& resource = resource_usage["resource"];
     // 更新Board最后一次上报时间
-    updateBoardLastSeen(board_id);
+    updateNodeLastSeen(node_id);
     // 保存各类资源数据
     if (resource.contains("cpu")) {
-        saveCpuMetrics(board_id, timestamp, resource["cpu"]);
+        saveCpuMetrics(node_id, timestamp, resource["cpu"]);
     }
     if (resource.contains("memory")) {
-        saveMemoryMetrics(board_id, timestamp, resource["memory"]);
+        saveMemoryMetrics(node_id, timestamp, resource["memory"]);
     }
     return true;
 }

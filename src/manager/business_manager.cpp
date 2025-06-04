@@ -423,7 +423,7 @@ nlohmann::json BusinessManager::deployComponent(const std::string& business_id,
                                              const nlohmann::json& component_info, 
                                              const std::string& node_id) {
     // 获取节点信息
-    auto nodes = db_manager_->getBoards();
+    auto nodes = db_manager_->getNodes();
     
     // 查找指定的节点
     nlohmann::json node_info;
@@ -570,7 +570,7 @@ nlohmann::json BusinessManager::stopComponent(const std::string& business_id, co
     
     // 获取节点信息
     std::string node_id = component["node_id"].get<std::string>();
-    auto nodes = db_manager_->getBoards();
+    auto nodes = db_manager_->getNodes();
     
     // 查找指定的节点
     nlohmann::json node_info;

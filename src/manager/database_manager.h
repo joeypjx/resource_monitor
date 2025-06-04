@@ -31,23 +31,23 @@ public:
     bool initialize();
     bool initializeBusinessTables();
     bool initializeMetricTables();
-    bool initializeBoardTables();
+    bool initializeNodeTables();
 
-    // 资源监控相关
-    bool saveBoard(const nlohmann::json& board_info);
-    bool updateBoardLastSeen(const std::string& board_id);
-    bool updateBoardStatus(const std::string& board_id, const std::string& status);
+    // 节点监控相关
+    bool saveNode(const nlohmann::json& node_info);
+    bool updateNodeLastSeen(const std::string& node_id);
+    bool updateNodeStatus(const std::string& node_id, const std::string& status);
 
     // 节点监控与资源采集
     void startNodeStatusMonitor();
     bool saveResourceUsage(const nlohmann::json& resource_usage);
-    bool saveCpuMetrics(const std::string& board_id, long long timestamp, const nlohmann::json& cpu_data);
-    bool saveMemoryMetrics(const std::string& board_id, long long timestamp, const nlohmann::json& memory_data);
+    bool saveCpuMetrics(const std::string& node_id, long long timestamp, const nlohmann::json& cpu_data);
+    bool saveMemoryMetrics(const std::string& node_id, long long timestamp, const nlohmann::json& memory_data);
 
-    nlohmann::json getBoards();
-    nlohmann::json getBoard(const std::string& board_id);
-    nlohmann::json getCpuMetrics(const std::string& board_id, int limit = 100);
-    nlohmann::json getMemoryMetrics(const std::string& board_id, int limit = 100);
+    nlohmann::json getNodes();
+    nlohmann::json getNode(const std::string& node_id);
+    nlohmann::json getCpuMetrics(const std::string& node_id, int limit = 100);
+    nlohmann::json getMemoryMetrics(const std::string& node_id, int limit = 100);
     nlohmann::json getNodeResourceHistory(const std::string& node_id, int limit = 100);
 
     // 业务管理相关

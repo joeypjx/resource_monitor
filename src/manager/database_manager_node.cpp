@@ -4,18 +4,20 @@
 #include <chrono>
 #include <thread>
 
-// 初始化Board相关的数据库表
-bool DatabaseManager::initializeBoardTables()
+// 初始化Node相关的数据库表
+bool DatabaseManager::initializeNodeTables()
 {
     try
     {
-        // 创建board表
+        // 创建node表
         db_->exec(R"(
-            CREATE TABLE IF NOT EXISTS board (
-                board_id TEXT PRIMARY KEY,
+            CREATE TABLE IF NOT EXISTS node (
+                node_id TEXT PRIMARY KEY,
                 hostname TEXT NOT NULL,
                 ip_address TEXT NOT NULL,
                 os_info TEXT NOT NULL,
+                gpu_count INTEGER DEFAULT 0,
+                cpu_model TEXT DEFAULT '',
                 created_at TIMESTAMP NOT NULL,
                 updated_at TIMESTAMP NOT NULL,
                 status TEXT NOT NULL DEFAULT 'online'
@@ -26,18 +28,18 @@ bool DatabaseManager::initializeBoardTables()
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Board tables initialization error: " << e.what() << std::endl;
+        std::cerr << "Node tables initialization error: " << e.what() << std::endl;
         return false;
     }
 }
 
-bool DatabaseManager::saveBoard(const nlohmann::json &board_info)
+bool DatabaseManager::saveNode(const nlohmann::json &node_info)
 {
     try
     {
         // 检查必要字段
-        if (!board_info.contains("board_id") || !board_info.contains("hostname") ||
-            !board_info.contains("ip_address") || !board_info.contains("os_info"))
+        if (!node_info.contains("node_id") || !node_info.contains("hostname") ||
+            !node_info.contains("ip_address") || !node_info.contains("os_info"))
         {
             return false;
         }
@@ -46,33 +48,40 @@ bool DatabaseManager::saveBoard(const nlohmann::json &board_info)
         auto now = std::chrono::system_clock::now();
         auto timestamp = std::chrono::system_clock::to_time_t(now);
         
-        // 检查Board是否已存在
-        SQLite::Statement query(*db_, "SELECT board_id FROM board WHERE board_id = ?");
-        query.bind(1, board_info["board_id"].get<std::string>());
+        // 检查Node是否已存在
+        SQLite::Statement query(*db_, "SELECT node_id FROM node WHERE node_id = ?");
+        query.bind(1, node_info["node_id"].get<std::string>());
+
+        int gpu_count = node_info.contains("gpu_count") ? node_info["gpu_count"].get<int>() : 0;
+        std::string cpu_model = node_info.contains("cpu_model") ? node_info["cpu_model"].get<std::string>() : "";
 
         if (query.executeStep())
         {
-            // Board已存在，更新信息
+            // Node已存在，更新信息
             SQLite::Statement update(*db_, 
-                                     "UPDATE board SET hostname = ?, ip_address = ?, os_info = ?, updated_at = ? WHERE board_id = ?");
-            update.bind(1, board_info["hostname"].get<std::string>());
-            update.bind(2, board_info["ip_address"].get<std::string>());
-            update.bind(3, board_info["os_info"].get<std::string>());
-            update.bind(4, static_cast<int64_t>(timestamp));
-            update.bind(5, board_info["board_id"].get<std::string>());
+                "UPDATE node SET hostname = ?, ip_address = ?, os_info = ?, gpu_count = ?, cpu_model = ?, updated_at = ? WHERE node_id = ?");
+            update.bind(1, node_info["hostname"].get<std::string>());
+            update.bind(2, node_info["ip_address"].get<std::string>());
+            update.bind(3, node_info["os_info"].get<std::string>());
+            update.bind(4, gpu_count);
+            update.bind(5, cpu_model);
+            update.bind(6, static_cast<int64_t>(timestamp));
+            update.bind(7, node_info["node_id"].get<std::string>());
             update.exec();
         }
         else
         {
-            // 新Board，插入记录
+            // 新Node，插入记录
             SQLite::Statement insert(*db_, 
-                                     "INSERT INTO board (board_id, hostname, ip_address, os_info, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)");
-            insert.bind(1, board_info["board_id"].get<std::string>());
-            insert.bind(2, board_info["hostname"].get<std::string>());
-            insert.bind(3, board_info["ip_address"].get<std::string>());
-            insert.bind(4, board_info["os_info"].get<std::string>());
-            insert.bind(5, static_cast<int64_t>(timestamp));
-            insert.bind(6, static_cast<int64_t>(timestamp));
+                "INSERT INTO node (node_id, hostname, ip_address, os_info, gpu_count, cpu_model, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            insert.bind(1, node_info["node_id"].get<std::string>());
+            insert.bind(2, node_info["hostname"].get<std::string>());
+            insert.bind(3, node_info["ip_address"].get<std::string>());
+            insert.bind(4, node_info["os_info"].get<std::string>());
+            insert.bind(5, gpu_count);
+            insert.bind(6, cpu_model);
+            insert.bind(7, static_cast<int64_t>(timestamp));
+            insert.bind(8, static_cast<int64_t>(timestamp));
             insert.exec();
         }
         
@@ -80,12 +89,12 @@ bool DatabaseManager::saveBoard(const nlohmann::json &board_info)
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Save board error: " << e.what() << std::endl;
+        std::cerr << "Save node error: " << e.what() << std::endl;
         return false;
     }
 }
 
-bool DatabaseManager::updateBoardLastSeen(const std::string &board_id)
+bool DatabaseManager::updateNodeLastSeen(const std::string &node_id)
 {
     try
     {
@@ -93,36 +102,36 @@ bool DatabaseManager::updateBoardLastSeen(const std::string &board_id)
         auto now = std::chrono::system_clock::now();
         auto timestamp = std::chrono::system_clock::to_time_t(now);
         
-        // 更新Board最后活动时间和状态为在线
-        SQLite::Statement update(*db_, "UPDATE board SET updated_at = ?, status = 'online' WHERE board_id = ?");
+        // 更新Node最后活动时间和状态为在线
+        SQLite::Statement update(*db_, "UPDATE node SET updated_at = ?, status = 'online' WHERE node_id = ?");
         update.bind(1, static_cast<int64_t>(timestamp));
-        update.bind(2, board_id);
+        update.bind(2, node_id);
         update.exec();
         
         return true;
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Update board last seen error: " << e.what() << std::endl;
+        std::cerr << "Update node last seen error: " << e.what() << std::endl;
         return false;
     }
 }
 
-bool DatabaseManager::updateBoardStatus(const std::string &board_id, const std::string &status)
+bool DatabaseManager::updateNodeStatus(const std::string &node_id, const std::string &status)
 {
     try
     {
-        // 更新Board状态
-        SQLite::Statement update(*db_, "UPDATE board SET status = ? WHERE board_id = ?");
+        // 更新Node状态
+        SQLite::Statement update(*db_, "UPDATE node SET status = ? WHERE node_id = ?");
         update.bind(1, status);
-        update.bind(2, board_id);
+        update.bind(2, node_id);
         update.exec();
         
         return true;
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Update board status error: " << e.what() << std::endl;
+        std::cerr << "Update node status error: " << e.what() << std::endl;
         return false;
     }
 }
@@ -147,15 +156,15 @@ void DatabaseManager::startNodeStatusMonitor()
                 auto current_timestamp = std::chrono::system_clock::to_time_t(now);
                 
                 // 查询所有节点
-                SQLite::Statement query(*db_, "SELECT board_id, updated_at FROM board");
+                SQLite::Statement query(*db_, "SELECT node_id, updated_at FROM node");
                 
                 while (query.executeStep()) {
-                    std::string board_id = query.getColumn(0).getString();
+                    std::string node_id = query.getColumn(0).getString();
                     int64_t updated_at = query.getColumn(1).getInt64();
                     
                     // 如果超过5秒没有上报，则标记为离线
                     if (current_timestamp - updated_at > 5) {
-                        updateBoardStatus(board_id, "offline");
+                        updateNodeStatus(node_id, "offline");
                     }
                 }
                 
@@ -169,59 +178,63 @@ void DatabaseManager::startNodeStatusMonitor()
         } });
 }
 
-nlohmann::json DatabaseManager::getBoards()
+nlohmann::json DatabaseManager::getNodes()
 {
     try
     {
         nlohmann::json result = nlohmann::json::array();
         
-        // 查询所有Board
-        SQLite::Statement query(*db_, "SELECT board_id, hostname, ip_address, os_info, created_at, updated_at, status FROM board");
+        // 查询所有Node
+        SQLite::Statement query(*db_, "SELECT node_id, hostname, ip_address, os_info, gpu_count, cpu_model, created_at, updated_at, status FROM node");
 
         while (query.executeStep())
         {
-            nlohmann::json board;
-            std::string board_id = query.getColumn(0).getString();
+            nlohmann::json node;
+            std::string node_id = query.getColumn(0).getString();
             
-            board["board_id"] = board_id;
-            board["hostname"] = query.getColumn(1).getString();
-            board["ip_address"] = query.getColumn(2).getString();
-            board["os_info"] = query.getColumn(3).getString();
-            board["created_at"] = query.getColumn(4).getInt64();
-            board["updated_at"] = query.getColumn(5).getInt64();
-            board["status"] = query.getColumn(6).getString();
+            node["node_id"] = node_id;
+            node["hostname"] = query.getColumn(1).getString();
+            node["ip_address"] = query.getColumn(2).getString();
+            node["os_info"] = query.getColumn(3).getString();
+            node["gpu_count"] = query.getColumn(4).getInt();
+            node["cpu_model"] = query.getColumn(5).getString();
+            node["created_at"] = query.getColumn(6).getInt64();
+            node["updated_at"] = query.getColumn(7).getInt64();
+            node["status"] = query.getColumn(8).getString();
 
-            result.push_back(board);
+            result.push_back(node);
         }
         
         return result;
     }
     catch (const std::exception &e)
     {
-        std::cerr << "Get boards error: " << e.what() << std::endl;
+        std::cerr << "Get nodes error: " << e.what() << std::endl;
         return nlohmann::json::array();
     }
 }
 
-nlohmann::json DatabaseManager::getBoard(const std::string &board_id)
+nlohmann::json DatabaseManager::getNode(const std::string &node_id)
 {
     try
     {
-        SQLite::Statement query(*db_, "SELECT board_id, hostname, ip_address, os_info, created_at, updated_at, status FROM board WHERE board_id = ?");
-        query.bind(1, board_id);
+        SQLite::Statement query(*db_, "SELECT node_id, hostname, ip_address, os_info, gpu_count, cpu_model, created_at, updated_at, status FROM node WHERE node_id = ?");
+        query.bind(1, node_id);
 
         while (query.executeStep())
         {
             nlohmann::json node;
-            std::string board_id = query.getColumn(0).getString();
+            std::string node_id = query.getColumn(0).getString();
             
-            node["board_id"] = board_id;
+            node["node_id"] = node_id;
             node["hostname"] = query.getColumn(1).getString();
             node["ip_address"] = query.getColumn(2).getString();
             node["os_info"] = query.getColumn(3).getString();
-            node["created_at"] = query.getColumn(4).getInt64();
-            node["updated_at"] = query.getColumn(5).getInt64();
-            node["status"] = query.getColumn(6).getString();
+            node["gpu_count"] = query.getColumn(4).getInt();
+            node["cpu_model"] = query.getColumn(5).getString();
+            node["created_at"] = query.getColumn(6).getInt64();
+            node["updated_at"] = query.getColumn(7).getInt64();
+            node["status"] = query.getColumn(8).getString();
 
             return node;
         }

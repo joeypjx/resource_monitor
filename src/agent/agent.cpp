@@ -16,6 +16,8 @@
 #include <cstdlib>
 #include <sstream>
 #include <vector>
+#include <cstdio>
+#include <string>
 
 Agent::Agent(const std::string& manager_url, 
              const std::string& hostname,
@@ -43,6 +45,12 @@ Agent::Agent(const std::string& manager_url,
     
     // 获取操作系统信息
     getOsInfo();
+    
+    // 获取CPU架构
+    getCpuModel();
+    
+    // 获取GPU数量
+    getGpuCount();
     
     // 创建HTTP客户端
     http_client_ = std::make_shared<HttpClient>(manager_url_);
@@ -161,20 +169,22 @@ bool Agent::registerToManager() {
     nlohmann::json register_info;
     if (!agent_id_.empty()) {
         // 已有agent_id，带上注册
-        register_info["board_id"] = agent_id_;
+        register_info["node_id"] = agent_id_;
     }
     register_info["hostname"] = hostname_;
     register_info["ip_address"] = ip_address_;
     register_info["os_info"] = os_info_;
-    
+    register_info["cpu_model"] = cpu_model_;
+    register_info["gpu_count"] = gpu_count_;
+
     // 发送注册请求
     nlohmann::json response = http_client_->registerAgent(register_info);
     
     // 检查响应
     if (response.contains("status") && response["status"] == "success") {
-        // 使用服务器返回的Board ID
-        if (response.contains("board_id")) {
-            agent_id_ = response["board_id"];
+        // 使用服务器返回的Node ID
+        if (response.contains("node_id")) {
+            agent_id_ = response["node_id"];
             // 写入本地文件
             std::ofstream fout(agent_id_file);
             if (fout) {
@@ -182,7 +192,7 @@ bool Agent::registerToManager() {
                 fout.close();
         }
         }
-        std::cout << "Successfully registered to Manager with Board ID: " << agent_id_ << std::endl;
+        std::cout << "Successfully registered to Manager with Node ID: " << agent_id_ << std::endl;
         return true;
     } else {
         std::cerr << "Failed to register to Manager: " 
@@ -194,7 +204,7 @@ bool Agent::registerToManager() {
 
 void Agent::collectAndReportResources() {
     nlohmann::json report_json;
-    report_json["board_id"] = agent_id_;
+    report_json["node_id"] = agent_id_;
     report_json["timestamp"] = std::time(nullptr);
     nlohmann::json resource_json;
     // 采集各类资源信息，按类型放入resource字段
@@ -279,6 +289,38 @@ void Agent::getOsInfo() {
                std::string(system_info.release) + " " + 
                std::string(system_info.version) + " " + 
                std::string(system_info.machine);
+}
+
+void Agent::getCpuModel() {
+    // 获取CPU型号
+    cpu_model_ = "Unknown";
+    FILE* pipe = popen("cat /proc/cpuinfo | grep 'model name' | uniq | awk -F': ' '{print $2}'", "r");
+    if (!pipe) return;
+    char buffer[128];
+    std::string result = "";
+    if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        result = buffer;
+    }
+    pclose(pipe);
+    cpu_model_ = result;
+}
+
+void Agent::getGpuCount() {
+    gpu_count_ = 0;
+    FILE* pipe = popen("ixsmi -L | wc -l", "r");
+    if (!pipe) return;
+    char buffer[128];
+    std::string result = "";
+    if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        result = buffer;
+    }
+    pclose(pipe);
+    try {
+        gpu_count_ = std::stoi(result);
+    } catch (const std::exception& e) {
+        std::cerr << "Error getting GPU count: " << e.what() << std::endl;
+        gpu_count_ = 0;
+    }
 }
 
 bool Agent::startHttpServer(int port) {

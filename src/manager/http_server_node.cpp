@@ -5,61 +5,63 @@
 #include <sstream>
 #include <uuid/uuid.h>
 
-// 初始化节点和板卡管理路由
+// 初始化节点管理路由
 void HTTPServer::initNodeRoutes()
 {
     // 资源管理
 
     // 注册API
     server_.Post("/api/register", [this](const httplib::Request &req, httplib::Response &res)
-                 { handleBoardRegistration(req, res); });
+                 { handleNodeRegistration(req, res); });
     // 心跳API
-    server_.Post("/api/heartbeat/:board_id", [this](const httplib::Request &req, httplib::Response &res)
-                { handleBoardHeartbeat(req, res); });      
-
-    server_.Get("/api/boards", [this](const httplib::Request &req, httplib::Response &res)
-                { handleGetBoards(req, res); });
-
-    server_.Get("/api/boards/:board_id", [this](const httplib::Request &req, httplib::Response &res)
-                { handleGetBoardDetails(req, res); });
+    server_.Post("/api/heartbeat/:node_id", [this](const httplib::Request &req, httplib::Response &res)
+                { handleNodeHeartbeat(req, res); });
 
     // 资源监控
     server_.Post("/api/report", [this](const httplib::Request &req, httplib::Response &res)
                  { handleResourceReport(req, res); });
 
-    server_.Get("/api/boards/:board_id/resources", [this](const httplib::Request &req, httplib::Response &res)
-                { handleGetBoardResourceHistory(req, res); });
+    // 获取节点列表
+    server_.Get("/api/nodes", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetNodes(req, res); });
 
-    server_.Get("/api/boards/:board_id/resources/:resource_type", [this](const httplib::Request &req, httplib::Response &res)
-                { handleGetBoardResources(req, res); });
+    server_.Get("/api/nodes/:node_id", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetNodeDetails(req, res); });
+
+    // 获取节点资源历史
+    server_.Get("/api/nodes/:node_id/resources", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetNodeResourceHistory(req, res); });
+
+    server_.Get("/api/nodes/:node_id/resources/:resource_type", [this](const httplib::Request &req, httplib::Response &res)
+                { handleGetNodeResources(req, res); });
 }
 
-// 处理板卡注册
-void HTTPServer::handleBoardRegistration(const httplib::Request &req, httplib::Response &res)
+// 处理节点注册
+void HTTPServer::handleNodeRegistration(const httplib::Request &req, httplib::Response &res)
 {
     try
     {
         auto json = nlohmann::json::parse(req.body);
-        std::string board_id;
-        if (!json.contains("board_id") || json["board_id"].get<std::string>().empty()) {
+        std::string node_id;
+        if (!json.contains("node_id") || json["node_id"].get<std::string>().empty()) {
             // 生成新的board_id
             uuid_t uuid;
             char uuid_str[37];
             uuid_generate(uuid);
             uuid_unparse_lower(uuid, uuid_str);
-            board_id = std::string("board-") + uuid_str;
-            json["board_id"] = board_id;
+            node_id = std::string("node-") + uuid_str;
+            json["node_id"] = node_id;
         } else {
-            board_id = json["board_id"].get<std::string>();
+            node_id = json["node_id"].get<std::string>();
         }
 
-        if (db_manager_->saveBoard(json))
+        if (db_manager_->saveNode(json))
         {
-            sendSuccessResponse(res, "board_id", board_id);
+            sendSuccessResponse(res, "node_id", node_id);
         }
         else
         {
-            sendErrorResponse(res, "Failed to register board");
+            sendErrorResponse(res, "Failed to register node");
         }
     }
     catch (const std::exception &e)
@@ -90,13 +92,13 @@ void HTTPServer::handleResourceReport(const httplib::Request &req, httplib::Resp
     }
 }
 
-// 处理获取板卡列表
-void HTTPServer::handleGetBoards(const httplib::Request &req, httplib::Response &res)
+// 处理获取节点列表
+void HTTPServer::handleGetNodes(const httplib::Request &req, httplib::Response &res)
 {
     try
     {
-        auto boards = db_manager_->getBoards();
-        sendSuccessResponse(res, "boards", boards);
+        auto nodes = db_manager_->getNodes();
+        sendSuccessResponse(res, "nodes", nodes);
     }
     catch (const std::exception &e)
     {
@@ -104,21 +106,30 @@ void HTTPServer::handleGetBoards(const httplib::Request &req, httplib::Response 
     }
 }
 
-// 处理获取板卡详情
-void HTTPServer::handleGetBoardDetails(const httplib::Request &req, httplib::Response &res)
+// 处理获取节点详情
+void HTTPServer::handleGetNodeDetails(const httplib::Request &req, httplib::Response &res)
 {
     try
     {
-        std::string board_id = req.path_params.at("board_id");
-        auto board = db_manager_->getBoard(board_id);
+        std::string node_id = req.path_params.at("node_id");
+        auto node = db_manager_->getNode(node_id);
 
-        if (!board.empty())
+        if (!node.empty())
         {
-            sendSuccessResponse(res, "board", board);
+            // 获取最新CPU和内存资源状态
+            auto cpu_metrics = db_manager_->getCpuMetrics(node_id, 1);
+            auto memory_metrics = db_manager_->getMemoryMetrics(node_id, 1);
+            if (!cpu_metrics.empty()) {
+                node["latest_cpu"] = cpu_metrics[0];
+            }
+            if (!memory_metrics.empty()) {
+                node["latest_memory"] = memory_metrics[0];
+            }
+            sendSuccessResponse(res, "node", node);
         }
         else
         {
-            sendErrorResponse(res, "Board not found");
+            sendErrorResponse(res, "Node not found");
         }
     }
     catch (const std::exception &e)
@@ -127,15 +138,15 @@ void HTTPServer::handleGetBoardDetails(const httplib::Request &req, httplib::Res
     }
 }
 
-// 处理获取板卡资源历史
-void HTTPServer::handleGetBoardResourceHistory(const httplib::Request &req, httplib::Response &res)
+// 处理获取节点资源历史
+void HTTPServer::handleGetNodeResourceHistory(const httplib::Request &req, httplib::Response &res)
 {
     try
     {
-        std::string board_id = req.path_params.at("board_id");
+        std::string node_id = req.path_params.at("node_id");
         int limit = req.has_param("limit") ? std::stoi(req.get_param_value("limit")) : 100;
 
-        auto history = db_manager_->getNodeResourceHistory(board_id, limit);
+        auto history = db_manager_->getNodeResourceHistory(node_id, limit);
         sendSuccessResponse(res, "history", history);
     }
     catch (const std::exception &e)
@@ -144,11 +155,11 @@ void HTTPServer::handleGetBoardResourceHistory(const httplib::Request &req, http
     }
 }
 
-void HTTPServer::handleGetBoardResources(const httplib::Request &req, httplib::Response &res)
+void HTTPServer::handleGetNodeResources(const httplib::Request &req, httplib::Response &res)
 {
     try
     {
-        auto board_id = req.path_params.at("board_id");
+        auto node_id = req.path_params.at("node_id");
         auto resource_type = req.path_params.at("resource_type");
         int limit = req.has_param("limit") ? std::stoi(req.get_param_value("limit")) : 100;
 
@@ -159,12 +170,12 @@ void HTTPServer::handleGetBoardResources(const httplib::Request &req, httplib::R
 
         if (resource_type == "cpu")
         {
-            auto cpu_metrics = db_manager_->getCpuMetrics(board_id, limit);
+            auto cpu_metrics = db_manager_->getCpuMetrics(node_id, limit);
             sendSuccessResponse(res, "cpu_metrics", cpu_metrics);
         }
         else if (resource_type == "memory")
         {
-            auto memory_metrics = db_manager_->getMemoryMetrics(board_id, limit);
+            auto memory_metrics = db_manager_->getMemoryMetrics(node_id, limit);
             sendSuccessResponse(res, "memory_metrics", memory_metrics);
         }
         else
@@ -178,12 +189,12 @@ void HTTPServer::handleGetBoardResources(const httplib::Request &req, httplib::R
     }
 }
 
-// 处理Board心跳
-void HTTPServer::handleBoardHeartbeat(const httplib::Request &req, httplib::Response &res)
+// 处理节点心跳
+void HTTPServer::handleNodeHeartbeat(const httplib::Request &req, httplib::Response &res)
 {
     try {
-        std::string board_id = req.path_params.at("board_id");
-        if (db_manager_->updateBoardLastSeen(board_id)) {
+        std::string node_id = req.path_params.at("node_id");
+        if (db_manager_->updateNodeLastSeen(node_id)) {
             sendSuccessResponse(res, "Heartbeat updated");
         } else {
             sendErrorResponse(res, "Failed to update heartbeat");

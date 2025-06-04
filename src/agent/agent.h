@@ -85,6 +85,10 @@ private:
     void getLocalIpAddress();
 
     void getOsInfo();
+
+    void getCpuModel();
+
+    void getGpuCount();
     
 
     /**
@@ -119,6 +123,8 @@ private:
     std::string agent_id_;                         // Board唯一标识符
     std::string ip_address_;                       // IP地址
     std::string os_info_;                          // 操作系统信息
+    std::string cpu_model_;                         // CPU架构
+    int gpu_count_;                                // GPU数量
     
     int collection_interval_sec_;                  // 资源采集间隔（秒）
     std::atomic<bool> running_;                    // 运行标志

@@ -50,11 +50,11 @@ void HTTPServer::handleCreateComponentTemplate(const httplib::Request &req, http
     {
         auto json = nlohmann::json::parse(req.body);
         auto result = db_manager_->saveComponentTemplate(json);
-        sendSuccessResponse(res, "result", result);
+        res.set_content(result.dump(), "application/json");
     }
     catch (const std::exception &e)
     {
-        sendExceptionResponse(res, e);
+        res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
     }
 }
 
@@ -64,11 +64,11 @@ void HTTPServer::handleGetComponentTemplates(const httplib::Request &req, httpli
     try
     {
         auto result = db_manager_->getComponentTemplates();
-        sendSuccessResponse(res, "result", result);
+        res.set_content(result.dump(), "application/json");
     }
     catch (const std::exception &e)
     {
-        sendExceptionResponse(res, e);
+        res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
     }
 }
 
@@ -79,11 +79,11 @@ void HTTPServer::handleGetComponentTemplateDetails(const httplib::Request &req, 
     {
         std::string template_id = req.path_params.at("template_id");
         auto result = db_manager_->getComponentTemplate(template_id);
-        sendSuccessResponse(res, "result", result);
+        res.set_content(result.dump(), "application/json");
     }
     catch (const std::exception &e)
     {
-        sendExceptionResponse(res, e);
+        res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
     }
 }
 
@@ -96,11 +96,11 @@ void HTTPServer::handleUpdateComponentTemplate(const httplib::Request &req, http
         auto json = nlohmann::json::parse(req.body);
         json["component_template_id"] = template_id;
         auto result = db_manager_->saveComponentTemplate(json);
-        sendSuccessResponse(res, "result", result);
+        res.set_content(result.dump(), "application/json");
     }
     catch (const std::exception &e)
     {
-        sendExceptionResponse(res, e);
+        res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
     }
 }
 
@@ -111,11 +111,11 @@ void HTTPServer::handleDeleteComponentTemplate(const httplib::Request &req, http
     {
         std::string template_id = req.path_params.at("template_id");
         auto result = db_manager_->deleteComponentTemplate(template_id);
-        sendSuccessResponse(res, "result", result);
+        res.set_content(result.dump(), "application/json");
     }
     catch (const std::exception &e)
     {
-        sendExceptionResponse(res, e);
+        res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
     }
 }
 
@@ -126,11 +126,11 @@ void HTTPServer::handleCreateBusinessTemplate(const httplib::Request &req, httpl
     {
         auto json = nlohmann::json::parse(req.body);
         auto result = db_manager_->saveBusinessTemplate(json);
-        sendSuccessResponse(res, "result", result);
+        res.set_content(result.dump(), "application/json");
     }
     catch (const std::exception &e)
     {
-        sendExceptionResponse(res, e);
+        res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
     }
 }
 
@@ -140,11 +140,11 @@ void HTTPServer::handleGetBusinessTemplates(const httplib::Request &req, httplib
     try
     {
         auto result = db_manager_->getBusinessTemplates();
-        sendSuccessResponse(res, "result", result);
+        res.set_content(result.dump(), "application/json");
     }
     catch (const std::exception &e)
     {
-        sendExceptionResponse(res, e);
+        res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
     }
 }
 
@@ -155,11 +155,11 @@ void HTTPServer::handleGetBusinessTemplateDetails(const httplib::Request &req, h
     {
         std::string template_id = req.path_params.at("template_id");
         auto result = db_manager_->getBusinessTemplate(template_id);
-        sendSuccessResponse(res, "result", result);
+        res.set_content(result.dump(), "application/json");
     }
     catch (const std::exception &e)
     {
-        sendExceptionResponse(res, e);
+        res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
     }
 }
 
@@ -172,11 +172,11 @@ void HTTPServer::handleUpdateBusinessTemplate(const httplib::Request &req, httpl
         auto json = nlohmann::json::parse(req.body);
         json["business_template_id"] = template_id;
         auto result = db_manager_->saveBusinessTemplate(json);
-        sendSuccessResponse(res, "result", result);
+        res.set_content(result.dump(), "application/json");
     }
     catch (const std::exception &e)
     {
-        sendExceptionResponse(res, e);
+        res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
     }
 }
 
@@ -187,11 +187,11 @@ void HTTPServer::handleDeleteBusinessTemplate(const httplib::Request &req, httpl
     {
         std::string template_id = req.path_params.at("template_id");
         auto result = db_manager_->deleteBusinessTemplate(template_id);
-        sendSuccessResponse(res, "result", result);
+        res.set_content(result.dump(), "application/json");
     }
     catch (const std::exception &e)
     {
-        sendExceptionResponse(res, e);
+        res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
     }
 }
 
@@ -204,7 +204,7 @@ void HTTPServer::handleGetBusinessTemplateAsBusiness(const httplib::Request &req
         auto result = db_manager_->getBusinessTemplate(template_id);
         if (result["status"] != "success")
         {
-            sendErrorResponse(res, "Failed to get business template");
+            res.set_content(nlohmann::json({{"status", "error"}, {"message", "Failed to get business template"}}).dump(), "application/json");
             return;
         }
         auto tpl = result["template"];
@@ -229,10 +229,10 @@ void HTTPServer::handleGetBusinessTemplateAsBusiness(const httplib::Request &req
             }
             business_json["components"].push_back(c);
         }
-        sendSuccessResponse(res, "business", business_json);
+        res.set_content(business_json.dump(), "application/json");
     }
     catch (const std::exception &e)
     {
-        sendExceptionResponse(res, e);
+        res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
     }
 } 
