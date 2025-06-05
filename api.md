@@ -299,4 +299,85 @@ GET /api/nodes/{node_id}
 	"status": "success"
 }
 
-1
+1 部署业务模板
+POST /api/businesses/template/{business_template_id}
+响应体：
+{
+	"business_id": "4f50be5b-1948-44ff-b175-170909894039",
+	"message": "Business deployed successfully",
+	"status": "success"
+}
+
+2 获取已部署业务列表
+GET /api/businesses
+响应体：
+{
+	"businesses": [
+		{
+			"business_id": "a2b92ae1-22ce-4097-a436-b754377759e8",
+			"business_name": "web-app-template-实例",
+			"created_at": 1749147563,
+			"status": "running",
+			"updated_at": 1749148136
+		}
+	],
+	"status": "success"
+}
+
+3 获取已部署业务详情
+GET /api/businesses/{business_id}
+响应体：
+{
+	"business": {
+		"business_id": "a2b92ae1-22ce-4097-a436-b754377759e8",
+		"business_name": "web-app-template-实例",
+		"components": [
+			{
+				"affinity": {},
+				"binary_path": "/data/Downloads/resource_monitor_updated_api/test/sleep",
+				"binary_url": "",
+				"component_id": "b3ed92ea-0d1b-4adb-9ea4-d2416bb515fe",
+				"component_name": "nginx-docker-template",
+				"container_id": "",
+				"environment_variables": {
+					"PORT": "80"
+				},
+				"image_name": "",
+				"image_url": "",
+				"node_id": "node-0a00ae17-45ec-4dd1-9155-dc76cce95ff6",
+				"process_id": "88995",
+				"started_at": 1749147563,
+				"status": "running",
+				"type": "binary",
+				"updated_at": 0
+			}
+		],
+		"created_at": 1749147563,
+		"status": "running",
+		"updated_at": 1749148136
+	},
+	"status": "success"
+}
+
+4 停止业务
+POST /api/businesses/{business_id}/stop
+响应体：
+{
+	"message": "Business stopped successfully",
+	"status": "success"
+}
+
+5 重启业务
+POST /api/businesses/{business_id}/restart
+响应体：
+{
+	"message": "Business restarted",
+	"status": "success"
+}
+
+6 删除业务
+DELETE /api/businesses/{business_id}
+响应体：
+{
+	"status": "success"
+}

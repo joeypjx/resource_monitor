@@ -12,6 +12,10 @@
 #include <signal.h>
 #include <curl/curl.h>
 #include "dir_utils.h"
+#include <sys/wait.h>
+#include <cstring>
+#include <vector>
+#include <cerrno>
 
 // 用于curl下载的回调函数
 size_t writeCallback(void* ptr, size_t size, size_t nmemb, FILE* stream) {
@@ -102,53 +106,53 @@ nlohmann::json BinaryManager::downloadBinary(const std::string& binary_url, cons
     };
 }
 
-nlohmann::json BinaryManager::startProcess(const std::string& binary_path, 
-                                         const std::string& working_dir,
-                                         const std::vector<std::string>& command_args,
-                                         const nlohmann::json& env_vars) {
-    std::cout << "Starting process: " << binary_path << std::endl;
-    
-    // 检查二进制文件是否存在
-    if (access(binary_path.c_str(), F_OK) != 0) {
+nlohmann::json BinaryManager::startProcess(const std::string& binary_path, const std::string& working_dir, const std::vector<std::string>& command_args, const nlohmann::json& env_vars) {
+    pid_t pid = fork();
+    if (pid < 0) {
+        // fork失败
         return {
             {"status", "error"},
-            {"message", "Binary file not found: " + binary_path}
+            {"message", std::string("fork failed: ") + strerror(errno)}
         };
     }
-    
-    // 创建工作目录（如果不存在）
-    create_directories(working_dir);
-    
-    // 构建命令行
-    std::string cmd = binary_path;
-    for (const auto& arg : command_args) {
-        cmd += " " + arg;
+    if (pid == 0) {
+        // 子进程
+        // 设置工作目录
+        if (!working_dir.empty()) {
+            if (chdir(working_dir.c_str()) != 0) {
+                _exit(127);
+            }
+        }
+        // 构造参数
+        std::vector<char*> argv;
+        argv.push_back(const_cast<char*>(binary_path.c_str()));
+        for (const auto& arg : command_args) {
+            argv.push_back(const_cast<char*>(arg.c_str()));
+        }
+        argv.push_back(nullptr);
+        // 构造环境变量
+        std::vector<std::string> env_strs;
+        std::vector<char*> envp;
+        for (auto it = env_vars.begin(); it != env_vars.end(); ++it) {
+            env_strs.push_back(it.key() + "=" + it.value().get<std::string>());
+        }
+        for (auto& s : env_strs) {
+            envp.push_back(const_cast<char*>(s.c_str()));
+        }
+        envp.push_back(nullptr);
+        // 重定向输出到 /dev/null
+        freopen("/dev/null", "w", stdout);
+        freopen("/dev/null", "w", stderr);
+        // 执行
+        execve(binary_path.c_str(), argv.data(), envp.data());
+        // execve失败
+        _exit(127);
     }
-    
-    // 添加环境变量
-    std::string env_cmd;
-    for (auto it = env_vars.begin(); it != env_vars.end(); ++it) {
-        env_cmd += it.key() + "=\"" + it.value().get<std::string>() + "\" ";
-    }
-    
-    // 构建完整命令（后台运行）
-    std::string full_cmd = "cd " + working_dir + " && " + env_cmd + cmd + " > /dev/null 2>&1 & echo $!";
-    
-    // 执行命令并获取进程ID
-    std::string output = executeCommand(full_cmd);
-    int process_id = std::stoi(output);
-    
-    // 记录进程信息
-    {
-        std::lock_guard<std::mutex> lock(process_mutex_);
-        process_map_[process_id] = binary_path;
-    }
-
+    // 父进程
+    // 不等待子进程，直接返回pid
     return {
         {"status", "success"},
-        {"message", "Process started successfully"},
-        {"process_id", process_id},
-        {"binary_path", binary_path}
+        {"process_id", pid}
     };
 }
 
@@ -164,29 +168,25 @@ nlohmann::json BinaryManager::stopProcess(int process_id) {
     }
     
     // 发送SIGTERM信号
-    if (kill(process_id, SIGTERM) != 0) {
-        return {
-            {"status", "error"},
-            {"message", "Failed to send SIGTERM to process: " + std::to_string(process_id)}
-        };
-    }
-    
-    // 等待进程结束（最多5秒）
-    for (int i = 0; i < 5; i++) {
-        if (!isProcessRunning(process_id)) {
+    kill(process_id, SIGTERM);
+
+    // 等待最多 N 秒
+    int waited = 0;
+    int max_wait = 5; // 最多等5秒
+    while (waited < max_wait) {
+        int ret = waitpid(process_id, nullptr, WNOHANG);
+        if (ret == process_id) {
+            // 已退出
             break;
         }
         sleep(1);
+        waited++;
     }
-    
-    // 如果进程仍在运行，发送SIGKILL信号
-    if (isProcessRunning(process_id)) {
-        if (kill(process_id, SIGKILL) != 0) {
-            return {
-                {"status", "error"},
-                {"message", "Failed to send SIGKILL to process: " + std::to_string(process_id)}
-            };
-        }
+
+    // 如果还没退出，强制杀死
+    if (waited == max_wait) {
+        kill(process_id, SIGKILL);
+        waitpid(process_id, nullptr, 0); // 这时一定会退出
     }
     
     // 从进程映射中移除

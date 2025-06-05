@@ -52,7 +52,6 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-    <!-- Navigation Bar -->
     <nav class="bg-sky-700 text-white p-4 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
             <h1 class="text-2xl font-bold">业务部署与监控平台</h1>
@@ -65,12 +64,9 @@
         </div>
     </nav>
 
-    <!-- Main Content Area -->
     <main class="container mx-auto p-4" id="mainContent">
-        <!-- Content will be dynamically inserted here -->
-    </main>
+        </main>
 
-    <!-- Generic Modal (for forms and details) -->
     <div id="genericModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 items-center justify-center p-4 z-50">
         <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
@@ -78,15 +74,12 @@
                 <button onclick="app.closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <div id="modalBody">
-                <!-- Modal content goes here -->
-            </div>
+                </div>
             <div id="modalFooter" class="mt-6 flex justify-end space-x-3">
-                <!-- Modal footer buttons go here -->
-            </div>
+                </div>
         </div>
     </div>
 
-    <!-- List Modal (for component/business template lists) -->
     <div id="listModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 items-center justify-center p-4 z-40"> 
         <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
@@ -94,8 +87,7 @@
                 <button onclick="app.closeListModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
             </div>
             <div id="listModalBody">
-                <!-- List content goes here -->
-            </div>
+                </div>
             <div id="listModalFooter" class="mt-6 flex justify-end space-x-3">
                  <button onclick="app.closeListModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">关闭</button>
             </div>
@@ -103,10 +95,8 @@
     </div>
 
 
-    <!-- Notification Area -->
     <div id="notificationArea" class="fixed bottom-5 right-5 z-[100]">
-        <!-- Notifications will be appended here -->
-    </div>
+        </div>
 
 
     <script>
@@ -117,10 +107,7 @@
             mockData: { 
                 componentTemplates: [], 
                 businessTemplates: [], 
-                deployedBusinesses: [ 
-                    { business_id: "b-123", business_name: "生产环境Web服务", status: "running", components: [{ component_id: "ct-init-001", component_name: "Nginx前端", type: "docker", affinity: {"hostname": "node-1", "region": "us-east"}, status: "running", node_id: "node-0a00ae17-45ec-4dd1-9155-dc76cce95ff6", container_id: "container-nginx-xyz" }, { component_id: "ct-init-002", component_name: "Flask后端", type: "docker", status: "running", node_id: "node-0a00ae17-45ec-4dd1-9155-dc76cce95ff6", container_id: "container-flask-abc" }], created_at: 1710000000, updated_at: 1710000000 },
-                    { business_id: "b-456", business_name: "数据处理集群", status: "stopped", components: [{ component_id: "ct-init-003", component_name: "主Worker", type: "binary", affinity: {"ip_address": "192.168.1.101"}, status: "stopped", node_id: "node-1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e", process_id: "proc-worker-123" }], created_at: 1710000100, updated_at: 1710000100 }
-                ],
+                deployedBusinesses: [], 
                 servers: [], 
             },
             editingItemId: null, 
@@ -161,6 +148,22 @@
                         { node_id: "node-0a00ae17-45ec-4dd1-9155-dc76cce95ff6", hostname: "d621f85f514f", ip_address: "172.17.0.2", status: "online", cpu_model: "Intel Core i7-8750H", gpu_count: 1, os_info: "Ubuntu 22.04 LTS", created_at: 1749055176, updated_at: 1749055311, latest_cpu: { core_count: 6, load_avg_1m: 0.5, load_avg_5m: 0.4, load_avg_15m: 0.3, timestamp: 1749055310, usage_percent: 25.5 }, latest_memory: { total: 16*1024*1024*1024, used: 4*1024*1024*1024, free: 12*1024*1024*1024, usage_percent: 25.0, timestamp: 1749055310 }},
                         { node_id: "node-1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e", hostname: "worker-bee-01", ip_address: "192.168.1.105", status: "offline", cpu_model: "AMD Ryzen 5 5600X", gpu_count: 0, os_info: "Debian 12", created_at: 1749055000, updated_at: 1749055200, latest_cpu: { core_count: 6, load_avg_1m: 0.1, load_avg_5m: 0.2, load_avg_15m: 0.25, timestamp: 1749055195, usage_percent: 10.0 }, latest_memory: { total: 32*1024*1024*1024, used: 8*1024*1024*1024, free: 24*1024*1024*1024, usage_percent: 25.0, timestamp: 1749055195 }}
                     );
+                }
+                 if (url === `${this.apiUrlPrefix}/businesses/` && method === 'GET' && this.mockData.deployedBusinesses.length === 0) {
+                    this.mockData.deployedBusinesses.push({
+                        business_id: "b-sim-001",
+                        business_name: "模拟部署业务-1",
+                        created_at: Math.floor(Date.now() / 1000) - 3600, 
+                        status: "running",
+                        updated_at: Math.floor(Date.now() / 1000) - 600 
+                    });
+                     this.mockData.deployedBusinesses.push({
+                        business_id: "b-sim-002",
+                        business_name: "模拟部署业务-2 (已停止)",
+                        created_at: Math.floor(Date.now() / 1000) - 7200, 
+                        status: "stopped",
+                        updated_at: Math.floor(Date.now() / 1000) - 1200 
+                    });
                 }
 
 
@@ -215,7 +218,7 @@
                             else if (url === `${this.apiUrlPrefix}/templates/businesses` && method === 'GET') {
                                 resolve({ ok: true, status: 200, json: async () => ({ status: "success", templates: [...this.mockData.businessTemplates] }) });
                             }
-                            else if (url.startsWith(`${this.apiUrlPrefix}/templates/businesses/`) && method === 'GET' && !url.includes('/as-business') && url.split('/').length === 4) { 
+                            else if (url.startsWith(`${this.apiUrlPrefix}/templates/businesses/`) && method === 'GET' && !url.includes('/as-business') && !url.endsWith('/template') && url.split('/').length === 4) { 
                                 const id = url.split('/').pop();
                                 const template = this.mockData.businessTemplates.find(t => t.business_template_id === id);
                                 if (template) {
@@ -237,7 +240,7 @@
                                     resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business template not found" }) });
                                 }
                             }
-                            else if (url.includes('/as-business') && method === 'GET') {
+                            else if (url.includes('/as-business') && method === 'GET') { 
                                 const id = url.split('/')[3]; 
                                 const businessTemplate = this.mockData.businessTemplates.find(t => t.business_template_id === id);
                                 if (!businessTemplate) {
@@ -252,6 +255,70 @@
                                     ok: true, status: 200,
                                     json: async () => ({ status: "success", business: { business_name: businessTemplate.template_name, components: deployableComponents } })
                                 });
+                            }
+                            // --- Deployed Businesses ---
+                            else if (url.endsWith('/api/businesses/') && method === 'GET') { 
+                                resolve({ ok: true, status: 200, json: async () => ({ status: "success", businesses: [...this.mockData.deployedBusinesses] }) });
+                            }
+                            else if (url.startsWith(`${this.apiUrlPrefix}/businesses/`) && method === 'GET' && !url.includes('/stop') && !url.includes('/restart') && !url.includes('/template/')) { 
+                                const id = url.split('/').pop();
+                                let business = this.mockData.deployedBusinesses.find(b => b.business_id === id);
+                                if (business) {
+                                    const detailedBusiness = JSON.parse(JSON.stringify(business)); // Deep copy
+                                    if (!detailedBusiness.components) { // Simulate fetching components if not present
+                                        detailedBusiness.components = [
+                                            { component_id: "comp-sim-1-" + id.slice(0,4), component_name: "Simulated Component 1 for " + detailedBusiness.business_name , type: "docker", status: detailedBusiness.status, node_id: "node-sim", container_id: "container-sim-1", affinity: {}, environment_variables: { FOO: "BAR" }, started_at: detailedBusiness.created_at, updated_at: detailedBusiness.updated_at },
+                                            { component_id: "comp-sim-2-" + id.slice(0,4), component_name: "Simulated Component 2 for " + detailedBusiness.business_name, type: "binary", status: detailedBusiness.status, node_id: "node-sim", process_id: "proc-sim-2", affinity: {}, environment_variables: { BA_Z: "QUX" }, started_at: detailedBusiness.created_at, updated_at: detailedBusiness.updated_at }
+                                        ];
+                                    }
+                                    resolve({ ok: true, status: 200, json: async () => ({ status: "success", business: detailedBusiness }) });
+                                } else {
+                                    resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business not found" }) });
+                                }
+                            }
+                            else if (url.includes('/template/') && method === 'POST') { 
+                                const templateId = url.split('/template/').pop();
+                                const businessTemplate = this.mockData.businessTemplates.find(t => t.business_template_id === templateId);
+                                if (!businessTemplate) return resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business template not found for deployment" }) });
+                                
+                                const newBusinessId = 'b-' + crypto.randomUUID().slice(0,8);
+                                const newDeployedBusiness = {
+                                    business_id: newBusinessId,
+                                    business_name: `${businessTemplate.template_name} - Deployed ${new Date().toLocaleTimeString()}`,
+                                    created_at: Math.floor(Date.now() / 1000),
+                                    status: "pending", // Will be updated by deploy simulation
+                                    updated_at: Math.floor(Date.now() / 1000),
+                                    components: [] // Components would be derived by backend
+                                };
+                                this.mockData.deployedBusinesses.push(newDeployedBusiness);
+                                resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "Business deployed successfully from template (模拟)", business_id: newBusinessId }) });
+                            }
+                             else if (url.includes('/stop') && method === 'POST') {
+                                const id = url.split('/')[3];
+                                const business = this.mockData.deployedBusinesses.find(b => b.business_id === id);
+                                if (business) {
+                                    resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "Business stopped successfully" }) });
+                                } else {
+                                     resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business not found" }) });
+                                }
+                            }
+                            else if (url.includes('/restart') && method === 'POST') {
+                                 const id = url.split('/')[3];
+                                const business = this.mockData.deployedBusinesses.find(b => b.business_id === id);
+                                if (business) {
+                                    resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "Business restarted" }) });
+                                } else {
+                                     resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business not found" }) });
+                                }
+                            }
+                            else if (url.startsWith(`${this.apiUrlPrefix}/businesses/`) && method === 'DELETE') {
+                                const id = url.split('/').pop();
+                                const index = this.mockData.deployedBusinesses.findIndex(b => b.business_id === id);
+                                if (index > -1) {
+                                    resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "Business deleted successfully" }) });
+                                } else {
+                                    resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business not found" }) });
+                                }
                             }
                             // --- Servers/Nodes ---
                             else if (url === `${this.apiUrlPrefix}/nodes` && method === 'GET') {
@@ -319,16 +386,16 @@
                 document.getElementById('genericModal').classList.add('active');
                 if (title.includes("组件模板") && document.getElementById('ct_type')) {
                     this.toggleComponentConfigFields();
-                    if (this.editingItemId) { // Editing existing template
+                    if (this.editingItemId && this.mockData.componentTemplates.find(t=>t.component_template_id === this.editingItemId)) { 
                         const template = this.mockData.componentTemplates.find(t => t.component_template_id === this.editingItemId);
-                        if (template && template.config) {
+                         if (template && template.config) { // Check if template and template.config exist
                             this.renderKeyValueRows('affinityContainer', template.config.affinity || {}, '亲和性键', '亲和性值', 'affinity-row', '例如: ip_address', '例如: 192.168.1.10');
                             this.renderKeyValueRows('envVarsContainer', template.config.environment_variables || {}, '环境变量名', '环境变量值', 'env-var-row');
-                        } else { // Should not happen if showEditComponentTemplateForm fetches data first
+                        } else { // Fallback if template or template.config is missing (should ideally not happen if fetched)
                              this.renderKeyValueRows('affinityContainer', {}, '亲和性键', '亲和性值', 'affinity-row', '例如: ip_address', '例如: 192.168.1.10');
                              this.renderKeyValueRows('envVarsContainer', {}, '环境变量名', '环境变量值', 'env-var-row');
                         }
-                    } else { // Creating new template
+                    } else { 
                         this.renderKeyValueRows('affinityContainer', {}, '亲和性键', '亲和性值', 'affinity-row', '例如: ip_address', '例如: 192.168.1.10');
                         this.renderKeyValueRows('envVarsContainer', {}, '环境变量名', '环境变量值', 'env-var-row');
                     }
@@ -370,15 +437,14 @@
                     this.openBusinessTemplatesListModal();
                 } else if (view === 'servers') { 
                     if (this.isListModalOpen) this.closeListModal();
+                    this.selectedBusinessId = null; 
                     this.renderPageContent(view); 
                 }
                 else { 
                     if (this.isListModalOpen) this.closeListModal(); 
 
                     if (view === 'deployedBusinesses') {
-                        if (this.mockData.deployedBusinesses.length > 0 && this.selectedBusinessId === null) {
-                            this.selectedBusinessId = this.mockData.deployedBusinesses[0].business_id;
-                        }
+                        // Default selection logic is handled within renderPageContent's async IIFE
                     } else {
                         this.selectedBusinessId = null;
                     }
@@ -395,17 +461,35 @@
                     try {
                         switch (view) {
                             case 'deployedBusinesses':
-                                contentHTML = this.getDeployedBusinessesPageHTML();
+                                mainContent.innerHTML = '<p class="text-center text-gray-500 py-10">加载已部署业务列表中...</p>';
+                                const bizResponse = await fetch(`${this.apiUrlPrefix}/businesses`);
+                                const bizJsonData = await bizResponse.json();
+                                if (bizResponse.ok && bizJsonData.status === 'success') {
+                                    this.mockData.deployedBusinesses = bizJsonData.businesses || [];
+                                     if (this.mockData.deployedBusinesses.length > 0 && this.selectedBusinessId === null) { 
+                                        this.selectedBusinessId = this.mockData.deployedBusinesses[0].business_id;
+                                    } else if (this.mockData.deployedBusinesses.length > 0 && !this.mockData.deployedBusinesses.find(b => b.business_id === this.selectedBusinessId)) {
+                                        // If current selectedId is no longer in the list, select the first one
+                                        this.selectedBusinessId = this.mockData.deployedBusinesses[0].business_id;
+                                    }
+                                     else if (this.mockData.deployedBusinesses.length === 0) { 
+                                        this.selectedBusinessId = null;
+                                    }
+                                    contentHTML = await this.getDeployedBusinessesPageHTML(); // Await here
+                                } else {
+                                    this.showNotification(bizJsonData.message || '获取已部署业务列表失败', 'error');
+                                    contentHTML = '<p class="text-center text-red-500 py-10">加载已部署业务列表失败。</p>';
+                                }
                                 break;
                             case 'servers': 
                                 mainContent.innerHTML = '<p class="text-center text-gray-500 py-10">加载服务器列表中...</p>';
-                                const response = await fetch(`${this.apiUrlPrefix}/nodes`);
-                                const jsonData = await response.json();
-                                if (response.ok && jsonData.status === 'success') {
-                                    this.mockData.servers = jsonData.nodes || [];
+                                const serverResponse = await fetch(`${this.apiUrlPrefix}/nodes`);
+                                const serverJsonData = await serverResponse.json();
+                                if (serverResponse.ok && serverJsonData.status === 'success') {
+                                    this.mockData.servers = serverJsonData.nodes || [];
                                     contentHTML = this.getServersPageHTML();
                                 } else {
-                                    this.showNotification(jsonData.message || '获取服务器列表失败', 'error');
+                                    this.showNotification(serverJsonData.message || '获取服务器列表失败', 'error');
                                     contentHTML = '<p class="text-center text-red-500 py-10">加载服务器列表失败。</p>';
                                 }
                                 break;
@@ -413,10 +497,8 @@
                                 if (view === 'componentTemplates' || view === 'businessTemplates') {
                                      console.warn(`Attempted to render modal view '${view}' as page. Defaulting to deployedBusinesses.`);
                                      this.currentView = 'deployedBusinesses'; 
-                                     if (this.mockData.deployedBusinesses.length > 0 && this.selectedBusinessId === null) {
-                                        this.selectedBusinessId = this.mockData.deployedBusinesses[0].business_id;
-                                     }
-                                     contentHTML = this.getDeployedBusinessesPageHTML();
+                                     this.navigateTo('deployedBusinesses'); 
+                                     return; 
                                 } else {
                                     contentHTML = `<p class="text-center text-red-500">视图 '${view}' 未找到.</p>`;
                                 }
@@ -549,15 +631,15 @@
 
             getComponentTemplateFormHTML(template = {}) { 
                 const isCreate = !template.component_template_id;
-                const typeDefault = isCreate ? 'binary' : template.type;
+                const typeDefault = isCreate ? 'binary' : template.type; 
 
                 return `
                     <form id="componentTemplateForm" class="space-y-4">
                         <div><label for="ct_template_name" class="block text-sm font-medium text-gray-700">模板名称</label><input type="text" id="ct_template_name" name="template_name" value="${template.template_name || ''}" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm"></div>
                         <div><label for="ct_type" class="block text-sm font-medium text-gray-700">类型</label>
                             <select id="ct_type" name="type" onchange="app.toggleComponentConfigFields()" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm">
-                                <option value="docker" ${typeDefault === 'docker' ? 'selected' : ''}>Docker</option>
                                 <option value="binary" ${typeDefault === 'binary' ? 'selected' : ''}>Binary</option>
+                                <option value="docker" ${typeDefault === 'docker' ? 'selected' : ''}>Docker</option>
                             </select>
                         </div>
                         <div><label for="ct_description" class="block text-sm font-medium text-gray-700">描述</label><textarea id="ct_description" name="description" rows="2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm">${template.description || ''}</textarea></div>
@@ -574,16 +656,14 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700">亲和性配置</label>
                             <div id="affinityContainer" class="mt-1 space-y-2 p-2 border border-gray-200 rounded-md bg-gray-50 max-h-40 overflow-y-auto">
-                                <!-- Affinity rows will be injected here by JS -->
-                            </div>
+                                </div>
                             <button type="button" onclick="app.addKeyValueRow('affinityContainer', '', '', '例如: ip_address', '例如: 192.168.1.10', 'affinity-row')" class="mt-2 text-sm text-sky-600 hover:text-sky-800"><i class="fas fa-plus mr-1"></i>添加亲和性规则</button>
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-gray-700">环境变量</label>
                             <div id="envVarsContainer" class="mt-1 space-y-2 p-2 border border-gray-200 rounded-md bg-gray-50 max-h-40 overflow-y-auto">
-                                <!-- Env var rows will be injected here by JS -->
-                            </div>
+                                </div>
                             <button type="button" onclick="app.addKeyValueRow('envVarsContainer', '', '', '环境变量名', '环境变量值', 'env-var-row')" class="mt-2 text-sm text-sky-600 hover:text-sky-800"><i class="fas fa-plus mr-1"></i>添加环境变量</button>
                         </div>
                     </form>
@@ -601,7 +681,7 @@
             },
             showCreateComponentTemplateForm() { 
                 this.editingItemId = null; 
-                const formHTML = this.getComponentTemplateFormHTML(); // Pass no template for create
+                const formHTML = this.getComponentTemplateFormHTML(); 
                 const footerButtons = [ { label: '保存', id:"saveCtBtn", action: () => this.saveComponentTemplate(), class: 'bg-sky-600 hover:bg-sky-700 text-white' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }];
                 this.openModal('创建组件模板', formHTML, footerButtons);
             },
@@ -1095,16 +1175,12 @@
                     const formHTML = `
                         <form id="deployBusinessForm" class="space-y-4">
                             <p>从业务模板部署: <strong>${businessTemplate.template_name}</strong> (ID: ${templateId})</p>
-                            <div>
-                                <label for="db_business_name" class="block text-sm font-medium text-gray-700">新业务名称</label>
-                                <input type="text" id="db_business_name" name="business_name" required 
-                                       class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm" 
-                                       value="${businessTemplate.template_name} - 实例 ${new Date().toLocaleTimeString('zh-CN', {hour12:false})}">
-                            </div>
+                            <p class="text-sm text-gray-600">点击“部署”将使用模板 <strong>${templateId}</strong> 创建新的业务实例。</p>
+                            <input type="hidden" name="business_template_id" value="${templateId}">
                         </form>`;
                     
                     const footerButtons = [ 
-                        { label: '部署', action: () => this.deployBusiness(), class: 'bg-green-600 hover:bg-green-700 text-white' }, 
+                        { label: '部署', action: () => this.deployBusinessFromTemplate(), class: 'bg-green-600 hover:bg-green-700 text-white' }, 
                         { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }
                     ];
                     
@@ -1116,7 +1192,7 @@
                     this.closeModal();
                 }
             },
-            async deployBusiness() { 
+            async deployBusinessFromTemplate() { 
                 const deployButton = document.getElementById('modal_btn_部署');
                 if(deployButton) {
                     deployButton.classList.add('button-loading');
@@ -1129,74 +1205,36 @@
                     if(deployButton) { deployButton.classList.remove('button-loading'); deployButton.disabled = false; }
                     return;
                 }
-
-                const form = document.getElementById('deployBusinessForm'); 
-                const businessName = form.elements.business_name.value;
-                if (!businessName.trim()) { 
-                    this.showNotification('业务名称不能为空。', 'error'); 
-                    if(deployButton) { deployButton.classList.remove('button-loading'); deployButton.disabled = false; }
-                    return; 
-                }
                 
                 try {
-                    const asBusinessResponse = await fetch(`${this.apiUrlPrefix}/templates/businesses/${templateId}/as-business`);
-                    const asBusinessJsonData = await asBusinessResponse.json();
+                    const response = await fetch(`${this.apiUrlPrefix}/businesses/template/${templateId}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                    });
+                    const jsonData = await response.json();
 
-                    if (!asBusinessResponse.ok || asBusinessJsonData.status !== 'success' || !asBusinessJsonData.business) {
-                        this.showNotification(asBusinessJsonData.message || '无法获取业务部署结构。', 'error');
-                        if(deployButton) { deployButton.classList.remove('button-loading'); deployButton.disabled = false; }
-                        return;
+                    if (response.ok && jsonData.status === 'success' && jsonData.business_id) {
+                        this.showNotification(jsonData.message || '业务已成功从模板部署', 'success');
+                        
+                        if (this.isListModalOpen) this.closeListModal();
+                        this.currentView = 'deployedBusinesses'; 
+                        this.selectedBusinessId = jsonData.business_id; 
+                        this.renderPageContent('deployedBusinesses'); 
+                        this.closeModal(); 
+
+                    } else {
+                        this.showNotification(jsonData.message || '从模板部署业务失败', 'error');
                     }
-                    
-                    const deployPayload = {
-                        business_name: businessName,
-                        components: asBusinessJsonData.business.components 
-                    };
-                    
-                    console.log("Simulating POST /api/businesses with payload:", deployPayload);
-
-                    const newDeployedBusiness = { 
-                        business_id: 'b-' + crypto.randomUUID().slice(0, 8), 
-                        business_name: businessName, 
-                        status: 'pending', 
-                        components: deployPayload.components.map(c => ({ 
-                            component_id: c.component_id, 
-                            component_name: c.component_name, 
-                            type: c.type, 
-                            affinity: c.affinity, 
-                            status: 'pending', node_id: null, container_id: null, process_id: null 
-                        })), 
-                        created_at: Date.now(), 
-                        updated_at: Date.now()
-                    };
-                    this.mockData.deployedBusinesses.push(newDeployedBusiness); 
-                    this.showNotification(`业务 "${businessName}" 已开始部署 (模拟)。`, 'success');
-                    
-                    setTimeout(() => {
-                        const deployed = this.mockData.deployedBusinesses.find(b => b.business_id === newDeployedBusiness.business_id);
-                        if (deployed) {
-                            deployed.status = 'running';
-                            deployed.components.forEach((c, index) => { c.status = 'running'; c.node_id = `node-${(index % 2) + 1}`; if (c.type === 'docker') { c.container_id = `container-${c.component_id.slice(3)}-${crypto.randomUUID().slice(0,3)}`; } else { c.process_id = `proc-${c.component_id.slice(3)}-${crypto.randomUUID().slice(0,3)}`; }});
-                            deployed.updated_at = Date.now(); this.showNotification(`业务 "${deployed.business_name}" 已成功部署并运行中 (模拟)。`, 'info');
-                            
-                            if (this.isListModalOpen) this.closeListModal();
-                            this.currentView = 'deployedBusinesses'; 
-                            this.selectedBusinessId = deployed.business_id; 
-                            this.renderPageContent('deployedBusinesses'); 
-                        }
-                    }, 1500); 
-                    this.closeModal();
-
                 } catch (error) {
-                    console.error("Deployment process failed:", error);
-                    this.showNotification('部署请求失败: ' + error.message, 'error');
+                    console.error("Deploy from template API call failed:", error);
+                    this.showNotification('从模板部署业务请求失败: ' + error.message, 'error');
                 } finally {
                      if(deployButton) { deployButton.classList.remove('button-loading'); deployButton.disabled = false; }
                 }
             },
 
             // --- Deployed Business Monitoring (Page View) ---
-            getDeployedBusinessesPageHTML() { 
+            async getDeployedBusinessesPageHTML() { 
                 let listHTML = `<div class="w-1/3 pr-4 border-r border-gray-300 overflow-y-auto max-h-[calc(100vh-12rem)]"> <h3 class="text-lg font-semibold text-sky-700 mb-3 sticky top-0 bg-white py-2 z-10">业务列表</h3>`;
                 if (this.mockData.deployedBusinesses.length === 0) { listHTML += `<p class="text-sm text-gray-500">暂无已部署业务。</p>`; } 
                 else {
@@ -1210,45 +1248,166 @@
                     listHTML += `</ul>`;
                 }
                 listHTML += `</div>`;
-                let detailsHTML = `<div class="w-2/3 pl-4 overflow-y-auto max-h-[calc(100vh-12rem)]">`;
-                if (this.selectedBusinessId) { detailsHTML += this.renderSelectedBusinessDetails(this.selectedBusinessId); } 
-                else { detailsHTML += `<div class="flex items-center justify-center h-full"><p class="text-gray-500 text-lg"><i class="fas fa-info-circle mr-2"></i>请从左侧列表选择一个业务查看详情。</p></div>`;}
-                detailsHTML += `</div>`;
+                let detailsHTMLContent = '';
+                 if (this.selectedBusinessId) { 
+                    detailsHTMLContent = await this.renderSelectedBusinessDetails(this.selectedBusinessId); 
+                } else { 
+                    detailsHTMLContent = `<div class="flex items-center justify-center h-full"><p class="text-gray-500 text-lg"><i class="fas fa-info-circle mr-2"></i>请从左侧列表选择一个业务查看详情。</p></div>`;
+                }
+                let detailsHTML = `<div class="w-2/3 pl-4 overflow-y-auto max-h-[calc(100vh-12rem)]" id="deployedBusinessDetailsPanel">${detailsHTMLContent}</div>`;
                 return `<div class="bg-white p-6 rounded-lg shadow-lg"><h2 class="text-2xl font-semibold text-sky-700 mb-6">已部署业务监控</h2><div class="flex">${listHTML}${detailsHTML}</div></div>`;
             },
-            selectDeployedBusiness(id) { this.selectedBusinessId = id; this.renderPageContent('deployedBusinesses'); },
-            renderSelectedBusinessDetails(id) { 
-                const biz = this.mockData.deployedBusinesses.find(b => b.business_id === id); if (!biz) { this.selectedBusinessId = null; return `<p class="text-red-500">错误：未找到所选业务。</p>`;}
-                let componentsHTML = biz.components.map(c => { 
-                    let statusClass = ''; 
-                    if (c.status === 'running') statusClass = 'bg-green-100 text-green-800'; 
-                    else if (c.status === 'stopped') statusClass = 'bg-red-100 text-red-800'; 
-                    else if (c.status === 'pending') statusClass = 'bg-yellow-100 text-yellow-800'; 
-                    else statusClass = 'bg-gray-100 text-gray-800'; 
-                    
-                    let affinityDetail = '';
-                    if (c.affinity && Object.keys(c.affinity).length > 0) {
-                        affinityDetail = `<p class="text-xs text-gray-500 mt-1">亲和性: ${JSON.stringify(c.affinity)}</p>`;
+            async selectDeployedBusiness(id) { 
+                this.selectedBusinessId = id; 
+                const detailsPanel = document.getElementById('deployedBusinessDetailsPanel');
+                if (detailsPanel) {
+                    detailsPanel.innerHTML = '<p class="text-center text-gray-500 py-10">加载业务详情...</p>';
+                    detailsPanel.innerHTML = await this.renderSelectedBusinessDetails(id);
+                }
+                // Re-render list part to update selection highlight, without re-fetching the list
+                const listContainer = document.querySelector('#mainContent > div > div > div:first-child'); // More specific selector if needed
+                if (listContainer) {
+                    let listHTML = `<h3 class="text-lg font-semibold text-sky-700 mb-3 sticky top-0 bg-white py-2 z-10">业务列表</h3>`;
+                    if (this.mockData.deployedBusinesses.length === 0) { listHTML += `<p class="text-sm text-gray-500">暂无已部署业务。</p>`; } 
+                    else {
+                        listHTML += `<ul class="space-y-2">`;
+                        this.mockData.deployedBusinesses.forEach(biz => {
+                            let statusClass = '';
+                            if (biz.status === 'running') statusClass = 'text-green-600'; else if (biz.status === 'stopped') statusClass = 'text-red-600'; else if (biz.status === 'pending') statusClass = 'text-yellow-600'; else statusClass = 'text-gray-600';
+                            const isSelected = biz.business_id === this.selectedBusinessId;
+                            listHTML += `<li onclick="app.selectDeployedBusiness('${biz.business_id}')" class="p-3 rounded-md cursor-pointer hover:bg-sky-50 transition-colors ${isSelected ? 'selected-business-item shadow-md border border-sky-300' : 'bg-white shadow-sm hover:shadow-md'}"><div class="flex justify-between items-center"><span class="font-medium text-gray-800">${biz.business_name}</span><span class="text-xs font-semibold ${statusClass} uppercase">${biz.status}</span></div><p class="text-xs text-gray-500">ID: ${biz.business_id}</p></li>`;
+                        });
+                        listHTML += `</ul>`;
                     }
-
-                    return `<li class="p-3 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 rounded-md mb-1">
-                                <div class="flex justify-between items-center">
-                                    <div>
-                                        <strong class="text-gray-800">${c.component_name}</strong>
-                                        <span class="text-xs text-gray-500 ml-2">(ID: ${c.component_id}, 类型: ${c.type})</span>
-                                    </div>
-                                    <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">${c.status}</span>
-                                </div>
-                                ${c.node_id ? `<p class="text-xs text-gray-500 mt-1">节点: ${c.node_id} | ${c.type === 'docker' ? '容器ID' : '进程ID'}: ${c.container_id || c.process_id || 'N/A'}</p>` : ''}
-                                ${affinityDetail}
-                            </li>`; 
-                }).join('');
-                return `<h3 class="text-xl font-semibold text-sky-700 mb-1 sticky top-0 bg-white py-2 z-10">${biz.business_name}</h3><p class="text-sm text-gray-500 mb-4">ID: ${biz.business_id} | 创建于: ${new Date(biz.created_at).toLocaleString('zh-CN')}</p><div class="mb-6"><h4 class="text-md font-semibold text-gray-700 mb-2">操作:</h4><div class="space-x-2"><button onclick="app.stopBusiness('${biz.business_id}')" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-md text-sm shadow hover:shadow-md transition"><i class="fas fa-stop-circle mr-1"></i>停止</button><button onclick="app.restartBusiness('${biz.business_id}')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm shadow hover:shadow-md transition"><i class="fas fa-redo mr-1"></i>重启</button><button onclick="app.deleteDeployedBusiness('${biz.business_id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-md text-sm shadow hover:shadow-md transition"><i class="fas fa-trash-alt mr-1"></i>删除</button></div></div><h4 class="text-md font-semibold text-gray-700 mb-2">组件列表 (${biz.components.length}):</h4><ul class="list-none bg-white p-3 rounded-md shadow-inner border border-gray-200 max-h-80 overflow-y-auto">${componentsHTML || '<li class="p-2 text-gray-500">无组件信息。</li>'}</ul>`;
+                     listContainer.innerHTML = listHTML;
+                }
             },
-            stopBusiness(id) {  const biz = this.mockData.deployedBusinesses.find(b => b.business_id === id); if (biz) { biz.status = 'stopped'; biz.components.forEach(c => c.status = 'stopped'); biz.updated_at = Date.now(); this.showNotification(`业务 ${biz.business_name} 已停止。`, 'info'); this.renderPageContent('deployedBusinesses'); }},
-            restartBusiness(id) { const biz = this.mockData.deployedBusinesses.find(b => b.business_id === id); if (biz) { biz.status = 'pending'; biz.components.forEach(c => c.status = 'pending'); biz.updated_at = Date.now(); this.showNotification(`业务 ${biz.business_name} 正在重启...`, 'info'); this.renderPageContent('deployedBusinesses'); setTimeout(() => { const currentBiz = this.mockData.deployedBusinesses.find(b => b.business_id === id); if (currentBiz) { currentBiz.status = 'running'; currentBiz.components.forEach(c => c.status = 'running'); currentBiz.updated_at = Date.now(); this.showNotification(`业务 ${currentBiz.business_name} 已重启并运行中。`, 'success'); this.renderPageContent('deployedBusinesses');}}, 1500);}},
-            deleteDeployedBusiness(id) { const biz = this.mockData.deployedBusinesses.find(b=>b.business_id === id); this.openModal( '确认删除部署', `<p>确定要删除已部署的业务 <strong>${biz ? biz.business_name : id}</strong> 吗？</p><p class="text-sm text-red-600 mt-2">此操作将取消部署且无法撤销。</p>`, [ { label: '确认删除', action: () => this._confirmDeleteDeployedBusiness(id), class: 'bg-red-600 hover:bg-red-700 text-white' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }]);},
-            _confirmDeleteDeployedBusiness(id) { this.mockData.deployedBusinesses = this.mockData.deployedBusinesses.filter(b => b.business_id !== id); this.showNotification('已部署业务已删除。', 'success'); if (this.selectedBusinessId === id) { this.selectedBusinessId = null; } this.closeModal(); this.renderPageContent('deployedBusinesses');},
+            async renderSelectedBusinessDetails(id) { 
+                if (!id) return '<p class="text-center text-gray-500 py-10">未选择业务。</p>';
+                try {
+                    const response = await fetch(`${this.apiUrlPrefix}/businesses/${id}`);
+                    const jsonData = await response.json();
+
+                    if (response.ok && jsonData.status === 'success' && jsonData.business) {
+                        const biz = jsonData.business;
+                        let componentsHTML = '无组件信息。';
+                        if (biz.components && biz.components.length > 0) {
+                             componentsHTML = biz.components.map(c => { 
+                                let statusClass = ''; 
+                                if (c.status === 'running') statusClass = 'bg-green-100 text-green-800'; 
+                                else if (c.status === 'stopped') statusClass = 'bg-red-100 text-red-800'; 
+                                else if (c.status === 'pending') statusClass = 'bg-yellow-100 text-yellow-800'; 
+                                else statusClass = 'bg-gray-100 text-gray-800'; 
+                                
+                                let affinityDetail = '';
+                                if (c.affinity && Object.keys(c.affinity).length > 0) {
+                                    affinityDetail = `<p class="text-xs text-gray-500 mt-1">亲和性: ${JSON.stringify(c.affinity)}</p>`;
+                                }
+                                let envDetail = '';
+                                if(c.environment_variables && Object.keys(c.environment_variables).length > 0) {
+                                    envDetail = `<p class="text-xs text-gray-500 mt-1">环境变量: ${JSON.stringify(c.environment_variables)}</p>`;
+                                }
+
+
+                                return `<li class="p-3 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 rounded-md mb-1">
+                                            <div class="flex justify-between items-center">
+                                                <div>
+                                                    <strong class="text-gray-800">${c.component_name}</strong>
+                                                    <span class="text-xs text-gray-500 ml-2">(ID: ${c.component_id}, 类型: ${c.type})</span>
+                                                </div>
+                                                <span class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}">${c.status}</span>
+                                            </div>
+                                            ${c.node_id ? `<p class="text-xs text-gray-500 mt-1">节点: ${c.node_id} | ${c.type === 'docker' ? '容器ID' : '进程ID'}: ${c.container_id || c.process_id || 'N/A'}</p>` : ''}
+                                            ${affinityDetail}
+                                            ${envDetail}
+                                            ${c.started_at ? `<p class="text-xs text-gray-500 mt-1">启动于: ${new Date(c.started_at * 1000).toLocaleString('zh-CN')}</p>` : ''}
+                                        </li>`; 
+                            }).join('');
+                        }
+                        return `<h3 class="text-xl font-semibold text-sky-700 mb-1 sticky top-0 bg-white py-2 z-10">${biz.business_name}</h3>
+                                <p class="text-sm text-gray-500 mb-4">ID: ${biz.business_id} | 状态: ${biz.status} | 创建于: ${new Date(biz.created_at * 1000).toLocaleString('zh-CN')} | 更新于: ${new Date(biz.updated_at * 1000).toLocaleString('zh-CN')}</p>
+                                <div class="mb-6"><h4 class="text-md font-semibold text-gray-700 mb-2">操作:</h4><div class="space-x-2">
+                                <button onclick="app.stopBusiness('${biz.business_id}')" class="bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-md text-sm shadow hover:shadow-md transition"><i class="fas fa-stop-circle mr-1"></i>停止</button>
+                                <button onclick="app.restartBusiness('${biz.business_id}')" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm shadow hover:shadow-md transition"><i class="fas fa-redo mr-1"></i>重启</button>
+                                <button onclick="app.deleteDeployedBusiness('${biz.business_id}')" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 rounded-md text-sm shadow hover:shadow-md transition"><i class="fas fa-trash-alt mr-1"></i>删除</button>
+                                </div></div>
+                                <h4 class="text-md font-semibold text-gray-700 mb-2">组件列表 (${biz.components ? biz.components.length : 0}):</h4>
+                                <ul class="list-none bg-white p-3 rounded-md shadow-inner border border-gray-200 max-h-80 overflow-y-auto">${componentsHTML}</ul>`;
+                    } else {
+                        this.showNotification(jsonData.message || '获取业务详情失败', 'error');
+                        return '<p class="text-center text-red-500 py-10">加载业务详情失败。</p>';
+                    }
+                } catch (error) {
+                    console.error("Failed to render business details:", error);
+                    this.showNotification('渲染业务详情失败: ' + error.message, 'error');
+                    return '<p class="text-center text-red-500 py-10">加载业务详情出错。</p>';
+                }
+            },
+            async stopBusiness(id) {  
+                const button = event.target.closest('button');
+                if(button) { button.classList.add('button-loading'); button.disabled = true; }
+                try {
+                    const response = await fetch(`${this.apiUrlPrefix}/businesses/${id}/stop`, { method: 'POST' });
+                    const jsonData = await response.json();
+                    if (response.ok && jsonData.status === 'success') {
+                        this.showNotification(jsonData.message, 'success');
+                        this.renderPageContent('deployedBusinesses'); 
+                    } else {
+                        this.showNotification(jsonData.message || '停止业务失败', 'error');
+                    }
+                } catch (error) {
+                     this.showNotification('停止业务请求失败: ' + error.message, 'error');
+                } finally {
+                    if(button) { button.classList.remove('button-loading'); button.disabled = false; }
+                }
+            },
+            async restartBusiness(id) { 
+                const button = event.target.closest('button');
+                if(button) { button.classList.add('button-loading'); button.disabled = true; }
+                 try {
+                    const response = await fetch(`${this.apiUrlPrefix}/businesses/${id}/restart`, { method: 'POST' });
+                    const jsonData = await response.json();
+                    if (response.ok && jsonData.status === 'success') {
+                        this.showNotification(jsonData.message, 'success');
+                         this.renderPageContent('deployedBusinesses');
+                    } else {
+                        this.showNotification(jsonData.message || '重启业务失败', 'error');
+                    }
+                } catch (error) {
+                     this.showNotification('重启业务请求失败: ' + error.message, 'error');
+                } finally {
+                    if(button) { button.classList.remove('button-loading'); button.disabled = false; }
+                }
+            },
+            deleteDeployedBusiness(id) { 
+                const biz = this.mockData.deployedBusinesses.find(b=>b.business_id === id); 
+                this.openModal( '确认删除部署', `<p>确定要删除已部署的业务 <strong>${biz ? biz.business_name : id}</strong> 吗？</p><p class="text-sm text-red-600 mt-2">此操作将取消部署且无法撤销。</p>`, 
+                [ 
+                    { label: '确认删除', action: () => this._confirmDeleteDeployedBusiness(id), class: 'bg-red-600 hover:bg-red-700 text-white' }, 
+                    { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }
+                ]);
+            },
+            async _confirmDeleteDeployedBusiness(id) { 
+                const deleteButtonInConfirmModal = document.getElementById('modal_btn_确认删除');
+                if(deleteButtonInConfirmModal) { deleteButtonInConfirmModal.classList.add('button-loading'); deleteButtonInConfirmModal.disabled = true;}
+
+                try {
+                    const response = await fetch(`${this.apiUrlPrefix}/businesses/${id}`, { method: 'DELETE'});
+                    const jsonData = await response.json();
+                    if (response.ok && jsonData.status === 'success') {
+                        this.showNotification(jsonData.message || '已部署业务已删除', 'success');
+                        this.selectedBusinessId = null; 
+                        this.closeModal(); 
+                        this.renderPageContent('deployedBusinesses'); 
+                    } else {
+                        this.showNotification(jsonData.message || '删除已部署业务失败', 'error');
+                        if(deleteButtonInConfirmModal) { deleteButtonInConfirmModal.classList.remove('button-loading'); deleteButtonInConfirmModal.disabled = false;}
+                    }
+                } catch(error) {
+                    this.showNotification('删除已部署业务请求失败: ' + error.message, 'error');
+                     if(deleteButtonInConfirmModal) { deleteButtonInConfirmModal.classList.remove('button-loading'); deleteButtonInConfirmModal.disabled = false;}
+                }
+            },
 
             // --- Server/Node Monitoring (Page View) ---
             getServersPageHTML() { 

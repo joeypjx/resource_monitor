@@ -54,7 +54,7 @@ public:
     bool saveBusiness(const nlohmann::json& business_info);
     bool updateBusinessStatus(const std::string& business_id, const std::string& status);
     bool saveBusinessComponent(const nlohmann::json& component_info);
-    bool updateComponentStatus(const std::string& component_id, const std::string& status, const std::string& container_id = "");
+    bool updateComponentStatus(const std::string& component_id, const std::string& type, const std::string& status, const std::string& container_id = "", int process_id = 0);
     bool saveComponentMetrics(const std::string& component_id, long long timestamp, const nlohmann::json& metrics);
     nlohmann::json getBusinesses();
     nlohmann::json getBusinessDetails(const std::string& business_id);

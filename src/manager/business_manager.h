@@ -102,6 +102,30 @@ public:
      */
     nlohmann::json handleComponentStatusReport(const nlohmann::json& component_status);
 
+    /**
+     * 根据业务模板ID部署业务
+     * 
+     * @param business_template_id 业务模板ID
+     * @return 部署结果
+     */
+    nlohmann::json deployBusinessByTemplateId(const std::string& business_template_id);
+
+    /**
+     * 从模板中扩展组件
+     * 
+     * @param components 组件信息
+     * @return 扩展后的组件信息
+     */
+    nlohmann::json expandComponentsFromTemplate(const nlohmann::json& components);
+
+    /**
+     * 删除业务
+     * 
+     * @param business_id 业务ID
+     * @return 删除结果
+     */
+    nlohmann::json deleteBusiness(const std::string& business_id);
+
 private:
     /**
      * 验证业务信息

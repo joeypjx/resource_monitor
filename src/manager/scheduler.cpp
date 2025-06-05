@@ -28,8 +28,6 @@ nlohmann::json Scheduler::scheduleComponents(const std::string& business_id, con
             {"message", "No available nodes"}
         };
     }
-
-    std::cout << "Available nodes: " << available_nodes.dump() << std::endl;
     
     // 调度结果
     nlohmann::json schedule_result = {
@@ -61,8 +59,6 @@ nlohmann::json Scheduler::scheduleComponents(const std::string& business_id, con
             {"type", component_type}
         });
     }
-    
-    std::cout << "Schedule result: " << schedule_result.dump() << std::endl;
 
     return schedule_result;
 }
@@ -77,15 +73,8 @@ nlohmann::json Scheduler::getAvailableNodes() {
     for (const auto& node : nodes) {
         // 检查节点是否在线（使用数据库中的status字段）
         if (node.contains("status") && node["status"] == "online") {
-            std::string node_id = node.contains("node_id") ? node["node_id"].get<std::string>() : node["board_id"].get<std::string>();
-            // 获取节点最新资源使用情况
-            auto resource_usage = getNodeResourceUsage(node_id);
-            // 添加资源使用情况
-            nlohmann::json available_node = node;
-            available_node["node_id"] = node_id;
-            available_node["resource_usage"] = resource_usage;
             // 添加到可用节点列表
-            available_nodes.push_back(available_node);
+            available_nodes.push_back(node);
         }
     }
 
@@ -289,12 +278,12 @@ bool Scheduler::checkNodeAffinity(const std::string& node_id, const nlohmann::js
             continue;
         }
         
-                // 检查board_id匹配
-        if (key == "board_id" || key == "node_id") {
-            std::string required_board_id = value.get<std::string>();
-            if (node_id != required_board_id) {
-                std::cout << "Node " << node_id << " does not match required board_id ("
-                          << required_board_id << ")" << std::endl;
+        // 检查node_id匹配
+        if (key == "node_id") {
+            std::string required_node_id = value.get<std::string>();
+            if (node_id != required_node_id) {
+                std::cout << "Node " << node_id << " does not match required node_id ("
+                          << required_node_id << ")" << std::endl;
                 return false;
             }
             continue;
@@ -358,36 +347,16 @@ std::string Scheduler::selectBestNodeForComponent(const nlohmann::json& componen
     std::string best_node_id;
     float best_score = -1.0f;
     
-    // 获取组件资源需求
-    nlohmann::json resource_requirements;
-    if (component.contains("resource_requirements")) {
-        resource_requirements = component["resource_requirements"];
-    }
-    
     // 获取组件亲和性
     nlohmann::json affinity;
     if (component.contains("affinity")) {
         affinity = component["affinity"];
     }
     
-    // 添加组件类型到资源需求
-    if (component.contains("type")) {
-        resource_requirements["type"] = component["type"];
-    }
-    
     // 为每个节点计算得分
     for (const auto& node : available_nodes) {
-        std::string node_id = node["board_id"];
-        // best_node_id = node_id; // todo 需要修改
-        
-        // 检查资源需求
-        if (!checkNodeResourceRequirements(node_id, resource_requirements)) {
-            // 打印资源需求
-            std::cout << "Resource requirements: " << resource_requirements.dump() << std::endl;
-            // 打印节点资源使用情况
-            std::cout << "Node resource usage: " << node["resource_usage"].dump() << std::endl;
-            continue;
-        }
+        // 打印节点信息
+        std::string node_id = node["node_id"];
         
         // 检查亲和性
         if (!checkNodeAffinity(node_id, affinity)) {
@@ -397,36 +366,32 @@ std::string Scheduler::selectBestNodeForComponent(const nlohmann::json& componen
             std::cout << "Node resource usage: " << node["resource_usage"].dump() << std::endl;
             continue;
         }
-        
+
+        nlohmann::json resource_usage = getNodeResourceUsage(node_id);
+
         // 计算负载均衡得分
         float cpu_score = 0.0f;
         float memory_score = 0.0f;
         
-        if (node["resource_usage"].contains("cpu_usage_percent")) {
-            cpu_score = 100.0f - node["resource_usage"]["cpu_usage_percent"].get<float>();
+        if (resource_usage.contains("cpu_usage_percent")) {
+            cpu_score = 100.0f - resource_usage["cpu_usage_percent"].get<float>();
         }
         
-        if (node["resource_usage"].contains("memory_usage_percent")) {
-            memory_score = 100.0f - node["resource_usage"]["memory_usage_percent"].get<float>();
+        if (resource_usage.contains("memory_usage_percent")) {
+            memory_score = 100.0f - resource_usage["memory_usage_percent"].get<float>();
         }
         
         // 综合得分（CPU和内存各占50%）
         float score = 0.5f * cpu_score + 0.5f * memory_score;
         
         // 打印得分
-        std::cout << "Score: " << score << std::endl;
-        // 打印节点ID
-        std::cout << "Node ID: " << node_id << std::endl;
-        // 打印节点资源使用情况
-        std::cout << "Node resource usage: " << node["resource_usage"].dump() << std::endl;
+        std::cout << "Node ID: " << node_id << " score: " << score << std::endl;
 
         // 更新最佳节点
         if (score > best_score) {
             best_score = score;
             best_node_id = node_id;
         }
-
-        // best_node_id = node_id; // todo 需要修改
     }
     
     std::cout << "Best node for component " << component["component_id"] << ": " << best_node_id << std::endl; // todo 需要修改

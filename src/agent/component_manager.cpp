@@ -48,8 +48,8 @@ bool ComponentManager::initialize() {
 
 nlohmann::json ComponentManager::deployComponent(const nlohmann::json& component_info) {
 
-    // 打印组件信息
-    std::cout << "Deploying component: " << component_info.dump() << std::endl;
+    // 打印组件信息 格式化
+    std::cout << "Deploying component: " << component_info.dump(4) << std::endl;
 
     std::lock_guard<std::mutex> lock(components_mutex_);
     
@@ -69,9 +69,11 @@ nlohmann::json ComponentManager::deployComponent(const nlohmann::json& component
     
     // 根据组件类型调用不同的部署方法
     if (type == "docker") {
-        return deployDockerComponent(component_info);
+        auto result = deployDockerComponent(component_info);
+        return result;
     } else if (type == "binary") {
-        return deployBinaryComponent(component_info);
+        auto result = deployBinaryComponent(component_info);
+        return result;
     } else {
         return {
             {"status", "error"},
@@ -93,9 +95,6 @@ nlohmann::json ComponentManager::deployDockerComponent(const nlohmann::json& com
             {"message", "Missing Docker image information"}
         };
     }
-    
-    // 打印组件信息
-    std::cout << "Component info: " << component_info.dump() << std::endl;
 
     // 获取镜像信息
     std::string image_url = component_info.contains("image_url") ? component_info["image_url"].get<std::string>() : "";
@@ -196,7 +195,7 @@ nlohmann::json ComponentManager::deployBinaryComponent(const nlohmann::json& com
     std::string binary_path;
     
     // 下载二进制文件（如果提供了URL）
-    if (component_info.contains("binary_url")) {
+    if (component_info.contains("binary_url") && !component_info["binary_url"].get<std::string>().empty()) {
         std::string binary_url = component_info["binary_url"];
         
         // 如果没有指定binary_path，则使用默认路径
@@ -579,6 +578,7 @@ bool ComponentManager::createConfigFiles(const nlohmann::json& config_files) {
 
 void ComponentManager::statusCollectionThread() {
     while (running_) {
+
         // 收集组件状态
         collectComponentStatus();
         

@@ -18,6 +18,8 @@
 #include <vector>
 #include <cstdio>
 #include <string>
+#include <future>
+#include <thread>
 
 Agent::Agent(const std::string& manager_url, 
              const std::string& hostname,
@@ -216,7 +218,7 @@ void Agent::collectAndReportResources() {
     nlohmann::json response = http_client_->reportData(report_json);
     // 检查响应
     if (response.contains("status") && response["status"] == "success") {
-        std::cout << "Successfully reported resource data to Manager" << std::endl;
+        // std::cout << "Successfully reported resource data to Manager" << std::endl;
     } else {
         std::cerr << "Failed to report resource data to Manager: " 
                   << (response.contains("message") ? response["message"].get<std::string>() : "Unknown error")
@@ -342,6 +344,7 @@ bool Agent::startHttpServer(int port) {
             auto response = handleDeployRequest(request);
             res.set_content(response.dump(), "application/json");
         } catch (const std::exception& e) {
+            std::cout << "error: " << e.what() << std::endl;
             res.set_content(nlohmann::json({
                 {"status", "error"},
                 {"message", std::string("Invalid request: ") + e.what()}
@@ -385,9 +388,16 @@ nlohmann::json Agent::handleDeployRequest(const nlohmann::json& request) {
             {"message", "Missing required fields"}
         };
     }
-    
-    // 调用组件管理器部署组件
-    return component_manager_->deployComponent(request);
+
+    // 异步后台部署
+    std::thread([this, request]() {
+        component_manager_->deployComponent(request);
+    }).detach();
+
+    return {
+        {"status", "success"},
+        {"message", "Deploy request is being processed asynchronously"}
+    };
 }
 
 nlohmann::json Agent::handleStopRequest(const nlohmann::json& request) {
@@ -405,14 +415,22 @@ nlohmann::json Agent::handleStopRequest(const nlohmann::json& request) {
         request["container_id"].get<std::string>() : "";
     
     // 调用组件管理器停止组件
-    return component_manager_->stopComponent(component_id, business_id, container_id);
+    // 异步后台执行
+    std::thread([this, component_id, business_id, container_id]() {
+        component_manager_->stopComponent(component_id, business_id, container_id);
+    }).detach();
+
+    return {
+        {"status", "success"},
+        {"message", "Stop request is being processed asynchronously"}
+    };
 }
 
 void Agent::sendHeartbeat() {
     if (!agent_id_.empty()) {
         nlohmann::json response = http_client_->heartbeat(agent_id_);
         if (response.contains("status") && response["status"] == "success") {
-            std::cout << "Heartbeat sent successfully" << std::endl;
+            // std::cout << "Heartbeat sent successfully" << std::endl;
         } else {
             std::cerr << "Failed to send heartbeat: "
                       << (response.contains("message") ? response["message"].get<std::string>() : "Unknown error")

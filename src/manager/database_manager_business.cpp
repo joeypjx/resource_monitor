@@ -31,7 +31,7 @@ bool DatabaseManager::initializeBusinessTables() {
                 binary_path TEXT,
                 binary_url TEXT,
                 process_id TEXT,
-                resource_requirements TEXT NOT NULL,
+                resource_requirements TEXT,
                 environment_variables TEXT,
                 config_files TEXT,
                 affinity TEXT,
@@ -41,7 +41,7 @@ bool DatabaseManager::initializeBusinessTables() {
                 started_at TIMESTAMP,
                 updated_at TIMESTAMP,
                 FOREIGN KEY (business_id) REFERENCES businesses(business_id),
-                FOREIGN KEY (node_id) REFERENCES board(board_id)
+                FOREIGN KEY (node_id) REFERENCES node(node_id)
             )
         )");
         
@@ -144,7 +144,7 @@ bool DatabaseManager::saveBusinessComponent(const nlohmann::json& component_info
         // 检查必要字段
         if (!component_info.contains("component_id") || !component_info.contains("business_id") || 
             !component_info.contains("component_name") || !component_info.contains("type") || 
-            !component_info.contains("resource_requirements") || !component_info.contains("status") ) {
+            !component_info.contains("status") ) {
             return false;
         }
         
@@ -157,7 +157,8 @@ bool DatabaseManager::saveBusinessComponent(const nlohmann::json& component_info
         query.bind(1, component_info["component_id"].get<std::string>());
         
         // 准备JSON字段
-        std::string resource_requirements = component_info["resource_requirements"].dump();
+        std::string resource_requirements = component_info.contains("resource_requirements") ? 
+            component_info["resource_requirements"].dump() : "{}";
         std::string environment_variables = component_info.contains("environment_variables") ? 
             component_info["environment_variables"].dump() : "{}";
         std::string config_files = component_info.contains("config_files") ? 
@@ -225,9 +226,6 @@ bool DatabaseManager::saveBusinessComponent(const nlohmann::json& component_info
             
             insert.exec();
         }
-
-        // 打印组件信息
-        std::cout << "2 save Component info: " << component_info.dump() << std::endl;
         
         return true;
     } catch (const std::exception& e) {
@@ -238,21 +236,37 @@ bool DatabaseManager::saveBusinessComponent(const nlohmann::json& component_info
 
 // 更新业务组件状态
 bool DatabaseManager::updateComponentStatus(const std::string& component_id, 
+                                          const std::string& type,
                                           const std::string& status, 
-                                          const std::string& container_id) {
+                                          const std::string& container_id, 
+                                          int process_id) {
     try {
         // 获取当前时间戳
         auto now = std::chrono::system_clock::now();
         auto timestamp = std::chrono::system_clock::to_time_t(now);
-        
-        // 更新组件状态
-        SQLite::Statement update(*db_, 
-            "UPDATE business_components SET status = ?, container_id = ?, updated_at = ? WHERE component_id = ?");
-        update.bind(1, status);
-        update.bind(2, container_id);
-        update.bind(3, static_cast<int64_t>(timestamp));
-        update.bind(4, component_id);
-        update.exec();
+            
+        if (type == "docker") {
+            // 更新container_id
+            SQLite::Statement update(*db_, 
+                "UPDATE business_components SET status = ?, container_id = ?, updated_at = ? WHERE component_id = ?");
+            update.bind(1, status);
+            update.bind(2, container_id);
+            update.bind(3, static_cast<int64_t>(timestamp));
+            update.bind(4, component_id);
+            update.exec();
+        } else if (type == "binary") {
+            // 更新process_id
+            SQLite::Statement update(*db_, 
+                "UPDATE business_components SET status = ?, process_id = ?, updated_at = ? WHERE component_id = ?");
+            update.bind(1, status);
+            update.bind(2, process_id);
+            update.bind(3, static_cast<int64_t>(timestamp));
+            update.bind(4, component_id);
+            update.exec();
+        } else {
+            std::cerr << "Unknown component type: " << type << std::endl;
+            return false;
+        }
         
         return true;
     } catch (const std::exception& e) {
@@ -353,9 +367,9 @@ nlohmann::json DatabaseManager::getBusinessComponents(const std::string& busines
         
         // 查询业务组件
         SQLite::Statement query(*db_, 
-            "SELECT component_id, component_name, type, image_url, image_name, "
+            "SELECT component_id, component_name, type, image_url, image_name, container_id, binary_path, binary_url, process_id, "
             "resource_requirements, environment_variables, config_files, affinity, "
-            "node_id, container_id, status, started_at, updated_at "
+            "node_id, status, started_at, updated_at "
             "FROM business_components WHERE business_id = ?");
         query.bind(1, business_id);
         
@@ -366,21 +380,24 @@ nlohmann::json DatabaseManager::getBusinessComponents(const std::string& busines
             component["type"] = query.getColumn(2).getString();
             component["image_url"] = query.getColumn(3).getString();
             component["image_name"] = query.getColumn(4).getString();
+            component["container_id"] = query.getColumn(5).getString();
+            component["binary_path"] = query.getColumn(6).getString();
+            component["binary_url"] = query.getColumn(7).getString();
+            component["process_id"] = query.getColumn(8).getString();
             
             // 解析JSON字段
             try {
-                component["resource_requirements"] = nlohmann::json::parse(query.getColumn(5).getString());
-                component["environment_variables"] = nlohmann::json::parse(query.getColumn(6).getString());
-                component["config_files"] = nlohmann::json::parse(query.getColumn(7).getString());
-                component["affinity"] = nlohmann::json::parse(query.getColumn(8).getString());
+                component["resource_requirements"] = nlohmann::json::parse(query.getColumn(9).getString());
+                component["environment_variables"] = nlohmann::json::parse(query.getColumn(10).getString());
+                component["config_files"] = nlohmann::json::parse(query.getColumn(11).getString());
+                component["affinity"] = nlohmann::json::parse(query.getColumn(12).getString());
             } catch (const std::exception& e) {
                 std::cerr << "Error parsing JSON field: " << e.what() << std::endl;
             }
             
-            component["node_id"] = query.getColumn(9).getString();
-            component["container_id"] = query.getColumn(10).getString();
-            component["status"] = query.getColumn(11).getString();
-            component["started_at"] = query.getColumn(12).getInt64();
+            component["node_id"] = query.getColumn(13).getString();
+            component["status"] = query.getColumn(14).getString();
+            component["started_at"] = query.getColumn(15).getInt64();
             component["updated_at"] = query.getColumn(13).getInt64();
             
             result.push_back(component);
@@ -390,52 +407,6 @@ nlohmann::json DatabaseManager::getBusinessComponents(const std::string& busines
     } catch (const std::exception& e) {
         std::cerr << "Get business components error: " << e.what() << std::endl;
         return nlohmann::json::array();
-    }
-}
-
-// 获取组件详情
-nlohmann::json DatabaseManager::getComponentDetails(const std::string& component_id) {
-    try {
-        // 查询组件信息
-        SQLite::Statement query(*db_, 
-            "SELECT component_id, business_id, component_name, type, image_url, image_name, "
-            "resource_requirements, environment_variables, config_files, affinity, "
-            "node_id, container_id, status, started_at, updated_at "
-            "FROM business_components WHERE component_id = ?");
-        query.bind(1, component_id);
-        
-        if (query.executeStep()) {
-            nlohmann::json component;
-            component["component_id"] = query.getColumn(0).getString();
-            component["business_id"] = query.getColumn(1).getString();
-            component["component_name"] = query.getColumn(2).getString();
-            component["type"] = query.getColumn(3).getString();
-            component["image_url"] = query.getColumn(4).getString();
-            component["image_name"] = query.getColumn(5).getString();
-            
-            // 解析JSON字段
-            try {
-                component["resource_requirements"] = nlohmann::json::parse(query.getColumn(6).getString());
-                component["environment_variables"] = nlohmann::json::parse(query.getColumn(7).getString());
-                component["config_files"] = nlohmann::json::parse(query.getColumn(8).getString());
-                component["affinity"] = nlohmann::json::parse(query.getColumn(9).getString());
-            } catch (const std::exception& e) {
-                std::cerr << "Error parsing JSON field: " << e.what() << std::endl;
-            }
-            
-            component["node_id"] = query.getColumn(10).getString();
-            component["container_id"] = query.getColumn(11).getString();
-            component["status"] = query.getColumn(12).getString();
-            component["started_at"] = query.getColumn(13).getInt64();
-            component["updated_at"] = query.getColumn(14).getInt64();
-            
-            return component;
-        }
-        
-        return nlohmann::json();
-    } catch (const std::exception& e) {
-        std::cerr << "Get component details error: " << e.what() << std::endl;
-        return nlohmann::json();
     }
 }
 
@@ -512,7 +483,7 @@ nlohmann::json DatabaseManager::getNodeResourceInfo(const std::string& node_id) 
         {
             SQLite::Statement query(*db_, 
                 "SELECT usage_percent, core_count "
-                "FROM cpu_metrics WHERE board_id = ? ORDER BY timestamp DESC LIMIT 1");
+                "FROM cpu_metrics WHERE node_id = ? ORDER BY timestamp DESC LIMIT 1");
             query.bind(1, node_id);
             
             if (query.executeStep()) {
@@ -525,7 +496,7 @@ nlohmann::json DatabaseManager::getNodeResourceInfo(const std::string& node_id) 
         {
             SQLite::Statement query(*db_, 
                 "SELECT total, used, free, usage_percent "
-                "FROM memory_metrics WHERE board_id = ? ORDER BY timestamp DESC LIMIT 1");
+                "FROM memory_metrics WHERE node_id = ? ORDER BY timestamp DESC LIMIT 1");
             query.bind(1, node_id);
             
             if (query.executeStep()) {
@@ -535,29 +506,7 @@ nlohmann::json DatabaseManager::getNodeResourceInfo(const std::string& node_id) 
                 result["memory_usage_percent"] = query.getColumn(3).getDouble();
             }
         }
-        
-        // 获取最新的Docker指标
-        {
-            SQLite::Statement query(*db_, 
-                "SELECT id FROM docker_metrics WHERE board_id = ? ORDER BY timestamp DESC LIMIT 1");
-            query.bind(1, node_id);
-            
-            if (query.executeStep()) {
-                long long docker_metric_id = query.getColumn(0).getInt64();
-                
-                // 获取GPU使用情况（通过容器）
-                SQLite::Statement container_query(*db_, 
-                    "SELECT SUM(cpu_percent), SUM(memory_usage) "
-                    "FROM docker_containers WHERE docker_metric_id = ?");
-                container_query.bind(1, static_cast<int64_t>(docker_metric_id));
-                
-                if (container_query.executeStep()) {
-                    result["docker_cpu_percent"] = container_query.getColumn(0).getDouble();
-                    result["docker_memory_usage"] = container_query.getColumn(1).getInt64();
-                }
-            }
-        }
-        
+               
         return result;
     } catch (const std::exception& e) {
         std::cerr << "Get node resource info error: " << e.what() << std::endl;
