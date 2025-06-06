@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>业务部署与监控平台</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <link href="css/tailwind.min.css" rel="stylesheet">
+    <link href="css/all.min.css" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
         .modal { display: none; }
@@ -1175,7 +1175,7 @@
                     const formHTML = `
                         <form id="deployBusinessForm" class="space-y-4">
                             <p>从业务模板部署: <strong>${businessTemplate.template_name}</strong> (ID: ${templateId})</p>
-                            <p class="text-sm text-gray-600">点击“部署”将使用模板 <strong>${templateId}</strong> 创建新的业务实例。</p>
+                            <p class="text-sm text-gray-600">点击"部署"将使用模板 <strong>${templateId}</strong> 创建新的业务实例。</p>
                             <input type="hidden" name="business_template_id" value="${templateId}">
                         </form>`;
                     
