@@ -6,6 +6,9 @@
     <title>业务部署与监控平台</title>
     <link href="css/tailwind.min.css" rel="stylesheet">
     <link href="css/all.min.css" rel="stylesheet">
+    <link href="webfonts/fa-solid-900.woff2" rel="preload" as="font" type="font/woff2" crossorigin>
+    <link href="webfonts/fa-regular-400.woff2" rel="preload" as="font" type="font/woff2" crossorigin>
+    <link href="webfonts/fa-brands-400.woff2" rel="preload" as="font" type="font/woff2" crossorigin>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .modal { display: none; }
@@ -25,7 +28,6 @@
             max-height: 85vh; /* Taller modal */
         }
         .key-value-row { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
-        .key-value-row input { flex-grow: 1; }
         .button-loading {
             position: relative;
             pointer-events: none; /* Disable clicks when loading */
@@ -102,17 +104,18 @@
     <script>
         // --- Application Logic ---
         const app = {
-            currentView: 'deployedBusinesses', 
-            apiUrlPrefix: '/api', 
-            mockData: { 
-                componentTemplates: [], 
-                businessTemplates: [], 
-                deployedBusinesses: [], 
-                servers: [], 
+            currentView: 'deployedBusinesses',
+            selectedBusinessId: null,
+            apiUrlPrefix: '/api',
+            mockData: {
+                deployedBusinesses: [],
+                servers: [],
+                componentTemplates: [],
+                businessTemplates: []
             },
-            editingItemId: null, 
-            selectedBusinessId: null, 
-            isListModalOpen: false, 
+            autoRefreshInterval: null,  // 添加自动刷新间隔变量
+            autoRefreshEnabled: true,  // 添加自动刷新开关
+            refreshInterval: 5000,     // 默认5秒刷新一次
 
             // --- Utility Functions ---
             showNotification(message, type = 'success') {
@@ -456,6 +459,15 @@
                 const mainContent = document.getElementById('mainContent');
                 mainContent.innerHTML = '<p class="text-center text-gray-500 py-10">加载中...</p>'; 
                 
+                // 添加自动刷新控制按钮
+                const refreshControl = `
+                    <div class="flex justify-end mb-4">
+                        <button id="autoRefreshButton" onclick="app.toggleAutoRefresh()" 
+                            class="bg-green-500 hover:bg-green-600 text-white px-3 py-1.5 rounded-md text-sm shadow hover:shadow-md transition">
+                            <i class="fas fa-sync-alt mr-1"></i>停止自动刷新
+                        </button>
+                    </div>`;
+                
                 (async () => { 
                     let contentHTML = '';
                     try {
@@ -466,28 +478,28 @@
                                 const bizJsonData = await bizResponse.json();
                                 if (bizResponse.ok && bizJsonData.status === 'success') {
                                     this.mockData.deployedBusinesses = bizJsonData.businesses || [];
-                                     if (this.mockData.deployedBusinesses.length > 0 && this.selectedBusinessId === null) { 
+                                    if (this.mockData.deployedBusinesses.length > 0 && this.selectedBusinessId === null) { 
                                         this.selectedBusinessId = this.mockData.deployedBusinesses[0].business_id;
                                     } else if (this.mockData.deployedBusinesses.length > 0 && !this.mockData.deployedBusinesses.find(b => b.business_id === this.selectedBusinessId)) {
-                                        // If current selectedId is no longer in the list, select the first one
                                         this.selectedBusinessId = this.mockData.deployedBusinesses[0].business_id;
-                                    }
-                                     else if (this.mockData.deployedBusinesses.length === 0) { 
+                                    } else if (this.mockData.deployedBusinesses.length === 0) { 
                                         this.selectedBusinessId = null;
                                     }
-                                    contentHTML = await this.getDeployedBusinessesPageHTML(); // Await here
+                                    contentHTML = await this.getDeployedBusinessesPageHTML();
+                                    contentHTML = refreshControl + contentHTML;
                                 } else {
                                     this.showNotification(bizJsonData.message || '获取已部署业务列表失败', 'error');
                                     contentHTML = '<p class="text-center text-red-500 py-10">加载已部署业务列表失败。</p>';
                                 }
                                 break;
-                            case 'servers': 
+                            case 'servers':
                                 mainContent.innerHTML = '<p class="text-center text-gray-500 py-10">加载服务器列表中...</p>';
                                 const serverResponse = await fetch(`${this.apiUrlPrefix}/nodes`);
                                 const serverJsonData = await serverResponse.json();
                                 if (serverResponse.ok && serverJsonData.status === 'success') {
                                     this.mockData.servers = serverJsonData.nodes || [];
                                     contentHTML = this.getServersPageHTML();
+                                    contentHTML = refreshControl + contentHTML;
                                 } else {
                                     this.showNotification(serverJsonData.message || '获取服务器列表失败', 'error');
                                     contentHTML = '<p class="text-center text-red-500 py-10">加载服务器列表失败。</p>';
@@ -503,13 +515,13 @@
                                     contentHTML = `<p class="text-center text-red-500">视图 '${view}' 未找到.</p>`;
                                 }
                         }
+                        mainContent.innerHTML = contentHTML;
                     } catch (error) {
-                        console.error(`Error rendering page content for ${view}:`, error);
-                        this.showNotification(`加载页面 ${view} 失败: ${error.message}`, 'error');
-                        contentHTML = `<p class="text-center text-red-500 py-10">加载页面内容失败。</p>`;
+                        console.error("Failed to render page:", error);
+                        this.showNotification('页面渲染失败: ' + error.message, 'error');
+                        mainContent.innerHTML = '<p class="text-center text-red-500 py-10">页面加载失败。</p>';
                     }
-                    mainContent.innerHTML = contentHTML;
-                })(); 
+                })();
             },
             
             // --- Component Template Management (List Modal and Forms) ---
@@ -1524,8 +1536,51 @@
 
             // --- Initialization ---
             init() {
-                this.navigateTo(this.currentView); 
-            }
+                this.navigateTo(this.currentView);
+                // 启动自动刷新
+                if (this.autoRefreshEnabled) {
+                    this.startAutoRefresh();
+                }
+            },
+
+            // 添加自动刷新控制方法
+            toggleAutoRefresh() {
+                this.autoRefreshEnabled = !this.autoRefreshEnabled;
+                if (this.autoRefreshEnabled) {
+                    this.startAutoRefresh();
+                } else {
+                    this.stopAutoRefresh();
+                }
+                // 更新按钮状态
+                const refreshButton = document.getElementById('autoRefreshButton');
+                if (refreshButton) {
+                    refreshButton.innerHTML = this.autoRefreshEnabled ? 
+                        '<i class="fas fa-sync-alt mr-1"></i>停止自动刷新' : 
+                        '<i class="fas fa-sync-alt mr-1"></i>开启自动刷新';
+                    refreshButton.classList.toggle('bg-green-500', this.autoRefreshEnabled);
+                    refreshButton.classList.toggle('bg-gray-500', !this.autoRefreshEnabled);
+                }
+            },
+
+            startAutoRefresh() {
+                if (this.autoRefreshInterval) {
+                    clearInterval(this.autoRefreshInterval);
+                }
+                this.autoRefreshInterval = setInterval(() => {
+                    if (this.currentView === 'deployedBusinesses') {
+                        this.renderPageContent('deployedBusinesses');
+                    } else if (this.currentView === 'servers') {
+                        this.renderPageContent('servers');
+                    }
+                }, this.refreshInterval);
+            },
+
+            stopAutoRefresh() {
+                if (this.autoRefreshInterval) {
+                    clearInterval(this.autoRefreshInterval);
+                    this.autoRefreshInterval = null;
+                }
+            },
         };
 
         document.addEventListener('DOMContentLoaded', () => {
