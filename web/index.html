@@ -6,9 +6,9 @@
     <title>业务部署与监控平台</title>
     <link href="css/tailwind.min.css" rel="stylesheet">
     <link href="css/all.min.css" rel="stylesheet">
-    <link href="webfonts/fa-solid-900.woff2" rel="preload" as="font" type="font/woff2" crossorigin>
-    <link href="webfonts/fa-regular-400.woff2" rel="preload" as="font" type="font/woff2" crossorigin>
-    <link href="webfonts/fa-brands-400.woff2" rel="preload" as="font" type="font/woff2" crossorigin>
+    <link href="css/webfonts/fa-solid-900.woff2" rel="preload" as="font" type="font/woff2" crossorigin>
+    <link href="css/webfonts/fa-regular-400.woff2" rel="preload" as="font" type="font/woff2" crossorigin>
+    <link href="css/webfonts/fa-brands-400.woff2" rel="preload" as="font" type="font/woff2" crossorigin>
     <style>
         body { font-family: 'Inter', sans-serif; }
         .modal { display: none; }
@@ -54,14 +54,14 @@
 </head>
 <body class="bg-gray-100 text-gray-800">
 
-    <nav class="bg-sky-700 text-white p-4 shadow-lg">
+    <nav class="bg-blue-700 text-white p-4 shadow-lg">
         <div class="container mx-auto flex justify-between items-center">
             <h1 class="text-2xl font-bold">业务部署与监控平台</h1>
             <div class="space-x-4">
-                <button onclick="app.navigateTo('componentTemplates')" class="hover:bg-sky-600 px-3 py-2 rounded-md">组件模板</button>
-                <button onclick="app.navigateTo('businessTemplates')" class="hover:bg-sky-600 px-3 py-2 rounded-md">业务模板</button>
-                <button onclick="app.navigateTo('deployedBusinesses')" class="hover:bg-sky-600 px-3 py-2 rounded-md">已部署业务</button>
-                <button onclick="app.navigateTo('servers')" class="hover:bg-sky-600 px-3 py-2 rounded-md">服务器</button> 
+                <button onclick="app.navigateTo('componentTemplates')" class="hover:bg-blue-600 px-3 py-2 rounded-md">组件模板</button>
+                <button onclick="app.navigateTo('businessTemplates')" class="hover:bg-blue-600 px-3 py-2 rounded-md">业务模板</button>
+                <button onclick="app.navigateTo('deployedBusinesses')" class="hover:bg-blue-600 px-3 py-2 rounded-md">已部署业务</button>
+                <button onclick="app.navigateTo('servers')" class="hover:bg-blue-600 px-3 py-2 rounded-md">服务器</button> 
             </div>
         </div>
     </nav>
@@ -374,7 +374,7 @@
                     const buttonEl = document.createElement('button');
                     buttonEl.id = `modal_btn_${btn.label.replace(/\s+/g, '_').toLowerCase()}`; 
                     buttonEl.textContent = btn.label;
-                    buttonEl.className = `px-4 py-2 rounded-md text-white ${btn.class || 'bg-sky-600 hover:bg-sky-700'}`;
+                    buttonEl.className = `px-4 py-2 rounded-md text-white ${btn.class || 'bg-blue-600 hover:bg-blue-700'}`;
                     buttonEl.onclick = btn.action;
                     modalFooter.appendChild(buttonEl);
                 });
@@ -550,7 +550,7 @@
 
             getComponentTemplatesListHTML() { 
                 let content = `<div class="flex justify-end mb-4">
-                                <button onclick="app.showCreateComponentTemplateForm()" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-md shadow hover:shadow-lg transition duration-150 ease-in-out"><i class="fas fa-plus mr-2"></i>创建新模板</button>
+                                <button onclick="app.showCreateComponentTemplateForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow hover:shadow-lg transition duration-150 ease-in-out"><i class="fas fa-plus mr-2"></i>创建新模板</button>
                                </div>
                                <div class="table-responsive max-h-[65vh] overflow-y-auto">
                                <table class="min-w-full divide-y divide-gray-200">
@@ -694,7 +694,7 @@
             showCreateComponentTemplateForm() { 
                 this.editingItemId = null; 
                 const formHTML = this.getComponentTemplateFormHTML(); 
-                const footerButtons = [ { label: '保存', id:"saveCtBtn", action: () => this.saveComponentTemplate(), class: 'bg-sky-600 hover:bg-sky-700 text-white' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }];
+                const footerButtons = [ { label: '保存', id:"saveCtBtn", action: () => this.saveComponentTemplate(), class: 'bg-blue-600 hover:bg-blue-700 text-white' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }];
                 this.openModal('创建组件模板', formHTML, footerButtons);
             },
             async showEditComponentTemplateForm(id) { 
@@ -704,7 +704,7 @@
                     const jsonData = await response.json();
                     if (response.ok && jsonData.status === 'success' && jsonData.template) {
                         const formHTML = this.getComponentTemplateFormHTML(jsonData.template); 
-                        const footerButtons = [ { label: '更新', id:"updateCtBtn", action: () => this.saveComponentTemplate(), class: 'bg-sky-600 hover:bg-sky-700 text-white' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }];
+                        const footerButtons = [ { label: '更新', id:"updateCtBtn", action: () => this.saveComponentTemplate(), class: 'bg-blue-600 hover:bg-blue-700 text-white' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }];
                         this.openModal('编辑组件模板', formHTML, footerButtons);
                     } else {
                         this.showNotification(jsonData.message || '获取模板详情失败', 'error');
@@ -943,7 +943,7 @@
 
             getBusinessTemplatesListHTML() {
                 let content = `<div class="flex justify-end mb-4">
-                                <button onclick="app.showCreateBusinessTemplateForm()" class="bg-sky-600 hover:bg-sky-700 text-white px-4 py-2 rounded-md shadow hover:shadow-lg transition duration-150 ease-in-out"><i class="fas fa-plus mr-2"></i>创建新模板</button>
+                                <button onclick="app.showCreateBusinessTemplateForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow hover:shadow-lg transition duration-150 ease-in-out"><i class="fas fa-plus mr-2"></i>创建新模板</button>
                                </div>
                                <div class="table-responsive max-h-[65vh] overflow-y-auto">
                                <table class="min-w-full divide-y divide-gray-200">
@@ -990,7 +990,7 @@
                     <form id="businessTemplateForm" class="space-y-4">
                         <div><label for="bt_template_name" class="block text-sm font-medium text-gray-700">模板名称</label><input type="text" id="bt_template_name" name="template_name" value="${template.template_name || ''}" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm"></div>
                         <div><label for="bt_description" class="block text-sm font-medium text-gray-700">描述</label><textarea id="bt_description" name="description" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm">${template.description || ''}</textarea></div>
-                        <div><label for="bt_component_select" class="block text-sm font-medium text-gray-700">选择组件模板</label><div class="flex space-x-2 mt-1"><select id="bt_component_select" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm"><option value="">-- 请选择 --</option>${componentOptions}</select><button type="button" onclick="app.addSelectedComponentToBusinessTemplateForm()" class="bg-sky-500 hover:bg-sky-600 text-white px-3 py-2 rounded-md text-sm">添加</button></div></div>
+                        <div><label for="bt_component_select" class="block text-sm font-medium text-gray-700">选择组件模板</label><div class="flex space-x-2 mt-1"><select id="bt_component_select" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm"><option value="">-- 请选择 --</option>${componentOptions}</select><button type="button" onclick="app.addSelectedComponentToBusinessTemplateForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md text-sm">添加</button></div></div>
                         <div><label class="block text-sm font-medium text-gray-700">已选组件</label><ul id="bt_selected_components" class="mt-1 border border-gray-300 rounded-md p-2 h-32 overflow-y-auto bg-white">${selectedComponentsHTML}</ul></div>
                     </form>
                 `;
@@ -1005,7 +1005,7 @@
                 await this.fetchComponentTemplatesForBusinessForms(); 
                 if (this.mockData.componentTemplates.length === 0) { this.showNotification('请先创建组件模板，或等待组件模板加载完成。', 'error'); return; }
                 const formHTML = this.getBusinessTemplateFormHTML();
-                const footerButtons = [ { label: '保存', action: () => this.saveBusinessTemplate(), class: 'bg-sky-600 hover:bg-sky-700 text-white' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }];
+                const footerButtons = [ { label: '保存', action: () => this.saveBusinessTemplate(), class: 'bg-blue-600 hover:bg-blue-700 text-white' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }];
                 this.openModal('创建业务模板', formHTML, footerButtons);
             },
             async showEditBusinessTemplateForm(id) { 
@@ -1018,7 +1018,7 @@
                     const jsonData = await response.json();
                     if (response.ok && jsonData.status === 'success' && jsonData.template) {
                         const formHTML = this.getBusinessTemplateFormHTML(jsonData.template);
-                        const footerButtons = [ { label: '更新', action: () => this.saveBusinessTemplate(), class: 'bg-sky-600 hover:bg-sky-700 text-white' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }];
+                        const footerButtons = [ { label: '更新', action: () => this.saveBusinessTemplate(), class: 'bg-blue-600 hover:bg-blue-700 text-white' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }];
                         this.openModal('编辑业务模板', formHTML, footerButtons);
                     } else {
                         this.showNotification(jsonData.message || '获取业务模板详情失败', 'error');
@@ -1255,7 +1255,7 @@
                         let statusClass = '';
                         if (biz.status === 'running') statusClass = 'text-green-600'; else if (biz.status === 'stopped') statusClass = 'text-red-600'; else if (biz.status === 'pending') statusClass = 'text-yellow-600'; else statusClass = 'text-gray-600';
                         const isSelected = biz.business_id === this.selectedBusinessId;
-                        listHTML += `<li onclick="app.selectDeployedBusiness('${biz.business_id}')" class="p-3 rounded-md cursor-pointer hover:bg-sky-50 transition-colors ${isSelected ? 'selected-business-item shadow-md border border-sky-300' : 'bg-white shadow-sm hover:shadow-md'}"><div class="flex justify-between items-center"><span class="font-medium text-gray-800">${biz.business_name}</span><span class="text-xs font-semibold ${statusClass} uppercase">${biz.status}</span></div><p class="text-xs text-gray-500">ID: ${biz.business_id}</p></li>`;
+                        listHTML += `<li onclick="app.selectDeployedBusiness('${biz.business_id}')" class="p-3 rounded-md cursor-pointer hover:bg-blue-50 transition-colors ${isSelected ? 'selected-business-item shadow-md border border-sky-300' : 'bg-white shadow-sm hover:shadow-md'}"><div class="flex justify-between items-center"><span class="font-medium text-gray-800">${biz.business_name}</span><span class="text-xs font-semibold ${statusClass} uppercase">${biz.status}</span></div><p class="text-xs text-gray-500">ID: ${biz.business_id}</p></li>`;
                     });
                     listHTML += `</ul>`;
                 }
@@ -1287,7 +1287,7 @@
                             let statusClass = '';
                             if (biz.status === 'running') statusClass = 'text-green-600'; else if (biz.status === 'stopped') statusClass = 'text-red-600'; else if (biz.status === 'pending') statusClass = 'text-yellow-600'; else statusClass = 'text-gray-600';
                             const isSelected = biz.business_id === this.selectedBusinessId;
-                            listHTML += `<li onclick="app.selectDeployedBusiness('${biz.business_id}')" class="p-3 rounded-md cursor-pointer hover:bg-sky-50 transition-colors ${isSelected ? 'selected-business-item shadow-md border border-sky-300' : 'bg-white shadow-sm hover:shadow-md'}"><div class="flex justify-between items-center"><span class="font-medium text-gray-800">${biz.business_name}</span><span class="text-xs font-semibold ${statusClass} uppercase">${biz.status}</span></div><p class="text-xs text-gray-500">ID: ${biz.business_id}</p></li>`;
+                            listHTML += `<li onclick="app.selectDeployedBusiness('${biz.business_id}')" class="p-3 rounded-md cursor-pointer hover:bg-blue-50 transition-colors ${isSelected ? 'selected-business-item shadow-md border border-sky-300' : 'bg-white shadow-sm hover:shadow-md'}"><div class="flex justify-between items-center"><span class="font-medium text-gray-800">${biz.business_name}</span><span class="text-xs font-semibold ${statusClass} uppercase">${biz.status}</span></div><p class="text-xs text-gray-500">ID: ${biz.business_id}</p></li>`;
                         });
                         listHTML += `</ul>`;
                     }
