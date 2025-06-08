@@ -226,5 +226,6 @@ bool DatabaseManager::saveResourceUsage(const nlohmann::json &resource_usage)
     if (resource.contains("memory")) {
         saveMemoryMetrics(node_id, timestamp, resource["memory"]);
     }
+    
     return true;
 }

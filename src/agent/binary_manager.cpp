@@ -149,52 +149,44 @@ nlohmann::json BinaryManager::startProcess(const std::string& binary_path, const
         _exit(127);
     }
     // 父进程
-    // 不等待子进程，直接返回pid
+    // 保存pid为string
+    std::string pid_str = std::to_string(pid);
+    {
+        std::lock_guard<std::mutex> lock(process_mutex_);
+        process_map_[pid_str] = binary_path;
+    }
     return {
         {"status", "success"},
-        {"process_id", pid}
+        {"process_id", pid_str}
     };
 }
 
-nlohmann::json BinaryManager::stopProcess(int process_id) {
-    std::cout << "Stopping process: " << process_id << std::endl;
-    
-    // 检查进程是否存在
+nlohmann::json BinaryManager::stopProcess(const std::string& process_id) {
+    int pid = std::stoi(process_id);
+    std::cout << "Stopping process: " << pid << std::endl;
     if (!isProcessRunning(process_id)) {
         return {
             {"status", "error"},
-            {"message", "Process not found: " + std::to_string(process_id)}
+            {"message", "Process not found: " + process_id}
         };
     }
-    
-    // 发送SIGTERM信号
-    kill(process_id, SIGTERM);
-
-    // 等待最多 N 秒
+    kill(pid, SIGTERM);
     int waited = 0;
-    int max_wait = 5; // 最多等5秒
+    int max_wait = 5;
     while (waited < max_wait) {
-        int ret = waitpid(process_id, nullptr, WNOHANG);
-        if (ret == process_id) {
-            // 已退出
-            break;
-        }
+        int ret = waitpid(pid, nullptr, WNOHANG);
+        if (ret == pid) break;
         sleep(1);
         waited++;
     }
-
-    // 如果还没退出，强制杀死
     if (waited == max_wait) {
-        kill(process_id, SIGKILL);
-        waitpid(process_id, nullptr, 0); // 这时一定会退出
+        kill(pid, SIGKILL);
+        waitpid(pid, nullptr, 0);
     }
-    
-    // 从进程映射中移除
     {
         std::lock_guard<std::mutex> lock(process_mutex_);
         process_map_.erase(process_id);
     }
-    
     return {
         {"status", "success"},
         {"message", "Process stopped successfully"},
@@ -202,10 +194,8 @@ nlohmann::json BinaryManager::stopProcess(int process_id) {
     };
 }
 
-nlohmann::json BinaryManager::getProcessStatus(int process_id) {
-    // 检查进程是否存在
+nlohmann::json BinaryManager::getProcessStatus(const std::string& process_id) {
     bool running = isProcessRunning(process_id);
-    
     std::string binary_path;
     {
         std::lock_guard<std::mutex> lock(process_mutex_);
@@ -214,7 +204,6 @@ nlohmann::json BinaryManager::getProcessStatus(int process_id) {
             binary_path = it->second;
         }
     }
-    
     return {
         {"process_id", process_id},
         {"running", running},
@@ -222,26 +211,20 @@ nlohmann::json BinaryManager::getProcessStatus(int process_id) {
     };
 }
 
-nlohmann::json BinaryManager::getProcessStats(int process_id) {
-    // 检查进程是否存在
+nlohmann::json BinaryManager::getProcessStats(const std::string& process_id) {
+    int pid = std::stoi(process_id);
     if (!isProcessRunning(process_id)) {
         return {
             {"status", "error"},
-            {"message", "Process not found: " + std::to_string(process_id)}
+            {"message", "Process not found: " + process_id}
         };
     }
-    
-    // 获取CPU和内存使用情况
-    std::string cmd = "ps -p " + std::to_string(process_id) + " -o %cpu,%mem,rss --no-headers";
+    std::string cmd = "ps -p " + process_id + " -o %cpu,%mem,rss --no-headers";
     std::string output = executeCommand(cmd);
-    
-    // 解析输出
     std::istringstream iss(output);
     float cpu_percent, mem_percent;
     long rss_kb;
-    
     iss >> cpu_percent >> mem_percent >> rss_kb;
-    
     return {
         {"process_id", process_id},
         {"cpu_percent", cpu_percent},
@@ -271,8 +254,21 @@ bool BinaryManager::extractFile(const std::string& file_path, const std::string&
     return result == 0;
 }
 
-bool BinaryManager::isProcessRunning(int process_id) {
-    std::string cmd = "ps -p " + std::to_string(process_id) + " > /dev/null";
-    int result = system(cmd.c_str());
-    return result == 0;
+bool BinaryManager::isProcessRunning(const std::string& process_id) {
+    int pid = std::stoi(process_id);
+    std::string cmd = "ps -o stat= -p " + process_id + " 2>/dev/null";
+    FILE* pipe = popen(cmd.c_str(), "r");
+    if (!pipe) return false;
+    char buffer[128];
+    std::string status;
+    if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        status = buffer;
+    }
+    pclose(pipe);
+    status.erase(0, status.find_first_not_of(" \t\n\r"));
+    status.erase(status.find_last_not_of(" \t\n\r") + 1);
+    if (status.empty() || status.find('Z') != std::string::npos) {
+        return false;
+    }
+    return true;
 }

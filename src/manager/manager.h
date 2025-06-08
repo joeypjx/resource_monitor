@@ -38,13 +38,6 @@ public:
     bool initialize();
     
     /**
-     * 初始化数据库
-     * 
-     * @return 是否成功初始化
-     */
-    bool initializeDatabase();
-    
-    /**
      * 启动Manager
      * 
      * @return 是否成功启动

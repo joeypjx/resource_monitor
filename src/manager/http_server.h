@@ -41,11 +41,10 @@ public:
     void handleDeployBusiness(const httplib::Request& req, httplib::Response& res);
     void handleStopBusiness(const httplib::Request& req, httplib::Response& res);
     void handleRestartBusiness(const httplib::Request& req, httplib::Response& res);
-    void handleUpdateBusiness(const httplib::Request& req, httplib::Response& res);
     void handleGetBusinesses(const httplib::Request& req, httplib::Response& res);
     void handleGetBusinessDetails(const httplib::Request& req, httplib::Response& res);
-    void handleGetBusinessComponents(const httplib::Request& req, httplib::Response& res);
-    void handleComponentStatusReport(const httplib::Request& req, httplib::Response& res);
+    void handleDeployBusinessComponent(const httplib::Request& req, httplib::Response& res);
+    void handleStopBusinessComponent(const httplib::Request &req, httplib::Response &res);
 
     // 模板管理相关
     void handleCreateComponentTemplate(const httplib::Request& req, httplib::Response& res);
@@ -74,6 +73,9 @@ public:
     void sendSuccessResponse(httplib::Response& res, const std::string& key, const nlohmann::json& data);
     void sendErrorResponse(httplib::Response& res, const std::string& message);
     void sendExceptionResponse(httplib::Response& res, const std::exception& e);
+
+    void handleDeployBusinessByTemplateId(const httplib::Request &req, httplib::Response &res);
+    void handleDeleteBusiness(const httplib::Request &req, httplib::Response &res);
 
 protected:
     httplib::Server server_;  // HTTP服务器

@@ -60,7 +60,7 @@ public:
      * @param process_id 进程ID
      * @return 停止结果
      */
-    nlohmann::json stopProcess(int process_id);
+    nlohmann::json stopProcess(const std::string& process_id);
     
     /**
      * 获取进程状态
@@ -68,7 +68,7 @@ public:
      * @param process_id 进程ID
      * @return 进程状态
      */
-    nlohmann::json getProcessStatus(int process_id);
+    nlohmann::json getProcessStatus(const std::string& process_id);
     
     /**
      * 获取进程资源使用统计
@@ -76,7 +76,7 @@ public:
      * @param process_id 进程ID
      * @return 资源使用统计
      */
-    nlohmann::json getProcessStats(int process_id);
+    nlohmann::json getProcessStats(const std::string& process_id);
 
 private:
     /**
@@ -102,11 +102,11 @@ private:
      * @param process_id 进程ID
      * @return 是否存在
      */
-    bool isProcessRunning(int process_id);
+    bool isProcessRunning(const std::string& process_id);
 
 private:
-    std::map<int, std::string> process_map_;  // 进程ID到二进制路径的映射
-    std::mutex process_mutex_;                // 进程映射互斥锁
+    std::map<std::string, std::string> process_map_;  // 进程ID到二进制路径的映射，key为string
+    std::mutex process_mutex_;
 };
 
 #endif // BINARY_MANAGER_H

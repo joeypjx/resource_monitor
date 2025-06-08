@@ -46,6 +46,13 @@ public:
      * @return 是否成功初始化
      */
     bool initialize();
+
+    /**
+     * 添加组件
+     * 
+     * @param component_info 组件信息
+     */
+    void addComponent(const nlohmann::json& component_info);
     
     /**
      * 部署组件
@@ -96,6 +103,13 @@ public:
      */
     void stopStatusCollection();
 
+    /**
+     * 获取组件状态
+     * 
+     * @return 组件状态
+     */
+    nlohmann::json getComponentStatus();
+
 private:
     /**
      * 部署Docker容器组件
@@ -135,7 +149,7 @@ private:
      */
     nlohmann::json stopBinaryComponent(const std::string& component_id, 
                                      const std::string& business_id, 
-                                     int process_id);
+                                     const std::string& process_id);
     
     /**
      * 下载Docker镜像

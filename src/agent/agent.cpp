@@ -21,8 +21,8 @@
 #include <future>
 #include <thread>
 
-Agent::Agent(const std::string& manager_url, 
-             const std::string& hostname,
+Agent::Agent(const std::string &manager_url,
+             const std::string &hostname,
              int collection_interval_sec)
     : manager_url_(manager_url),
       hostname_(hostname),
@@ -30,46 +30,53 @@ Agent::Agent(const std::string& manager_url,
       running_(false),
       http_server_(nullptr),
       server_running_(false),
-      heartbeat_running_(false) {
-    
+      heartbeat_running_(false)
+{
+
     // 如果没有提供主机名，则自动获取
-    if (hostname_.empty()) {
+    if (hostname_.empty())
+    {
         char host[256];
-        if (gethostname(host, sizeof(host)) == 0) {
+        if (gethostname(host, sizeof(host)) == 0)
+        {
             hostname_ = host;
-        } else {
+        }
+        else
+        {
             hostname_ = "unknown";
         }
     }
-    
+
     // 获取IP地址
     getLocalIpAddress();
-    
+
     // 获取操作系统信息
     getOsInfo();
-    
+
     // 获取CPU架构
     getCpuModel();
-    
+
     // 获取GPU数量
     getGpuCount();
-    
+
     // 创建HTTP客户端
     http_client_ = std::make_shared<HttpClient>(manager_url_);
-    
+
     // 创建资源采集器
     collectors_.push_back(std::make_unique<CpuCollector>());
     collectors_.push_back(std::make_unique<MemoryCollector>());
-    
+
     // 创建组件管理器
     component_manager_ = std::make_shared<ComponentManager>(http_client_);
 }
 
-Agent::~Agent() {
+Agent::~Agent()
+{
     stop();
-    
+
     // 停止HTTP服务器
-    if (server_running_ && http_server_) {
+    if (server_running_ && http_server_)
+    {
         http_server_->stop();
         delete http_server_;
         http_server_ = nullptr;
@@ -77,99 +84,115 @@ Agent::~Agent() {
     }
 }
 
-bool Agent::start() {
+bool Agent::start()
+{
     // 如果已经在运行，直接返回
-    if (running_) {
+    if (running_)
+    {
         return true;
     }
-    
+
     // 向Manager注册
-    if (!registerToManager()) {
+    if (!registerToManager())
+    {
         std::cerr << "Failed to register to Manager" << std::endl;
         return false;
     }
-    
+
     // 初始化组件管理器
-    if (!component_manager_->initialize()) {
+    if (!component_manager_->initialize())
+    {
         std::cerr << "Failed to initialize component manager" << std::endl;
         return false;
     }
-    
+
     // 启动组件状态收集
-    if (!component_manager_->startStatusCollection(collection_interval_sec_)) {
+    if (!component_manager_->startStatusCollection(collection_interval_sec_))
+    {
         std::cerr << "Failed to start component status collection" << std::endl;
         return false;
     }
-    
+
     // 启动HTTP服务器
-    if (!startHttpServer()) {
+    if (!startHttpServer())
+    {
         std::cerr << "Failed to start HTTP server" << std::endl;
         return false;
     }
-    
+
     // 启动心跳线程
     heartbeat_running_ = true;
-    heartbeat_thread_ = std::thread(&Agent::heartbeatThread, this);
-    
+    // heartbeat_thread_ = std::thread(&Agent::heartbeatThread, this);
+
     // 设置运行标志
     running_ = true;
-    
+
     // 启动工作线程
     worker_thread_ = std::thread(&Agent::workerThread, this);
-    
+
     return true;
 }
 
-void Agent::stop() {
+void Agent::stop()
+{
     // 如果没有在运行，直接返回
-    if (!running_) {
+    if (!running_)
+    {
         return;
     }
-    
+
     // 清除运行标志
     running_ = false;
-    
+
     // 停止组件状态收集
     component_manager_->stopStatusCollection();
-    
+
     // 等待工作线程结束
-    if (worker_thread_.joinable()) {
+    if (worker_thread_.joinable())
+    {
         worker_thread_.join();
     }
-    
+
     // 停止HTTP服务器
-    if (server_running_ && http_server_) {
+    if (server_running_ && http_server_)
+    {
         http_server_->stop();
         delete http_server_;
         http_server_ = nullptr;
         server_running_ = false;
     }
-    
+
     // 停止心跳线程
     heartbeat_running_ = false;
-    if (heartbeat_thread_.joinable()) {
+    if (heartbeat_thread_.joinable())
+    {
         heartbeat_thread_.join();
     }
 }
 
-std::string Agent::getAgentId() const {
+std::string Agent::getAgentId() const
+{
     return agent_id_;
 }
 
-bool Agent::registerToManager() {
+bool Agent::registerToManager()
+{
     // 本地agent_id文件路径
     std::string agent_id_file = "agent_id.txt";
     // 优先尝试从本地文件读取agent_id
-    if (agent_id_.empty()) {
+    if (agent_id_.empty())
+    {
         std::ifstream fin(agent_id_file);
-        if (fin) {
+        if (fin)
+        {
             std::getline(fin, agent_id_);
             fin.close();
         }
     }
 
     nlohmann::json register_info;
-    if (!agent_id_.empty()) {
+    if (!agent_id_.empty())
+    {
         // 已有agent_id，带上注册
         register_info["node_id"] = agent_id_;
     }
@@ -181,164 +204,213 @@ bool Agent::registerToManager() {
 
     // 发送注册请求
     nlohmann::json response = http_client_->registerAgent(register_info);
-    
+
     // 检查响应
-    if (response.contains("status") && response["status"] == "success") {
+    if (response.contains("status") && response["status"] == "success")
+    {
         // 使用服务器返回的Node ID
-        if (response.contains("node_id")) {
+        if (response.contains("node_id"))
+        {
             agent_id_ = response["node_id"];
             // 写入本地文件
             std::ofstream fout(agent_id_file);
-            if (fout) {
+            if (fout)
+            {
                 fout << agent_id_ << std::endl;
                 fout.close();
-        }
+            }
         }
         std::cout << "Successfully registered to Manager with Node ID: " << agent_id_ << std::endl;
+
+        // 将response中的components保存到component_manager中
+        if (response.contains("components"))
+        {
+            for (const auto &component : response["components"])
+            {
+                component_manager_->addComponent(component);
+            }
+        }
+
         return true;
-    } else {
-        std::cerr << "Failed to register to Manager: " 
+    }
+    else
+    {
+        std::cerr << "Failed to register to Manager: "
                   << (response.contains("message") ? response["message"].get<std::string>() : "Unknown error")
                   << std::endl;
         return false;
     }
 }
 
-void Agent::collectAndReportResources() {
+void Agent::collectAndReportResources()
+{
     nlohmann::json report_json;
     report_json["node_id"] = agent_id_;
     report_json["timestamp"] = std::time(nullptr);
     nlohmann::json resource_json;
     // 采集各类资源信息，按类型放入resource字段
-    for (const auto& collector : collectors_) {
+    for (const auto &collector : collectors_)
+    {
         resource_json[collector->getType()] = collector->collect();
     }
     report_json["resource"] = resource_json;
+
+    nlohmann::json components = component_manager_->getComponentStatus();
+    report_json["components"] = components;
+
     // 上报资源数据
     nlohmann::json response = http_client_->reportData(report_json);
     // 检查响应
-    if (response.contains("status") && response["status"] == "success") {
+    if (response.contains("status") && response["status"] == "success")
+    {
         // std::cout << "Successfully reported resource data to Manager" << std::endl;
-    } else {
-        std::cerr << "Failed to report resource data to Manager: " 
+    }
+    else
+    {
+        std::cerr << "Failed to report resource data to Manager: "
                   << (response.contains("message") ? response["message"].get<std::string>() : "Unknown error")
                   << std::endl;
     }
 }
 
-void Agent::workerThread() {
-    while (running_) {
+void Agent::workerThread()
+{
+    while (running_)
+    {
         // 采集并上报资源信息
         collectAndReportResources();
-        
+
         // 等待指定的时间间隔
-        for (int i = 0; i < collection_interval_sec_ && running_; ++i) {
+        for (int i = 0; i < collection_interval_sec_ && running_; ++i)
+        {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     }
 }
 
-void Agent::getLocalIpAddress() {
+void Agent::getLocalIpAddress()
+{
     struct ifaddrs *ifaddr, *ifa;
     int family, s;
     char host[NI_MAXHOST];
-    
-    if (getifaddrs(&ifaddr) == -1) {
+
+    if (getifaddrs(&ifaddr) == -1)
+    {
         ip_address_ = "127.0.0.1";
         return;
     }
-    
+
     // 遍历所有网络接口
-    for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
-        if (ifa->ifa_addr == nullptr) {
+    for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
+    {
+        if (ifa->ifa_addr == nullptr)
+        {
             continue;
         }
-        
+
         family = ifa->ifa_addr->sa_family;
-        
+
         // 只考虑IPv4地址
-        if (family == AF_INET) {
+        if (family == AF_INET)
+        {
             s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in),
-                           host, NI_MAXHOST, nullptr, 0, NI_NUMERICHOST);
-            if (s != 0) {
+                            host, NI_MAXHOST, nullptr, 0, NI_NUMERICHOST);
+            if (s != 0)
+            {
                 continue;
             }
-            
+
             // 忽略回环接口
-            if (strcmp(ifa->ifa_name, "lo") != 0) {
+            if (strcmp(ifa->ifa_name, "lo") != 0)
+            {
                 ip_address_ = host;
                 break;
             }
         }
     }
-    
+
     freeifaddrs(ifaddr);
-    
+
     // 如果没有找到有效的IP地址，使用本地回环地址
-    if (ip_address_.empty()) {
+    if (ip_address_.empty())
+    {
         ip_address_ = "127.0.0.1";
     }
 }
 
-void Agent::getOsInfo() {
+void Agent::getOsInfo()
+{
     struct utsname system_info;
-    if (uname(&system_info) == -1) {
+    if (uname(&system_info) == -1)
+    {
         os_info_ = "Unknown";
         return;
     }
-    
-    os_info_ = std::string(system_info.sysname) + " " + 
-               std::string(system_info.release) + " " + 
-               std::string(system_info.version) + " " + 
+
+    os_info_ = std::string(system_info.sysname) + " " +
+               std::string(system_info.release) + " " +
+               std::string(system_info.version) + " " +
                std::string(system_info.machine);
 }
 
-void Agent::getCpuModel() {
+void Agent::getCpuModel()
+{
     // 获取CPU型号
     cpu_model_ = "Unknown";
-    FILE* pipe = popen("cat /proc/cpuinfo | grep 'model name' | uniq | awk -F': ' '{print $2}'", "r");
-    if (!pipe) return;
+    FILE *pipe = popen("cat /proc/cpuinfo | grep 'model name' | uniq | awk -F': ' '{print $2}'", "r");
+    if (!pipe)
+        return;
     char buffer[128];
     std::string result = "";
-    if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+    if (fgets(buffer, sizeof(buffer), pipe) != nullptr)
+    {
         result = buffer;
     }
     pclose(pipe);
     cpu_model_ = result;
 }
 
-void Agent::getGpuCount() {
+void Agent::getGpuCount()
+{
     gpu_count_ = 0;
-    FILE* pipe = popen("ixsmi -L | wc -l", "r");
-    if (!pipe) return;
+    FILE *pipe = popen("ixsmi -L | wc -l", "r");
+    if (!pipe)
+        return;
     char buffer[128];
     std::string result = "";
-    if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+    if (fgets(buffer, sizeof(buffer), pipe) != nullptr)
+    {
         result = buffer;
     }
     pclose(pipe);
-    try {
+    try
+    {
         gpu_count_ = std::stoi(result);
-    } catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         std::cerr << "Error getting GPU count: " << e.what() << std::endl;
         gpu_count_ = 0;
     }
 }
 
-bool Agent::startHttpServer(int port) {
+bool Agent::startHttpServer(int port)
+{
     // 如果服务器已经在运行，直接返回
-    if (server_running_) {
+    if (server_running_)
+    {
         return true;
     }
-    
+
     // 创建HTTP服务器
     auto server = new httplib::Server();
     http_server_ = server;
-    
+
     // 设置API路由
-    
+
     // 部署组件API
-    server->Post("/api/deploy", [this](const httplib::Request& req, httplib::Response& res) {
+    server->Post("/api/deploy", [this](const httplib::Request &req, httplib::Response &res)
+                 {
         try {
             auto request = nlohmann::json::parse(req.body);
             auto response = handleDeployRequest(request);
@@ -349,11 +421,11 @@ bool Agent::startHttpServer(int port) {
                 {"status", "error"},
                 {"message", std::string("Invalid request: ") + e.what()}
             }).dump(), "application/json");
-        }
-    });
-    
+        } });
+
     // 停止组件API
-    server->Post("/api/stop", [this](const httplib::Request& req, httplib::Response& res) {
+    server->Post("/api/stop", [this](const httplib::Request &req, httplib::Response &res)
+                 {
         try {
             auto request = nlohmann::json::parse(req.body);
             auto response = handleStopRequest(request);
@@ -363,75 +435,80 @@ bool Agent::startHttpServer(int port) {
                 {"status", "error"},
                 {"message", std::string("Invalid request: ") + e.what()}
             }).dump(), "application/json");
-        }
-    });
-
+        } });
 
     // 启动服务器
     std::cout << "Starting HTTP server on port " << port << std::endl;
     server_running_ = true;
-    
+
     // 在新线程中启动服务器
-    std::thread([this, server, port]() {
-        server->listen("0.0.0.0", port);
-    }).detach();
-    
+    std::thread([this, server, port]()
+                { server->listen("0.0.0.0", port); })
+        .detach();
+
     return true;
 }
 
-nlohmann::json Agent::handleDeployRequest(const nlohmann::json& request) {
+nlohmann::json Agent::handleDeployRequest(const nlohmann::json &request)
+{
     // 检查必要字段
-    if (!request.contains("component_id") || !request.contains("business_id") || 
-        !request.contains("component_name") || !request.contains("type")) {
+    if (!request.contains("component_id") || !request.contains("business_id") ||
+        !request.contains("component_name") || !request.contains("type"))
+    {
         return {
             {"status", "error"},
-            {"message", "Missing required fields"}
-        };
+            {"message", "Missing required fields"}};
     }
 
     // 异步后台部署
-    std::thread([this, request]() {
-        component_manager_->deployComponent(request);
-    }).detach();
+    std::thread([this, request]()
+                { component_manager_->deployComponent(request); })
+        .detach();
 
     return {
         {"status", "success"},
-        {"message", "Deploy request is being processed asynchronously"}
-    };
+        {"message", "Deploy request is being processed asynchronously"}};
 }
 
-nlohmann::json Agent::handleStopRequest(const nlohmann::json& request) {
+nlohmann::json Agent::handleStopRequest(const nlohmann::json &request)
+{
     // 检查必要字段
-    if (!request.contains("component_id") || !request.contains("business_id")) {
+    if (!request.contains("component_id") || !request.contains("business_id"))
+    {
         return {
             {"status", "error"},
-            {"message", "Missing required fields"}
-        };
+            {"message", "Missing required fields"}};
     }
-    
+
     std::string component_id = request["component_id"];
     std::string business_id = request["business_id"];
-    std::string container_id = request.contains("container_id") ? 
-        request["container_id"].get<std::string>() : "";
-    
+    std::string container_id = request.contains("container_id") ? request["container_id"].get<std::string>() : "";
+    std::string process_id = request.contains("process_id") ? request["process_id"].get<std::string>() : "";
+    ComponentType component_type = request.contains("type") && request["type"] == "docker" ? ComponentType::DOCKER : ComponentType::BINARY;
+    std::string container_or_process_id = container_id.empty() ? process_id : container_id;
+
     // 调用组件管理器停止组件
     // 异步后台执行
-    std::thread([this, component_id, business_id, container_id]() {
-        component_manager_->stopComponent(component_id, business_id, container_id);
-    }).detach();
+    std::thread([this, component_id, business_id, container_or_process_id, component_type]()
+                { component_manager_->stopComponent(component_id, business_id, container_or_process_id, component_type); })
+        .detach();
 
     return {
         {"status", "success"},
-        {"message", "Stop request is being processed asynchronously"}
-    };
+        {"message", "Stop request is being processed asynchronously"}};
 }
 
-void Agent::sendHeartbeat() {
-    if (!agent_id_.empty()) {
+void Agent::sendHeartbeat()
+{
+    if (!agent_id_.empty())
+    {
         nlohmann::json response = http_client_->heartbeat(agent_id_);
-        if (response.contains("status") && response["status"] == "success") {
+        if (response.contains("status") && response["status"] == "success")
+        {
             // std::cout << "Heartbeat sent successfully" << std::endl;
-        } else {
+        }
+        else
+        {
             std::cerr << "Failed to send heartbeat: "
                       << (response.contains("message") ? response["message"].get<std::string>() : "Unknown error")
                       << std::endl;
@@ -439,10 +516,13 @@ void Agent::sendHeartbeat() {
     }
 }
 
-void Agent::heartbeatThread() {
-    while (heartbeat_running_) {
+void Agent::heartbeatThread()
+{
+    while (heartbeat_running_)
+    {
         sendHeartbeat();
-        for (int i = 0; i < 3 && heartbeat_running_; ++i) {
+        for (int i = 0; i < 3 && heartbeat_running_; ++i)
+        {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     }

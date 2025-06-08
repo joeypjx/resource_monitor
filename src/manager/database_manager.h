@@ -54,8 +54,11 @@ public:
     bool saveBusiness(const nlohmann::json& business_info);
     bool updateBusinessStatus(const std::string& business_id, const std::string& status);
     bool saveBusinessComponent(const nlohmann::json& component_info);
-    bool updateComponentStatus(const std::string& component_id, const std::string& type, const std::string& status, const std::string& container_id = "", int process_id = 0);
+    bool updateComponentStatus(const nlohmann::json& component_info);
+    bool updateComponentStatus(const std::string& component_id, const std::string& status);
+    bool updateComponentStatus(const std::string& component_id, const std::string& type, const std::string& status, const std::string& container_id = "", const std::string& process_id = "");
     bool saveComponentMetrics(const std::string& component_id, long long timestamp, const nlohmann::json& metrics);
+    int countAbnormalComponents(const std::string& business_id);
     nlohmann::json getBusinesses();
     nlohmann::json getBusinessDetails(const std::string& business_id);
     nlohmann::json getBusinessComponents(const std::string& business_id);
@@ -77,6 +80,10 @@ public:
     nlohmann::json getComponentTemplates();
     nlohmann::json getComponentTemplate(const std::string& template_id);
     nlohmann::json deleteComponentTemplate(const std::string& template_id);
+
+    nlohmann::json getComponentById(const std::string& component_id);
+
+    nlohmann::json getComponentsByNodeId(const std::string& node_id);
 
 private:
     std::string db_path_;                     // 数据库文件路径

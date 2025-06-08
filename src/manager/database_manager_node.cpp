@@ -163,8 +163,19 @@ void DatabaseManager::startNodeStatusMonitor()
                     int64_t updated_at = query.getColumn(1).getInt64();
                     
                     // 如果超过5秒没有上报，则标记为离线
-                    if (current_timestamp - updated_at > 5) {
+                    if (current_timestamp - updated_at > 10) {
                         updateNodeStatus(node_id, "offline");
+
+                        // 查询node_id对应的business_components表，如果status为running，则更新为error
+                        SQLite::Statement query_business_components(*db_, "SELECT component_id, status FROM business_components WHERE node_id = ?");
+                        query_business_components.bind(1, node_id);
+                        while (query_business_components.executeStep()) {
+                            std::string component_id = query_business_components.getColumn(0).getString();
+                            std::string status = query_business_components.getColumn(1).getString();
+                            if (status == "running") {
+                                updateComponentStatus(component_id, "error");
+                            }
+                        }
                     }
                 }
                 

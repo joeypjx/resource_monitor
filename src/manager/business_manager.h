@@ -93,14 +93,6 @@ public:
      * @return 业务组件
      */
     nlohmann::json getBusinessComponents(const std::string& business_id);
-    
-    /**
-     * 处理组件状态上报
-     * 
-     * @param component_status 组件状态
-     * @return 处理结果
-     */
-    nlohmann::json handleComponentStatusReport(const nlohmann::json& component_status);
 
     /**
      * 根据业务模板ID部署业务
@@ -125,6 +117,24 @@ public:
      * @return 删除结果
      */
     nlohmann::json deleteBusiness(const std::string& business_id);
+
+    /**
+     * 部署业务组件
+     * 
+     * @param business_id 业务ID
+     * @param component_id 组件ID
+     * @return 部署结果
+     */
+    nlohmann::json deployComponent(const std::string& business_id, const std::string& component_id);
+
+    /**
+     * 停止业务组件
+     * 
+     * @param business_id 业务ID
+     * @param component_id 组件ID
+     * @return 停止结果
+     */
+    nlohmann::json stopComponent(const std::string& business_id, const std::string& component_id);
 
 private:
     /**
@@ -154,15 +164,6 @@ private:
     nlohmann::json deployComponent(const std::string& business_id, 
                                  const nlohmann::json& component_info, 
                                  const std::string& node_id);
-    
-    /**
-     * 停止业务组件
-     * 
-     * @param business_id 业务ID
-     * @param component_id 组件ID
-     * @return 停止结果
-     */
-    nlohmann::json stopComponent(const std::string& business_id, const std::string& component_id);
 
 private:
     std::shared_ptr<DatabaseManager> db_manager_;  // 数据库管理器

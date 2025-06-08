@@ -5,6 +5,8 @@
 #include <vector>
 #include <map>
 #include <nlohmann/json.hpp>
+#include <unordered_map>
+#include <memory>
 
 // 前向声明
 class DatabaseManager;
@@ -69,33 +71,6 @@ private:
     nlohmann::json getNodeInfo(const std::string& node_id);
     
     /**
-     * 检查节点是否满足组件资源需求
-     * 
-     * @param node_id 节点ID
-     * @param resource_requirements 资源需求
-     * @return 是否满足
-     */
-    bool checkNodeResourceRequirements(const std::string& node_id, const nlohmann::json& resource_requirements);
-    
-    /**
-     * 检查节点是否满足Docker组件资源需求
-     * 
-     * @param node_id 节点ID
-     * @param resource_requirements 资源需求
-     * @return 是否满足
-     */
-    bool checkNodeResourceRequirementsForDocker(const std::string& node_id, const nlohmann::json& resource_requirements);
-    
-    /**
-     * 检查节点是否满足二进制组件资源需求
-     * 
-     * @param node_id 节点ID
-     * @param resource_requirements 资源需求
-     * @return 是否满足
-     */
-    bool checkNodeResourceRequirementsForBinary(const std::string& node_id, const nlohmann::json& resource_requirements);
-    
-    /**
      * 检查节点是否满足组件亲和性需求
      * 
      * @param node_id 节点ID
@@ -111,7 +86,7 @@ private:
      * @param available_nodes 可用节点列表
      * @return 最佳节点ID
      */
-    std::string selectBestNodeForComponent(const nlohmann::json& component, const nlohmann::json& available_nodes);
+    std::string selectBestNodeForComponent(const nlohmann::json& component, const nlohmann::json& available_nodes, std::unordered_map<std::string, int>& node_assign_count);
 
 private:
     std::shared_ptr<DatabaseManager> db_manager_;  // 数据库管理器

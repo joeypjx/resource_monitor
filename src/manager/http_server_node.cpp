@@ -8,14 +8,9 @@
 // 初始化节点管理路由
 void HTTPServer::initNodeRoutes()
 {
-    // 资源管理
-
     // 注册API
     server_.Post("/api/register", [this](const httplib::Request &req, httplib::Response &res)
                  { handleNodeRegistration(req, res); });
-    // 心跳API
-    server_.Post("/api/heartbeat/:node_id", [this](const httplib::Request &req, httplib::Response &res)
-                { handleNodeHeartbeat(req, res); });
 
     // 资源监控
     server_.Post("/api/report", [this](const httplib::Request &req, httplib::Response &res)
@@ -27,13 +22,6 @@ void HTTPServer::initNodeRoutes()
 
     server_.Get("/api/nodes/:node_id", [this](const httplib::Request &req, httplib::Response &res)
                 { handleGetNodeDetails(req, res); });
-
-    // 获取节点资源历史
-    server_.Get("/api/nodes/:node_id/resources", [this](const httplib::Request &req, httplib::Response &res)
-                { handleGetNodeResourceHistory(req, res); });
-
-    server_.Get("/api/nodes/:node_id/resources/:resource_type", [this](const httplib::Request &req, httplib::Response &res)
-                { handleGetNodeResources(req, res); });
 }
 
 // 处理节点注册
@@ -57,7 +45,14 @@ void HTTPServer::handleNodeRegistration(const httplib::Request &req, httplib::Re
 
         if (db_manager_->saveNode(json))
         {
-            sendSuccessResponse(res, "node_id", node_id);
+            // 查询该节点下所有已分配组件
+            nlohmann::json components = db_manager_->getComponentsByNodeId(node_id);
+            nlohmann::json resp = {
+                {"status", "success"},
+                {"node_id", node_id},
+                {"components", components}
+            };
+            res.set_content(resp.dump(), "application/json");
         }
         else
         {
@@ -76,7 +71,7 @@ void HTTPServer::handleResourceReport(const httplib::Request &req, httplib::Resp
     try
     {
         auto json = nlohmann::json::parse(req.body);
-        
+
         if (db_manager_->saveResourceUsage(json))
         {
             sendSuccessResponse(res, "Resource usage saved successfully");
@@ -84,6 +79,13 @@ void HTTPServer::handleResourceReport(const httplib::Request &req, httplib::Resp
         else
         {
             sendErrorResponse(res, "Failed to save resource usage");
+        }
+
+        // 保存组件状态
+        if (json.contains("components")) {
+            for (const auto& component : json["components"]) {
+                db_manager_->updateComponentStatus(component);
+            }
         }
     }
     catch (const std::exception &e)
@@ -134,72 +136,6 @@ void HTTPServer::handleGetNodeDetails(const httplib::Request &req, httplib::Resp
     }
     catch (const std::exception &e)
     {
-        sendExceptionResponse(res, e);
-    }
-}
-
-// 处理获取节点资源历史
-void HTTPServer::handleGetNodeResourceHistory(const httplib::Request &req, httplib::Response &res)
-{
-    try
-    {
-        std::string node_id = req.path_params.at("node_id");
-        int limit = req.has_param("limit") ? std::stoi(req.get_param_value("limit")) : 100;
-
-        auto history = db_manager_->getNodeResourceHistory(node_id, limit);
-        sendSuccessResponse(res, "history", history);
-    }
-    catch (const std::exception &e)
-    {
-        sendExceptionResponse(res, e);
-    }
-}
-
-void HTTPServer::handleGetNodeResources(const httplib::Request &req, httplib::Response &res)
-{
-    try
-    {
-        auto node_id = req.path_params.at("node_id");
-        auto resource_type = req.path_params.at("resource_type");
-        int limit = req.has_param("limit") ? std::stoi(req.get_param_value("limit")) : 100;
-
-        if (req.has_param("limit"))
-        {
-            limit = std::stoi(req.get_param_value("limit"));
-        }
-
-        if (resource_type == "cpu")
-        {
-            auto cpu_metrics = db_manager_->getCpuMetrics(node_id, limit);
-            sendSuccessResponse(res, "cpu_metrics", cpu_metrics);
-        }
-        else if (resource_type == "memory")
-        {
-            auto memory_metrics = db_manager_->getMemoryMetrics(node_id, limit);
-            sendSuccessResponse(res, "memory_metrics", memory_metrics);
-        }
-        else
-        {
-            sendErrorResponse(res, "Invalid resource type");
-        }
-    }
-    catch (const std::exception &e)
-    {
-        sendExceptionResponse(res, e);
-    }
-}
-
-// 处理节点心跳
-void HTTPServer::handleNodeHeartbeat(const httplib::Request &req, httplib::Response &res)
-{
-    try {
-        std::string node_id = req.path_params.at("node_id");
-        if (db_manager_->updateNodeLastSeen(node_id)) {
-            sendSuccessResponse(res, "Heartbeat updated");
-        } else {
-            sendErrorResponse(res, "Failed to update heartbeat");
-        }
-    } catch (const std::exception &e) {
         sendExceptionResponse(res, e);
     }
 }
