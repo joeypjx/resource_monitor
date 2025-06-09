@@ -57,13 +57,11 @@ void ComponentManager::addComponent(const nlohmann::json &component_info)
     components_[component_info["component_id"]] = component_info;
 }
 
+// 部署组件
 nlohmann::json ComponentManager::deployComponent(const nlohmann::json &component_info)
 {
-
     // 打印组件信息 格式化
     std::cout << "Deploying component: " << component_info.dump(4) << std::endl;
-
-    std::lock_guard<std::mutex> lock(components_mutex_);
 
     // 检查必要字段
     if (!component_info.contains("component_id") || !component_info.contains("business_id") ||
@@ -74,27 +72,41 @@ nlohmann::json ComponentManager::deployComponent(const nlohmann::json &component
             {"message", "Missing required fields"}};
     }
 
-    std::string component_id = component_info["component_id"];
-    std::string business_id = component_info["business_id"];
-    std::string component_name = component_info["component_name"];
-    std::string type = component_info["type"];
-
     // 根据组件类型调用不同的部署方法
-    if (type == "docker")
+    if (component_info["type"] == "docker")
     {
         auto result = deployDockerComponent(component_info);
+        if (result["status"] == "success")
+        {
+            // 保存组件信息
+            std::lock_guard<std::mutex> lock(components_mutex_);
+            nlohmann::json component = component_info;
+            component["container_id"] = result["container_id"];
+            component["status"] = "running";
+            component["type"] = "docker";
+            components_[component_info["component_id"]] = component;
+        }
         return result;
     }
-    else if (type == "binary")
+    else if (component_info["type"] == "binary")
     {
         auto result = deployBinaryComponent(component_info);
+        if (result["status"] == "success")
+        {
+            std::lock_guard<std::mutex> lock(components_mutex_);
+            nlohmann::json component = component_info;
+            component["process_id"] = result["process_id"];
+            component["status"] = "running";
+            component["type"] = "binary";
+            components_[component_info["component_id"]] = component;
+        }
         return result;
     }
     else
     {
         return {
             {"status", "error"},
-            {"message", "Unsupported component type: " + type}};
+            {"message", "Unsupported component type: " + component_info["type"].get<std::string>()}};
     }
 }
 
@@ -104,27 +116,22 @@ nlohmann::json ComponentManager::deployDockerComponent(const nlohmann::json &com
     std::string business_id = component_info["business_id"];
     std::string component_name = component_info["component_name"];
 
-    // 检查Docker相关字段
-    if ((!component_info.contains("image_url") || component_info["image_url"].get<std::string>().empty()) &&
-        (!component_info.contains("image_name") || component_info["image_name"].get<std::string>().empty()))
+    // 检查Docker相关字段，image_name是必须的，image_url是可选的
+    if (!component_info.contains("image_name") || component_info["image_name"].get<std::string>().empty())
     {
         return {
             {"status", "error"},
-            {"message", "Missing Docker image information"}};
+            {"message", "Missing Docker image name"}};
     }
 
     // 获取镜像信息
     std::string image_url = component_info.contains("image_url") ? component_info["image_url"].get<std::string>() : "";
-    std::string image_name = component_info.contains("image_name") ? component_info["image_name"].get<std::string>() : "";
+    std::string image_name = component_info["image_name"];
 
-    // 下载或拉取镜像 todo 需要修改
-    auto pull_result = downloadImage(image_url, image_name);
+    // 下载或拉取镜像
+    auto pull_result = docker_manager_->pullImage(image_url, image_name);
 
-    // 打印镜像信息
-    std::cout << "Image url: " << image_url << std::endl;
-    std::cout << "Image name: " << image_name << std::endl;
-
-    if (pull_result["status"] != "success")
+    if (pull_result["status"] != "success") // 如果拉取失败，则返回错误信息
     {
         return pull_result;
     }
@@ -164,14 +171,14 @@ nlohmann::json ComponentManager::deployDockerComponent(const nlohmann::json &com
     }
 
     // 创建容器名称
-    std::string container_name = "rm_" + business_id.substr(0, 8) + "_" + component_id.substr(0, 8);
+    std::string container_name = "c_" + business_id.substr(0, 8) + "_" + component_id.substr(0, 8);
 
     // 打印容器名称
     std::cout << "Container name: " << container_name << std::endl;
 
     // 创建并启动容器
     auto create_result = docker_manager_->createContainer(
-        image_name.empty() ? "loaded_image:latest" : image_name,
+        image_name,
         container_name,
         env_vars,
         resource_limits,
@@ -185,13 +192,6 @@ nlohmann::json ComponentManager::deployDockerComponent(const nlohmann::json &com
     // 获取容器ID
     std::string container_id = create_result["container_id"];
 
-    // 保存组件信息
-    nlohmann::json component = component_info;
-    component["container_id"] = container_id;
-    component["status"] = "running";
-    component["type"] = "docker";
-    components_[component_id] = component;
-
     return {
         {"status", "success"},
         {"message", "Docker component deployed successfully"},
@@ -204,43 +204,40 @@ nlohmann::json ComponentManager::deployBinaryComponent(const nlohmann::json &com
     std::string business_id = component_info["business_id"];
     std::string component_name = component_info["component_name"];
 
-    // 检查二进制路径或URL
-    if (!component_info.contains("binary_path") && !component_info.contains("binary_url"))
-    {
+    std::string binary_path;
+    // 首先确定binary_path
+    if (component_info.contains("binary_path") && !component_info["binary_path"].get<std::string>().empty()) {
+        binary_path = component_info["binary_path"];
+    } else if (component_info.contains("binary_url") && !component_info["binary_url"].get<std::string>().empty()) {
+        // 从URL中提取文件名作为默认路径
+        std::string binary_url = component_info["binary_url"];
+        std::string filename = binary_url.substr(binary_url.find_last_of("/") + 1);
+        binary_path = "/opt/resource_monitor/binaries/" + business_id + "/" + component_id + "/" + filename;
+    } else {
         return {
             {"status", "error"},
-            {"message", "Missing binary_path or binary_url"}};
+            {"message", "Missing both binary_path and binary_url"}
+        };
     }
 
-    std::string binary_path;
+    // 检查文件是否存在
+    std::ifstream file(binary_path);
+    if (!file.good()) {
+        // 文件不存在,需要下载
+        if (!component_info.contains("binary_url") || component_info["binary_url"].get<std::string>().empty()) {
+            return {
+                {"status", "error"},
+                {"message", "Binary file does not exist and no download URL provided"}
+            };
+        }
 
-    // 下载二进制文件（如果提供了URL）
-    if (component_info.contains("binary_url") && !component_info["binary_url"].get<std::string>().empty())
-    {
         std::string binary_url = component_info["binary_url"];
-
-        // 如果没有指定binary_path，则使用默认路径
-        if (component_info.contains("binary_path"))
-        {
-            binary_path = component_info["binary_path"];
-        }
-        else
-        {
-            // 从URL中提取文件名
-            std::string filename = binary_url.substr(binary_url.find_last_of("/") + 1);
-            binary_path = "/opt/resource_monitor/binaries/" + business_id + "/" + component_id + "/" + filename;
-        }
-
-        auto result = downloadBinary(binary_url, binary_path);
-        if (result["status"] != "success")
-        {
+        auto result = binary_manager_->downloadBinary(binary_url, binary_path);
+        if (result["status"] != "success") {
             return result;
         }
     }
-    else
-    {
-        binary_path = component_info["binary_path"];
-    }
+    file.close();
 
     // 创建配置文件（如果有）
     if (component_info.contains("config_files") && component_info["config_files"].is_array())
@@ -288,15 +285,6 @@ nlohmann::json ComponentManager::deployBinaryComponent(const nlohmann::json &com
         return result;
     }
 
-    // 保存组件信息
-    nlohmann::json component = component_info;
-    component["process_id"] = result["process_id"];
-    component["binary_path"] = binary_path;
-    component["working_dir"] = working_dir;
-    component["status"] = "running";
-    component["type"] = "binary";
-    components_[component_id] = component;
-
     return {
         {"status", "success"},
         {"message", "Binary component deployed successfully"},
@@ -304,62 +292,29 @@ nlohmann::json ComponentManager::deployBinaryComponent(const nlohmann::json &com
         {"process_id", result["process_id"]}};
 }
 
-nlohmann::json ComponentManager::stopComponent(const std::string &component_id,
-                                               const std::string &business_id,
-                                               const std::string &container_or_process_id,
-                                               ComponentType component_type)
+nlohmann::json ComponentManager::stopComponent(const nlohmann::json &component_info)
 {
 
-    std::lock_guard<std::mutex> lock(components_mutex_);
+    std::string component_id = component_info["component_id"];
+    std::string business_id = component_info["business_id"];
+    ComponentType component_type = component_info.contains("type") && component_info["type"] == "docker" ? ComponentType::DOCKER : ComponentType::BINARY;
+    std::string container_id = component_info.contains("container_id") ? component_info["container_id"].get<std::string>() : "";
+    std::string process_id = component_info.contains("process_id") ? component_info["process_id"].get<std::string>() : "";
+    std::string container_or_process_id = container_id.empty() ? process_id : container_id;
 
-    // 检查组件是否存在
-    if (components_.find(component_id) == components_.end())
+    if (component_type == ComponentType::DOCKER)
     {
-        // 如果组件不在内存中，但提供了ID，尝试停止
-        if (!container_or_process_id.empty())
-        {
-            if (component_type == ComponentType::DOCKER)
-            {
-                return stopDockerComponent(component_id, business_id, container_or_process_id);
-            }
-            else if (component_type == ComponentType::BINARY)
-            {
-                return stopBinaryComponent(component_id, business_id, container_or_process_id);
-            }
-        }
-
-        return {
-            {"status", "error"},
-            {"message", "Component not found"}};
+        return stopDockerComponent(component_id, business_id, container_or_process_id);
     }
-
-    // 获取组件信息
-    const auto &component = components_[component_id];
-
-    // 检查业务ID是否匹配
-    if (component["business_id"] != business_id)
+    else if (component_type == ComponentType::BINARY)
     {
-        return {
-            {"status", "error"},
-            {"message", "Business ID mismatch"}};
-    }
-
-    // 根据组件类型调用不同的停止方法
-    if (component["type"] == "docker")
-    {
-        std::string container_id = component.contains("container_id") ? component["container_id"].get<std::string>() : "";
-        return stopDockerComponent(component_id, business_id, container_id);
-    }
-    else if (component["type"] == "binary")
-    {
-        std::string process_id = component.contains("process_id") ? component["process_id"].get<std::string>() : "";
-        return stopBinaryComponent(component_id, business_id, process_id);
+        return stopBinaryComponent(component_id, business_id, container_or_process_id);
     }
     else
     {
         return {
             {"status", "error"},
-            {"message", "Unsupported component type"}};
+            {"message", "Unsupported component type:"}};
     }
 }
 
@@ -387,6 +342,7 @@ nlohmann::json ComponentManager::stopDockerComponent(const std::string &componen
     docker_manager_->removeContainer(container_id);
 
     // 更新组件状态（如果在内存中）
+    std::lock_guard<std::mutex> lock(components_mutex_);
     auto it = components_.find(component_id);
     if (it != components_.end())
     {
@@ -419,6 +375,7 @@ nlohmann::json ComponentManager::stopBinaryComponent(const std::string &componen
     }
 
     // 更新组件状态（如果在内存中）
+    std::lock_guard<std::mutex> lock(components_mutex_);
     auto it = components_.find(component_id);
     if (it != components_.end())
     {
@@ -431,14 +388,22 @@ nlohmann::json ComponentManager::stopBinaryComponent(const std::string &componen
         {"message", "Binary component stopped successfully"}};
 }
 
+// 收集组件状态
 bool ComponentManager::collectComponentStatus()
 {
-    std::lock_guard<std::mutex> lock(components_mutex_);
+    // 先获取所有组件的快照,避免长时间加锁
+    std::map<std::string, nlohmann::json> components_snapshot;
+    {
+        std::lock_guard<std::mutex> lock(components_mutex_);
+        components_snapshot = components_;
+    }
 
-    for (auto &it : components_)
+    // 收集每个组件的状态
+    std::map<std::string, nlohmann::json> updated_components;
+    for (auto &it : components_snapshot)
     {
         auto &component_id = it.first;
-        auto &component = it.second;
+        auto component = it.second;
 
         // 根据组件类型收集状态
         if (component["type"] == "docker")
@@ -459,11 +424,6 @@ bool ComponentManager::collectComponentStatus()
                 if (container_status == "running")
                 {
                     component["status"] = "running";
-                    // 获取容器资源使用情况
-                    // auto stats_result = docker_manager_->getContainerStats(container_id);
-                    // if (stats_result["status"] == "success") {
-                    //     component["resource_usage"] = stats_result["resource_usage"];
-                    // }
                 }
                 else if (container_status == "exited")
                 {
@@ -496,15 +456,6 @@ bool ComponentManager::collectComponentStatus()
             if (status_result["running"])
             {
                 component["status"] = "running";
-                // 获取进程资源使用情况
-                // auto stats_result = binary_manager_->getProcessStats(process_id);
-                // if (stats_result.contains("cpu_percent")) {
-                //     component["resource_usage"] = {
-                //         {"cpu_percent", stats_result["cpu_percent"]},
-                //         {"memory_percent", stats_result["memory_percent"]},
-                //         {"memory_rss_kb", stats_result["memory_rss_kb"]}
-                //     };
-                // }
             }
             else
             {
@@ -516,73 +467,31 @@ bool ComponentManager::collectComponentStatus()
         auto now = std::chrono::system_clock::now();
         auto timestamp = std::chrono::system_clock::to_time_t(now);
         component["timestamp"] = timestamp;
+
+        updated_components[component_id] = component;
     }
+
+    // 最后一次性更新所有组件状态
+    {
+        std::lock_guard<std::mutex> lock(components_mutex_);
+        for(const auto& it : updated_components) {
+            components_[it.first] = it.second;
+        }
+    }
+
     return true;
 }
 
-bool ComponentManager::reportComponentStatus()
+void ComponentManager::statusCollectionThread()
 {
-    std::lock_guard<std::mutex> lock(components_mutex_);
-    for (const auto &it : components_)
+    while (running_)
     {
-        const auto &component_id = it.first;
-        const auto &component = it.second;
-        // 准备上报数据
-        nlohmann::json report = {
-            {"component_id", component_id},
-            {"business_id", component["business_id"]},
-            {"status", component["status"]},
-            {"type", component["type"]}};
+        // 收集组件状态
+        collectComponentStatus();
 
-        // 根据组件类型添加特定信息
-        if (component["type"] == "docker")
-        {
-            // 添加容器ID
-            if (component.contains("container_id"))
-            {
-                report["container_id"] = component["container_id"];
-            }
-        }
-        else if (component["type"] == "binary")
-        {
-            // 添加进程ID
-            if (component.contains("process_id"))
-            {
-                report["process_id"] = component["process_id"];
-            }
-            // 添加二进制路径
-            if (component.contains("binary_path"))
-            {
-                report["binary_path"] = component["binary_path"];
-            }
-        }
-
-        // 添加资源使用情况
-        if (component.contains("resource_usage"))
-        {
-            report["resource_usage"] = component["resource_usage"];
-        }
-
-        // 添加时间戳
-        if (component.contains("timestamp"))
-        {
-            report["timestamp"] = component["timestamp"];
-        }
-        else
-        {
-            auto now = std::chrono::system_clock::now();
-            auto timestamp = std::chrono::system_clock::to_time_t(now);
-            report["timestamp"] = timestamp;
-        }
-
-        // 发送状态上报
-        auto response = http_client_->post("/api/report/component", report);
-        if (!response.contains("status") || response["status"] != "success")
-        {
-            std::cerr << "Failed to report component status: " << component_id << std::endl;
-        }
+        // 等待下一次收集
+        std::this_thread::sleep_for(std::chrono::seconds(collection_interval_sec_));
     }
-    return true;
 }
 
 bool ComponentManager::startStatusCollection(int interval_sec)
@@ -615,16 +524,6 @@ void ComponentManager::stopStatusCollection()
     {
         collection_thread_->join();
     }
-}
-
-nlohmann::json ComponentManager::downloadImage(const std::string &image_url, const std::string &image_name)
-{
-    return docker_manager_->pullImage(image_url, image_name);
-}
-
-nlohmann::json ComponentManager::downloadBinary(const std::string &binary_url, const std::string &binary_path)
-{
-    return binary_manager_->downloadBinary(binary_url, binary_path);
 }
 
 bool ComponentManager::createConfigFiles(const nlohmann::json &config_files)
@@ -660,22 +559,6 @@ bool ComponentManager::createConfigFiles(const nlohmann::json &config_files)
     return true;
 }
 
-void ComponentManager::statusCollectionThread()
-{
-    while (running_)
-    {
-
-        // 收集组件状态
-        collectComponentStatus();
-
-        // 上报组件状态
-        // reportComponentStatus();
-
-        // 等待下一次收集
-        std::this_thread::sleep_for(std::chrono::seconds(collection_interval_sec_));
-    }
-}
-
 nlohmann::json ComponentManager::getComponentStatus()
 {
     std::lock_guard<std::mutex> lock(components_mutex_);
@@ -686,4 +569,15 @@ nlohmann::json ComponentManager::getComponentStatus()
         result.push_back(it.second);
     }
     return result;
+}
+
+bool ComponentManager::removeComponent(const std::string& component_id)
+{
+    std::lock_guard<std::mutex> lock(components_mutex_);
+    auto it = components_.find(component_id);
+    if (it != components_.end()) {
+        components_.erase(it);
+        return true;
+    }
+    return false;
 }

@@ -71,10 +71,7 @@ public:
      * @param component_type 组件类型
      * @return 停止结果
      */
-    nlohmann::json stopComponent(const std::string& component_id, 
-                               const std::string& business_id, 
-                               const std::string& container_or_process_id,
-                               ComponentType component_type = ComponentType::DOCKER);
+    nlohmann::json stopComponent(const nlohmann::json& component_info);
     
     /**
      * 收集组件状态
@@ -109,6 +106,14 @@ public:
      * @return 组件状态
      */
     nlohmann::json getComponentStatus();
+
+    /**
+     * 移除组件
+     * 
+     * @param component_id 组件ID
+     * @return 是否成功移除
+     */
+    bool removeComponent(const std::string& component_id);
 
 private:
     /**

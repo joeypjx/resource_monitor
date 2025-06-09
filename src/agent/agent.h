@@ -55,14 +55,7 @@ public:
      */
     void stop();
     
-    /**
-     * 获取Board ID
-     * 
-     * @return Board唯一标识符
-     */
-    std::string getAgentId() const;
-
-    void sendHeartbeat();
+    void init();
 
 private:
     /**
@@ -82,13 +75,15 @@ private:
      */
     void workerThread();
 
-    void getLocalIpAddress();
+    std::string getHostname();
 
-    void getOsInfo();
+    std::string getLocalIpAddress();
 
-    void getCpuModel();
+    std::string getOsInfo();
 
-    void getGpuCount();
+    std::string getCpuModel();
+
+    int getGpuCount();
     
 
     /**
@@ -115,7 +110,8 @@ private:
      */
     nlohmann::json handleStopRequest(const nlohmann::json& request);
 
-    void heartbeatThread();
+    std::string readAgentIdFromFile(const std::string& file_path);
+    void writeAgentIdToFile(const std::string& file_path, const std::string& id);
 
 private:
     std::string manager_url_;                      // Manager的URL地址
@@ -134,8 +130,6 @@ private:
     std::shared_ptr<ComponentManager> component_manager_; // 组件管理器
     
     std::thread worker_thread_;                    // 工作线程
-    std::thread heartbeat_thread_;
-    bool heartbeat_running_ = false;
     
     httplib::Server* http_server_;                 // HTTP服务器
     std::atomic<bool> server_running_;             // 服务器运行标志

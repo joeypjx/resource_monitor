@@ -29,45 +29,9 @@ Agent::Agent(const std::string &manager_url,
       collection_interval_sec_(collection_interval_sec),
       running_(false),
       http_server_(nullptr),
-      server_running_(false),
-      heartbeat_running_(false)
+      server_running_(false)
 {
-
-    // 如果没有提供主机名，则自动获取
-    if (hostname_.empty())
-    {
-        char host[256];
-        if (gethostname(host, sizeof(host)) == 0)
-        {
-            hostname_ = host;
-        }
-        else
-        {
-            hostname_ = "unknown";
-        }
-    }
-
-    // 获取IP地址
-    getLocalIpAddress();
-
-    // 获取操作系统信息
-    getOsInfo();
-
-    // 获取CPU架构
-    getCpuModel();
-
-    // 获取GPU数量
-    getGpuCount();
-
-    // 创建HTTP客户端
-    http_client_ = std::make_shared<HttpClient>(manager_url_);
-
-    // 创建资源采集器
-    collectors_.push_back(std::make_unique<CpuCollector>());
-    collectors_.push_back(std::make_unique<MemoryCollector>());
-
-    // 创建组件管理器
-    component_manager_ = std::make_shared<ComponentManager>(http_client_);
+    init();
 }
 
 Agent::~Agent()
@@ -120,15 +84,11 @@ bool Agent::start()
         return false;
     }
 
-    // 启动心跳线程
-    heartbeat_running_ = true;
-    // heartbeat_thread_ = std::thread(&Agent::heartbeatThread, this);
+    // 启动工作线程
+    worker_thread_ = std::thread(&Agent::workerThread, this);
 
     // 设置运行标志
     running_ = true;
-
-    // 启动工作线程
-    worker_thread_ = std::thread(&Agent::workerThread, this);
 
     return true;
 }
@@ -161,20 +121,9 @@ void Agent::stop()
         http_server_ = nullptr;
         server_running_ = false;
     }
-
-    // 停止心跳线程
-    heartbeat_running_ = false;
-    if (heartbeat_thread_.joinable())
-    {
-        heartbeat_thread_.join();
-    }
 }
 
-std::string Agent::getAgentId() const
-{
-    return agent_id_;
-}
-
+// 注册到Manager
 bool Agent::registerToManager()
 {
     // 本地agent_id文件路径
@@ -182,12 +131,7 @@ bool Agent::registerToManager()
     // 优先尝试从本地文件读取agent_id
     if (agent_id_.empty())
     {
-        std::ifstream fin(agent_id_file);
-        if (fin)
-        {
-            std::getline(fin, agent_id_);
-            fin.close();
-        }
+        agent_id_ = readAgentIdFromFile(agent_id_file);
     }
 
     nlohmann::json register_info;
@@ -196,11 +140,11 @@ bool Agent::registerToManager()
         // 已有agent_id，带上注册
         register_info["node_id"] = agent_id_;
     }
-    register_info["hostname"] = hostname_;
-    register_info["ip_address"] = ip_address_;
-    register_info["os_info"] = os_info_;
-    register_info["cpu_model"] = cpu_model_;
-    register_info["gpu_count"] = gpu_count_;
+    register_info["hostname"] = getHostname();
+    register_info["ip_address"] = getLocalIpAddress();
+    register_info["os_info"] = getOsInfo();
+    register_info["cpu_model"] = getCpuModel();
+    register_info["gpu_count"] = getGpuCount();
 
     // 发送注册请求
     nlohmann::json response = http_client_->registerAgent(register_info);
@@ -212,13 +156,7 @@ bool Agent::registerToManager()
         if (response.contains("node_id"))
         {
             agent_id_ = response["node_id"];
-            // 写入本地文件
-            std::ofstream fout(agent_id_file);
-            if (fout)
-            {
-                fout << agent_id_ << std::endl;
-                fout.close();
-            }
+            writeAgentIdToFile(agent_id_file, agent_id_);
         }
         std::cout << "Successfully registered to Manager with Node ID: " << agent_id_ << std::endl;
 
@@ -242,11 +180,13 @@ bool Agent::registerToManager()
     }
 }
 
+// 采集并上报资源信息
 void Agent::collectAndReportResources()
 {
     nlohmann::json report_json;
     report_json["node_id"] = agent_id_;
     report_json["timestamp"] = std::time(nullptr);
+
     nlohmann::json resource_json;
     // 采集各类资源信息，按类型放入resource字段
     for (const auto &collector : collectors_)
@@ -263,7 +203,7 @@ void Agent::collectAndReportResources()
     // 检查响应
     if (response.contains("status") && response["status"] == "success")
     {
-        // std::cout << "Successfully reported resource data to Manager" << std::endl;
+        std::cout << "Successfully reported resource data to Manager" << report_json.dump(4) << std::endl;
     }
     else
     {
@@ -288,112 +228,7 @@ void Agent::workerThread()
     }
 }
 
-void Agent::getLocalIpAddress()
-{
-    struct ifaddrs *ifaddr, *ifa;
-    int family, s;
-    char host[NI_MAXHOST];
-
-    if (getifaddrs(&ifaddr) == -1)
-    {
-        ip_address_ = "127.0.0.1";
-        return;
-    }
-
-    // 遍历所有网络接口
-    for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next)
-    {
-        if (ifa->ifa_addr == nullptr)
-        {
-            continue;
-        }
-
-        family = ifa->ifa_addr->sa_family;
-
-        // 只考虑IPv4地址
-        if (family == AF_INET)
-        {
-            s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in),
-                            host, NI_MAXHOST, nullptr, 0, NI_NUMERICHOST);
-            if (s != 0)
-            {
-                continue;
-            }
-
-            // 忽略回环接口
-            if (strcmp(ifa->ifa_name, "lo") != 0)
-            {
-                ip_address_ = host;
-                break;
-            }
-        }
-    }
-
-    freeifaddrs(ifaddr);
-
-    // 如果没有找到有效的IP地址，使用本地回环地址
-    if (ip_address_.empty())
-    {
-        ip_address_ = "127.0.0.1";
-    }
-}
-
-void Agent::getOsInfo()
-{
-    struct utsname system_info;
-    if (uname(&system_info) == -1)
-    {
-        os_info_ = "Unknown";
-        return;
-    }
-
-    os_info_ = std::string(system_info.sysname) + " " +
-               std::string(system_info.release) + " " +
-               std::string(system_info.version) + " " +
-               std::string(system_info.machine);
-}
-
-void Agent::getCpuModel()
-{
-    // 获取CPU型号
-    cpu_model_ = "Unknown";
-    FILE *pipe = popen("cat /proc/cpuinfo | grep 'model name' | uniq | awk -F': ' '{print $2}'", "r");
-    if (!pipe)
-        return;
-    char buffer[128];
-    std::string result = "";
-    if (fgets(buffer, sizeof(buffer), pipe) != nullptr)
-    {
-        result = buffer;
-    }
-    pclose(pipe);
-    cpu_model_ = result;
-}
-
-void Agent::getGpuCount()
-{
-    gpu_count_ = 0;
-    FILE *pipe = popen("ixsmi -L | wc -l", "r");
-    if (!pipe)
-        return;
-    char buffer[128];
-    std::string result = "";
-    if (fgets(buffer, sizeof(buffer), pipe) != nullptr)
-    {
-        result = buffer;
-    }
-    pclose(pipe);
-    try
-    {
-        gpu_count_ = std::stoi(result);
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << "Error getting GPU count: " << e.what() << std::endl;
-        gpu_count_ = 0;
-    }
-}
-
+// 启动HTTP服务器
 bool Agent::startHttpServer(int port)
 {
     // 如果服务器已经在运行，直接返回
@@ -480,17 +315,15 @@ nlohmann::json Agent::handleStopRequest(const nlohmann::json &request)
             {"message", "Missing required fields"}};
     }
 
-    std::string component_id = request["component_id"];
-    std::string business_id = request["business_id"];
-    std::string container_id = request.contains("container_id") ? request["container_id"].get<std::string>() : "";
-    std::string process_id = request.contains("process_id") ? request["process_id"].get<std::string>() : "";
-    ComponentType component_type = request.contains("type") && request["type"] == "docker" ? ComponentType::DOCKER : ComponentType::BINARY;
-    std::string container_or_process_id = container_id.empty() ? process_id : container_id;
-
     // 调用组件管理器停止组件
     // 异步后台执行
-    std::thread([this, component_id, business_id, container_or_process_id, component_type]()
-                { component_manager_->stopComponent(component_id, business_id, container_or_process_id, component_type); })
+    std::thread([this, request]()
+                { 
+                    component_manager_->stopComponent(request);
+                    if (request.contains("permanently") && request["permanently"]) {
+                        component_manager_->removeComponent(request["component_id"]);
+                    }
+                })
         .detach();
 
     return {
@@ -498,32 +331,113 @@ nlohmann::json Agent::handleStopRequest(const nlohmann::json &request)
         {"message", "Stop request is being processed asynchronously"}};
 }
 
-void Agent::sendHeartbeat()
-{
-    if (!agent_id_.empty())
-    {
-        nlohmann::json response = http_client_->heartbeat(agent_id_);
-        if (response.contains("status") && response["status"] == "success")
-        {
-            // std::cout << "Heartbeat sent successfully" << std::endl;
-        }
-        else
-        {
-            std::cerr << "Failed to send heartbeat: "
-                      << (response.contains("message") ? response["message"].get<std::string>() : "Unknown error")
-                      << std::endl;
-        }
+void Agent::init() {
+    // 创建HTTP客户端
+    http_client_ = std::make_shared<HttpClient>(manager_url_);
+    // 创建资源采集器
+    collectors_.clear();
+    collectors_.push_back(std::make_unique<CpuCollector>());
+    collectors_.push_back(std::make_unique<MemoryCollector>());
+    // 创建组件管理器
+    component_manager_ = std::make_shared<ComponentManager>(http_client_);
+}
+
+// 获取本地agent_id
+
+std::string Agent::readAgentIdFromFile(const std::string& file_path) {
+    std::ifstream fin(file_path);
+    std::string id;
+    if (fin) {
+        std::getline(fin, id);
+        fin.close();
+    }
+    return id;
+}
+
+void Agent::writeAgentIdToFile(const std::string& file_path, const std::string& id) {
+    std::ofstream fout(file_path);
+    if (fout) {
+        fout << id << std::endl;
+        fout.close();
     }
 }
 
-void Agent::heartbeatThread()
-{
-    while (heartbeat_running_)
-    {
-        sendHeartbeat();
-        for (int i = 0; i < 3 && heartbeat_running_; ++i)
-        {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+// 获取本地信息
+
+std::string Agent::getHostname() {
+    // 如果没有提供主机名，则自动获取
+    if (hostname_.empty()) {
+        char host[256];
+        if (gethostname(host, sizeof(host)) == 0) {
+            hostname_ = host;
+        } else {
+            hostname_ = "unknown";
         }
+    }
+    return hostname_;
+}
+
+std::string Agent::getLocalIpAddress() {
+    struct ifaddrs *ifaddr, *ifa;
+    int family, s;
+    char host[NI_MAXHOST];
+    std::string ip;
+    if (getifaddrs(&ifaddr) == -1) {
+        return "127.0.0.1";
+    }
+    for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == nullptr) continue;
+        family = ifa->ifa_addr->sa_family;
+        if (family == AF_INET) {
+            s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, nullptr, 0, NI_NUMERICHOST);
+            if (s != 0) continue;
+            if (strcmp(ifa->ifa_name, "lo") != 0) {
+                ip = host;
+                break;
+            }
+        }
+    }
+    freeifaddrs(ifaddr);
+    if (ip.empty()) ip = "127.0.0.1";
+    return ip;
+}
+
+std::string Agent::getOsInfo() {
+    struct utsname system_info;
+    if (uname(&system_info) == -1) {
+        return "Unknown";
+    }
+    return std::string(system_info.sysname) + " " +
+           std::string(system_info.release) + " " +
+           std::string(system_info.version) + " " +
+           std::string(system_info.machine);
+}
+
+std::string Agent::getCpuModel() {
+    FILE *pipe = popen("cat /proc/cpuinfo | grep 'model name' | uniq | awk -F': ' '{print $2}'", "r");
+    if (!pipe) return "Unknown";
+    char buffer[128];
+    std::string result = "";
+    if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        result = buffer;
+    }
+    pclose(pipe);
+    return result;
+}
+
+int Agent::getGpuCount() {
+    FILE *pipe = popen("ixsmi -L | wc -l", "r");
+    if (!pipe) return 0;
+    char buffer[128];
+    std::string result = "";
+    if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+        result = buffer;
+    }
+    pclose(pipe);
+    try {
+        return std::stoi(result);
+    } catch (const std::exception &e) {
+        std::cerr << "Error getting GPU count: " << e.what() << std::endl;
+        return 0;
     }
 }

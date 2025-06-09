@@ -50,9 +50,10 @@ public:
      * 停止业务
      * 
      * @param business_id 业务ID
+     * @param permanently 是否彻底删除组件
      * @return 停止结果
      */
-    nlohmann::json stopBusiness(const std::string& business_id);
+    nlohmann::json stopBusiness(const std::string& business_id, bool permanently = false);
     
     /**
      * 重启业务
@@ -115,9 +116,10 @@ public:
      * 
      * @param business_id 业务ID
      * @param component_id 组件ID
+     * @param permanently 是否永久停止
      * @return 停止结果
      */
-    nlohmann::json stopComponent(const std::string& business_id, const std::string& component_id);
+    nlohmann::json stopComponent(const std::string& business_id, const std::string& component_id, bool permanently = false);
 
 private:
     /**

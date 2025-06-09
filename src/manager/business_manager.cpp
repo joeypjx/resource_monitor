@@ -170,7 +170,7 @@ nlohmann::json BusinessManager::deployBusiness(const nlohmann::json &business_in
 }
 
 // 停止业务
-nlohmann::json BusinessManager::stopBusiness(const std::string &business_id)
+nlohmann::json BusinessManager::stopBusiness(const std::string &business_id, bool permanently)
 {
     std::cout << "Stopping business: " << business_id << std::endl;
 
@@ -181,10 +181,9 @@ nlohmann::json BusinessManager::stopBusiness(const std::string &business_id)
     for (const auto &component_item : business["components"])
     {
         std::string component_id = component_item["component_id"];
-        std::string node_id = component_item["node_id"];
 
         // 停止组件
-        auto stop_result = stopComponent(business_id, component_id);
+        auto stop_result = stopComponent(business_id, component_id, permanently);
 
         if (stop_result["status"] != "success")
         {
@@ -246,7 +245,7 @@ nlohmann::json BusinessManager::restartBusiness(const std::string &business_id)
 
 nlohmann::json BusinessManager::deleteBusiness(const std::string &business_id)
 {
-    stopBusiness(business_id);
+    stopBusiness(business_id, true);
 
     bool db_result = db_manager_->deleteBusiness(business_id);
     if (db_result)
@@ -369,7 +368,7 @@ nlohmann::json BusinessManager::deployComponent(const std::string &business_id,
     return response;
 }
 
-nlohmann::json BusinessManager::stopComponent(const std::string &business_id, const std::string &component_id)
+nlohmann::json BusinessManager::stopComponent(const std::string &business_id, const std::string &component_id, bool permanently)
 {
     // 获取组件信息
     nlohmann::json component = db_manager_->getComponentById(component_id);
@@ -400,6 +399,9 @@ nlohmann::json BusinessManager::stopComponent(const std::string &business_id, co
     {
         stop_request["process_id"] = component["process_id"];
         stop_request["component_type"] = "binary";
+    }
+    if (permanently) {
+        stop_request["permanently"] = true;
     }
 
     nlohmann::json response;

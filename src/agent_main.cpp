@@ -38,7 +38,6 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
-    std::cout << "Agent started with ID: " << agent.getAgentId() << std::endl;
     std::cout << "Press Ctrl+C to stop..." << std::endl;
     
     // 等待信号

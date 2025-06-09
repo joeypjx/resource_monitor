@@ -75,6 +75,17 @@ nlohmann::json DockerManager::pullImage(const std::string& image_url, const std:
         
         // 如果提供了URL，则从URL加载镜像
         if (!image_url.empty()) {
+            // 先检查本地是否已有镜像
+            std::string check_cmd = "docker images " + image_name;
+            std::string check_output = exec(check_cmd.c_str());
+            if (check_output.find(image_name) != std::string::npos) {
+                return {
+                    {"status", "success"},
+                    {"message", "Image already exists"},
+                    {"output", check_output}
+                };
+            }
+
             // 下载镜像文件
             std::string download_cmd = "curl -s -L -o /tmp/image.tar " + image_url;
             int download_result = system(download_cmd.c_str());
@@ -85,8 +96,8 @@ nlohmann::json DockerManager::pullImage(const std::string& image_url, const std:
                 };
             }
             
-            // 加载镜像
-            cmd = "docker load -i /tmp/image.tar";
+            // 加载镜像并设置名称
+            cmd = "docker load -i /tmp/image.tar && docker tag $(docker images -q | head -n 1) " + image_name;
             std::string load_output = exec(cmd.c_str());
             
             // 清理临时文件

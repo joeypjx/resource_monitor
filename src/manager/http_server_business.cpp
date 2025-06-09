@@ -165,7 +165,7 @@ void HTTPServer::handleStopBusinessComponent(const httplib::Request &req, httpli
     {
         std::string business_id = req.path_params.at("business_id");
         std::string component_id = req.path_params.at("component_id");
-        auto result = business_manager_->stopComponent(business_id, component_id);
+        auto result = business_manager_->stopComponent(business_id, component_id, false);
         res.set_content(result.dump().c_str(), "application/json");
     }
     catch (const std::exception &e)
