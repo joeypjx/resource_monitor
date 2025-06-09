@@ -48,29 +48,6 @@ public:
 
 private:
     /**
-     * 获取所有可用节点
-     * 
-     * @return 节点列表
-     */
-    nlohmann::json getAvailableNodes();
-    
-    /**
-     * 获取节点最新资源使用情况
-     * 
-     * @param node_id 节点ID
-     * @return 资源使用情况
-     */
-    nlohmann::json getNodeResourceUsage(const std::string& node_id);
-    
-    /**
-     * 获取节点完整信息
-     * 
-     * @param node_id 节点ID
-     * @return 节点完整信息
-     */
-    nlohmann::json getNodeInfo(const std::string& node_id);
-    
-    /**
      * 检查节点是否满足组件亲和性需求
      * 
      * @param node_id 节点ID
@@ -90,7 +67,6 @@ private:
 
 private:
     std::shared_ptr<DatabaseManager> db_manager_;  // 数据库管理器
-    std::map<std::string, nlohmann::json> node_resources_;  // 节点资源缓存
 };
 
 #endif // SCHEDULER_H

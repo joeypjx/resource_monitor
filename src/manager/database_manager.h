@@ -85,6 +85,8 @@ public:
 
     nlohmann::json getComponentsByNodeId(const std::string& node_id);
 
+    nlohmann::json getOnlineNodes();
+
 private:
     std::string db_path_;                     // 数据库文件路径
     std::unique_ptr<SQLite::Database> db_;    // 数据库连接

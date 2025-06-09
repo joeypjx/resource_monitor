@@ -258,4 +258,35 @@ nlohmann::json DatabaseManager::getNode(const std::string &node_id)
     }
 
     return nlohmann::json::array();
+}
+
+nlohmann::json DatabaseManager::getOnlineNodes()
+{
+    try
+    {
+        nlohmann::json result = nlohmann::json::array();
+        // 查询所有在线Node
+        SQLite::Statement query(*db_, "SELECT node_id, hostname, ip_address, os_info, gpu_count, cpu_model, created_at, updated_at, status FROM node WHERE status = 'online'");
+        while (query.executeStep())
+        {
+            nlohmann::json node;
+            std::string node_id = query.getColumn(0).getString();
+            node["node_id"] = node_id;
+            node["hostname"] = query.getColumn(1).getString();
+            node["ip_address"] = query.getColumn(2).getString();
+            node["os_info"] = query.getColumn(3).getString();
+            node["gpu_count"] = query.getColumn(4).getInt();
+            node["cpu_model"] = query.getColumn(5).getString();
+            node["created_at"] = query.getColumn(6).getInt64();
+            node["updated_at"] = query.getColumn(7).getInt64();
+            node["status"] = query.getColumn(8).getString();
+            result.push_back(node);
+        }
+        return result;
+    }
+    catch (const std::exception &e)
+    {
+        std::cerr << "Get online nodes error: " << e.what() << std::endl;
+        return nlohmann::json::array();
+    }
 } 
