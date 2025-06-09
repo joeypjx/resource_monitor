@@ -63,15 +63,6 @@ public:
     nlohmann::json restartBusiness(const std::string& business_id);
     
     /**
-     * 更新业务
-     * 
-     * @param business_id 业务ID
-     * @param business_info 业务信息
-     * @return 更新结果
-     */
-    nlohmann::json updateBusiness(const std::string& business_id, const nlohmann::json& business_info);
-    
-    /**
      * 获取业务列表
      * 
      * @return 业务列表
@@ -85,14 +76,6 @@ public:
      * @return 业务详情
      */
     nlohmann::json getBusinessDetails(const std::string& business_id);
-    
-    /**
-     * 获取业务组件
-     * 
-     * @param business_id 业务ID
-     * @return 业务组件
-     */
-    nlohmann::json getBusinessComponents(const std::string& business_id);
 
     /**
      * 根据业务模板ID部署业务
@@ -168,9 +151,6 @@ private:
 private:
     std::shared_ptr<DatabaseManager> db_manager_;  // 数据库管理器
     std::shared_ptr<Scheduler> scheduler_;         // 调度器
-    
-    std::map<std::string, nlohmann::json> businesses_;  // 业务信息，key为业务ID
-    std::mutex businesses_mutex_;                       // 业务信息互斥锁
 };
 
 #endif // BUSINESS_MANAGER_H
