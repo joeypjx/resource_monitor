@@ -2,12 +2,13 @@
 #include "http_server.h"
 #include "database_manager.h"
 #include "business_manager.h"
+#include "sftp_server.h"
 #include <iostream>
 #include <thread>
 #include <chrono>
 
-Manager::Manager(int port, const std::string& db_path)
-    : db_path_(db_path), port_(port), running_(false) {
+Manager::Manager(int port, const std::string& db_path, int sftp_port, const std::string& sftp_root_dir)
+    : db_path_(db_path), port_(port), running_(false), sftp_port_(sftp_port), sftp_root_dir_(sftp_root_dir) {
 }
 
 Manager::~Manager() {
@@ -43,6 +44,9 @@ bool Manager::initialize() {
     // 创建HTTP服务器
     http_server_ = std::make_unique<HTTPServer>(db_manager_, business_manager_, port_);
     
+    // // 创建SFTP服务器
+    // sftp_server_ = std::make_unique<SFTPServer>(sftp_port_, sftp_root_dir_);
+    
     std::cout << "Manager initialized successfully" << std::endl;
     return true;
 }
@@ -54,6 +58,12 @@ bool Manager::start() {
     }
     
     std::cout << "Starting Manager..." << std::endl;
+    
+    // // 启动SFTP服务器
+    // if (sftp_server_ && !sftp_server_->start()) {
+    //     std::cerr << "Failed to start SFTP server" << std::endl;
+    //     return false;
+    // }
     
     // 在单独的线程中启动HTTP服务器以避免阻塞
     std::thread server_thread([this]() {
@@ -79,6 +89,11 @@ void Manager::stop() {
     }
     
     std::cout << "Stopping Manager..." << std::endl;
+    
+    // 停止SFTP服务器
+    // if (sftp_server_) {
+    //     sftp_server_->stop();
+    // }
     
     // 停止HTTP服务器
     http_server_->stop();

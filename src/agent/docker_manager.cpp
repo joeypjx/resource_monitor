@@ -9,6 +9,7 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+#include "sftp_client.h"
 
 // 辅助函数：执行系统命令并获取输出
 static std::string exec(const char* cmd) {
@@ -86,13 +87,22 @@ nlohmann::json DockerManager::pullImage(const std::string& image_url, const std:
                 };
             }
 
-            // 下载镜像文件
-            std::string download_cmd = "curl -s -L -o /tmp/image.tar " + image_url;
-            int download_result = system(download_cmd.c_str());
+            // 下载镜像文件，支持sftp/http
+            int download_result = 1;
+            std::string download_err;
+            if (image_url.rfind("sftp://", 0) == 0) {
+                SFTPClient sftp;
+                if (sftp.downloadFile(image_url, "/tmp/image.tar", download_err)) {
+                    download_result = 0;
+                }
+            } else {
+                std::string download_cmd = "curl -s -L -o /tmp/image.tar " + image_url;
+                download_result = system(download_cmd.c_str());
+            }
             if (download_result != 0) {
                 return {
                     {"status", "error"},
-                    {"message", "Failed to download image from URL"}
+                    {"message", "Failed to download image: " + download_err}
                 };
             }
             

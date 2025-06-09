@@ -6,6 +6,7 @@
 #include <map>
 #include <mutex>
 #include <nlohmann/json.hpp>
+#include "sftp_client.h"
 
 /**
  * BinaryManager类 - 二进制运行体管理器
@@ -107,6 +108,7 @@ private:
 private:
     std::map<std::string, std::string> process_map_;  // 进程ID到二进制路径的映射，key为string
     std::mutex process_mutex_;
+    std::unique_ptr<SFTPClient> sftp_client_; // SFTP客户端
 };
 
 #endif // BINARY_MANAGER_H

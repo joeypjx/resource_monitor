@@ -16,6 +16,7 @@
 #include <cstring>
 #include <vector>
 #include <cerrno>
+#include "sftp_client.h"
 
 // 用于curl下载的回调函数
 size_t writeCallback(void* ptr, size_t size, size_t nmemb, FILE* stream) {
@@ -26,6 +27,7 @@ size_t writeCallback(void* ptr, size_t size, size_t nmemb, FILE* stream) {
 BinaryManager::BinaryManager() {
     // 初始化curl
     curl_global_init(CURL_GLOBAL_DEFAULT);
+    sftp_client_ = std::make_unique<SFTPClient>();
 }
 
 BinaryManager::~BinaryManager() {
@@ -46,42 +48,49 @@ nlohmann::json BinaryManager::downloadBinary(const std::string& binary_url, cons
     std::string parent_dir = (last_slash != std::string::npos) ? binary_path.substr(0, last_slash) : ".";
     create_directories(parent_dir);
     
-    // 下载文件
-    CURL* curl = curl_easy_init();
-    if (!curl) {
-        return {
-            {"status", "error"},
-            {"message", "Failed to initialize curl"}
-        };
-    }
-    
-    FILE* fp = fopen(binary_path.c_str(), "wb");
-    if (!fp) {
+    // 判断协议
+    if (binary_url.rfind("sftp://", 0) == 0) {
+        std::string err_msg;
+        bool ok = sftp_client_->downloadFile(binary_url, binary_path, err_msg);
+        if (!ok) {
+            return {
+                {"status", "error"},
+                {"message", "SFTP下载失败: " + err_msg}
+            };
+        }
+    } else {
+        // 原有curl下载逻辑
+        CURL* curl = curl_easy_init();
+        if (!curl) {
+            return {
+                {"status", "error"},
+                {"message", "Failed to initialize curl"}
+            };
+        }
+        FILE* fp = fopen(binary_path.c_str(), "wb");
+        if (!fp) {
+            curl_easy_cleanup(curl);
+            return {
+                {"status", "error"},
+                {"message", "Failed to create file: " + binary_path}
+            };
+        }
+        curl_easy_setopt(curl, CURLOPT_URL, binary_url.c_str());
+        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+        curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 300L); // 5分钟超时
+        CURLcode res = curl_easy_perform(curl);
+        fclose(fp);
+        if (res != CURLE_OK) {
+            curl_easy_cleanup(curl);
+            return {
+                {"status", "error"},
+                {"message", "Failed to download file: " + std::string(curl_easy_strerror(res))}
+            };
+        }
         curl_easy_cleanup(curl);
-        return {
-            {"status", "error"},
-            {"message", "Failed to create file: " + binary_path}
-        };
     }
-    
-    curl_easy_setopt(curl, CURLOPT_URL, binary_url.c_str());
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 300L); // 5分钟超时
-    
-    CURLcode res = curl_easy_perform(curl);
-    fclose(fp);
-    
-    if (res != CURLE_OK) {
-        curl_easy_cleanup(curl);
-        return {
-            {"status", "error"},
-            {"message", "Failed to download file: " + std::string(curl_easy_strerror(res))}
-        };
-    }
-    
-    curl_easy_cleanup(curl);
     
     // 检查文件是否为压缩包，如果是则解压
     bool is_tar_gz = (binary_path.size() >= 7 && binary_path.substr(binary_path.size() - 7) == ".tar.gz");

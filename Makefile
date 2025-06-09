@@ -59,8 +59,8 @@ AGENT_OBJECTS = $(AGENT_SOURCES:%.cpp=$(BUILD_DIR)/%.o)
 MANAGER_OBJECTS = $(MANAGER_SOURCES:%.cpp=$(BUILD_DIR)/%.o)
 
 # 依赖库
-AGENT_LIBS = -lcurl -luuid -lpthread
-MANAGER_LIBS = -lsqlite3 -lpthread -lSQLiteCpp -luuid
+AGENT_LIBS = -lcurl -luuid -lpthread -lssh
+MANAGER_LIBS = -lsqlite3 -lpthread -lSQLiteCpp -luuid -lssh
 
 # 目标可执行文件
 AGENT_TARGET = $(BUILD_DIR)/agent
