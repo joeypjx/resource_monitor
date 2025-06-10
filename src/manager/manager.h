@@ -4,7 +4,6 @@
 #include <string>
 #include <memory>
 #include "scheduler.h"
-#include "sftp_server.h"
 
 // 前向声明
 class HTTPServer;
@@ -26,7 +25,7 @@ public:
      * @param sftp_port SFTP服务器端口
      * @param sftp_root_dir SFTP服务器根目录
      */
-    Manager(int port = 8080, const std::string& db_path = "resource_monitor.db", int sftp_port = 2222, const std::string& sftp_root_dir = "/opt/resource_monitor/files");
+    Manager(int port = 8080, const std::string& db_path = "resource_monitor.db");
     
     /**
      * 析构函数
@@ -66,9 +65,6 @@ private:
     std::shared_ptr<DatabaseManager> db_manager_;       // 数据库管理器
     std::shared_ptr<BusinessManager> business_manager_; // 业务管理器
     std::shared_ptr<Scheduler> scheduler_; // 调度器
-    std::unique_ptr<SFTPServer> sftp_server_; // SFTP服务器
-    int sftp_port_; // SFTP端口
-    std::string sftp_root_dir_; // SFTP根目录
 };
 
 #endif // MANAGER_H

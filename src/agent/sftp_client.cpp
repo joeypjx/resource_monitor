@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <regex>
+#include <fcntl.h>
 
 SFTPClient::SFTPClient() {}
 SFTPClient::~SFTPClient() {}
@@ -55,7 +56,7 @@ bool SFTPClient::downloadFile(const std::string& url, const std::string& local_p
         return false;
     }
     if (sftp_init(sftp) != SSH_OK) {
-        err_msg = "SFTP初始化失败: " + std::string(sftp_get_error(sftp));
+        err_msg = "SFTP初始化失败: " + std::to_string(sftp_get_error(sftp));
         sftp_free(sftp);
         ssh_disconnect(session);
         ssh_free(session);
@@ -63,7 +64,7 @@ bool SFTPClient::downloadFile(const std::string& url, const std::string& local_p
     }
     sftp_file file = sftp_open(sftp, remote_path.c_str(), O_RDONLY, 0);
     if (!file) {
-        err_msg = "无法打开远程文件: " + std::string(sftp_get_error(sftp));
+        err_msg = "无法打开远程文件: " + std::to_string(sftp_get_error(sftp));
         sftp_free(sftp);
         ssh_disconnect(session);
         ssh_free(session);
@@ -84,7 +85,7 @@ bool SFTPClient::downloadFile(const std::string& url, const std::string& local_p
         ofs.write(buffer, nbytes);
     }
     if (nbytes < 0) {
-        err_msg = "SFTP读取失败: " + std::string(sftp_get_error(sftp));
+        err_msg = "SFTP读取失败: " + std::to_string(sftp_get_error(sftp));
         ofs.close();
         sftp_close(file);
         sftp_free(sftp);
