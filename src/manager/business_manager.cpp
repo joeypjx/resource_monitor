@@ -399,12 +399,12 @@ nlohmann::json BusinessManager::stopComponent(const std::string &business_id, co
     if (component["type"] == "docker" && component.contains("container_id"))
     {
         stop_request["container_id"] = component["container_id"];
-        stop_request["component_type"] = "docker";
+        stop_request["type"] = "docker";
     }
     else if (component["type"] == "binary" && component.contains("process_id"))
     {
         stop_request["process_id"] = component["process_id"];
-        stop_request["component_type"] = "binary";
+        stop_request["type"] = "binary";
     }
     if (permanently) {
         stop_request["permanently"] = true;

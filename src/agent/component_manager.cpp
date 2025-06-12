@@ -296,6 +296,8 @@ nlohmann::json ComponentManager::deployBinaryComponent(const nlohmann::json &com
 nlohmann::json ComponentManager::stopComponent(const nlohmann::json &component_info)
 {
 
+    LOG_INFO("Stopping component: {}", component_info.dump(4));
+    
     std::string component_id = component_info["component_id"];
     std::string business_id = component_info["business_id"];
     ComponentType component_type = component_info.contains("type") && component_info["type"] == "docker" ? ComponentType::DOCKER : ComponentType::BINARY;

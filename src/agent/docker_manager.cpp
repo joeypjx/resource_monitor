@@ -221,7 +221,7 @@ nlohmann::json DockerManager::createContainer(const std::string& image_name,
             return {
                 {"status", "success"},
                 {"message", "Container created successfully"},
-                {"container_id", container_id}
+                {"container_id", container_id.substr(0, 12)}
             };
         } else {
             return {
