@@ -8,6 +8,7 @@ CXXFLAGS = -std=c++14 -Wall -Wextra
 SRC_DIR = src
 AGENT_DIR = $(SRC_DIR)/agent
 MANAGER_DIR = $(SRC_DIR)/manager
+UTILS_DIR = $(SRC_DIR)/utils
 BUILD_DIR = build
 
 # 依赖库目录
@@ -15,14 +16,19 @@ DEPS_DIR = deps
 JSON_DIR = $(DEPS_DIR)/nlohmann_json
 HTTPLIB_DIR = $(DEPS_DIR)/cpp-httplib
 SQLITECPP_DIR = $(DEPS_DIR)/SQLiteCpp
+SSH_DIR = $(DEPS_DIR)/libssh
+SPDLOG_DIR = $(DEPS_DIR)/spdlog
 
 # 包含目录
 INCLUDES = -I$(SRC_DIR) \
           -I$(AGENT_DIR) \
           -I$(MANAGER_DIR) \
+		  -I$(UTILS_DIR) \
           -I$(JSON_DIR)/include \
           -I$(HTTPLIB_DIR) \
           -I$(SQLITECPP_DIR)/include \
+          -I$(SPDLOG_DIR)/include \
+		  -I$(SSH_DIR)/ \
           -I/usr/local/include
 
 # 库目录
@@ -38,6 +44,7 @@ AGENT_SOURCES = $(AGENT_DIR)/agent.cpp \
 			   $(AGENT_DIR)/docker_manager.cpp \
 			   $(AGENT_DIR)/binary_manager.cpp \
 			   $(AGENT_DIR)/sftp_client.cpp \
+			   $(UTILS_DIR)/logger.cpp \
                $(SRC_DIR)/agent_main.cpp
 
 # Manager源文件
@@ -53,6 +60,7 @@ MANAGER_SOURCES = $(MANAGER_DIR)/manager.cpp \
                  $(MANAGER_DIR)/scheduler.cpp \
 				 $(MANAGER_DIR)/database_manager_template.cpp \
 				 $(MANAGER_DIR)/http_server_node.cpp \
+				 $(UTILS_DIR)/logger.cpp \
                  $(SRC_DIR)/manager_main.cpp 
 
 # 目标文件
@@ -75,6 +83,7 @@ prepare:
 	mkdir -p $(BUILD_DIR)/$(SRC_DIR)
 	mkdir -p $(BUILD_DIR)/$(AGENT_DIR)
 	mkdir -p $(BUILD_DIR)/$(MANAGER_DIR)
+	mkdir -p $(BUILD_DIR)/$(UTILS_DIR)
 
 # 编译Agent
 $(AGENT_TARGET): $(AGENT_OBJECTS)

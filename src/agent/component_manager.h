@@ -81,13 +81,6 @@ public:
     bool collectComponentStatus();
     
     /**
-     * 上报组件状态
-     * 
-     * @return 是否成功上报
-     */
-    bool reportComponentStatus();
-    
-    /**
      * 启动状态收集和上报
      * 
      * @param interval_sec 收集间隔（秒）

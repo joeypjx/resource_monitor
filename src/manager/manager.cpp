@@ -2,6 +2,7 @@
 #include "http_server.h"
 #include "database_manager.h"
 #include "business_manager.h"
+#include "utils/logger.h"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -17,48 +18,50 @@ Manager::~Manager() {
 }
 
 bool Manager::initialize() {
-    std::cout << "Initializing Manager..." << std::endl;
+    LOG_INFO("Initializing Manager...");
     
     // 创建数据库管理器
     db_manager_ = std::make_shared<DatabaseManager>(db_path_);
     if (!db_manager_->initialize()) {
-        std::cerr << "Failed to initialize database manager" << std::endl;
+        LOG_ERROR("Failed to initialize database manager");
         return false;
     }
 
     // 创建调度器
     scheduler_ = std::make_shared<Scheduler>(db_manager_);
     if (!scheduler_->initialize()) {
-        std::cerr << "Failed to initialize scheduler" << std::endl;
+        LOG_ERROR("Failed to initialize scheduler");
         return false;
     }
     
     // 创建业务管理器
     business_manager_ = std::make_shared<BusinessManager>(db_manager_, scheduler_);
     if (!business_manager_->initialize()) {
-        std::cerr << "Failed to initialize business manager" << std::endl;
+        LOG_ERROR("Failed to initialize business manager");
         return false;
     }
     
     // 创建HTTP服务器
     http_server_ = std::make_unique<HTTPServer>(db_manager_, business_manager_, port_);
     
-    std::cout << "Manager initialized successfully" << std::endl;
+    
+    LOG_INFO("Manager initialized successfully");
     return true;
 }
 
 bool Manager::start() {
     if (running_) {
-        std::cerr << "Manager is already running" << std::endl;
+        LOG_WARN("Manager is already running");
         return false;
     }
     
-    std::cout << "Starting Manager..." << std::endl;
+    LOG_INFO("Starting Manager...");
+    
     
     // 在单独的线程中启动HTTP服务器以避免阻塞
     std::thread server_thread([this]() {
         if (!http_server_->start()) {
-            std::cerr << "Failed to start HTTP server" << std::endl;
+            LOG_ERROR("Failed to start HTTP server");
             running_ = false;
         }
     });
@@ -68,37 +71,37 @@ bool Manager::start() {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     
     running_ = true;
-    std::cout << "Manager started successfully" << std::endl;
+    LOG_INFO("Manager started successfully");
     return true;
 }
 
 void Manager::stop() {
     if (!running_) {
-        std::cerr << "Manager is not running" << std::endl;
+        LOG_WARN("Manager is not running");
         return;
     }
     
-    std::cout << "Stopping Manager..." << std::endl;
+    LOG_INFO("Stopping Manager...");
     
     // 停止HTTP服务器
     http_server_->stop();
     
     running_ = false;
-    std::cout << "Manager stopped successfully" << std::endl;
+    LOG_INFO("Manager stopped successfully");
 }
 
 void Manager::run() {
     if (!initialize()) {
-        std::cerr << "Failed to initialize Manager" << std::endl;
+        LOG_ERROR("Failed to initialize Manager");
         return;
     }
     
     if (!start()) {
-        std::cerr << "Failed to start Manager" << std::endl;
+        LOG_ERROR("Failed to start Manager");
         return;
     }
     
-    std::cout << "Manager is running. Press Ctrl+C to stop." << std::endl;
+    LOG_INFO("Manager is running. Press Ctrl+C to stop.");
     
     // 主循环
     while (running_) {

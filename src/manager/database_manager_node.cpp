@@ -1,4 +1,5 @@
 #include "database_manager.h"
+#include "utils/logger.h"
 #include <SQLiteCpp/SQLiteCpp.h>
 #include <iostream>
 #include <chrono>
@@ -156,14 +157,16 @@ void DatabaseManager::startNodeStatusMonitor()
                 auto current_timestamp = std::chrono::system_clock::to_time_t(now);
                 
                 // 查询所有节点
-                SQLite::Statement query(*db_, "SELECT node_id, updated_at FROM node");
+                SQLite::Statement query(*db_, "SELECT node_id, ip_address, updated_at FROM node where status = 'online'");
                 
                 while (query.executeStep()) {
                     std::string node_id = query.getColumn(0).getString();
-                    int64_t updated_at = query.getColumn(1).getInt64();
+                    std::string ip_address = query.getColumn(1).getString();
+                    int64_t updated_at = query.getColumn(2).getInt64();
                     
                     // 如果超过5秒没有上报，则标记为离线
                     if (current_timestamp - updated_at > 10) {
+                        LOG_INFO("Node {} is offline", ip_address);
                         updateNodeStatus(node_id, "offline");
 
                         // 查询node_id对应的business_components表，如果status为running，则更新为error

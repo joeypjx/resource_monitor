@@ -12,11 +12,11 @@ bool SFTPClient::parseUrl(const std::string& url, std::string& user, std::string
     std::regex re(R"(sftp://([^:]+):([^@]+)@([^/:]+)(:(\d+))?(/.+))");
     std::smatch match;
     if (std::regex_match(url, match, re)) {
-        user = match[2];
-        pass = match[3];
-        host = match[4];
-        port = match[6].matched ? std::stoi(match[6]) : 22;
-        remote_path = match[7];
+        user = match[1];
+        pass = match[2];
+        host = match[3];
+        port = match[5].matched ? std::stoi(match[5]) : 22;
+        remote_path = match[6];
         return true;
     }
     return false;

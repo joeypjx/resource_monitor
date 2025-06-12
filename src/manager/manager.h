@@ -22,8 +22,6 @@ public:
      * 
      * @param port HTTP服务器端口
      * @param db_path 数据库文件路径
-     * @param sftp_port SFTP服务器端口
-     * @param sftp_root_dir SFTP服务器根目录
      */
     Manager(int port = 8080, const std::string& db_path = "resource_monitor.db");
     

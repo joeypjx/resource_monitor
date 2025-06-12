@@ -5,13 +5,14 @@
 #include <thread>
 #include <chrono>
 #include "manager/manager.h"
+#include "utils/logger.h"
 
 // 全局Manager实例，用于信号处理
 std::unique_ptr<Manager> g_manager;
 
 // 信号处理函数
 void signalHandler(int signum) {
-    std::cout << "Received signal " << signum << std::endl;
+    LOG_INFO("Received signal {}", signum);
     if (g_manager) {
         g_manager->stop();
     }
@@ -19,6 +20,9 @@ void signalHandler(int signum) {
 }
 
 int main(int argc, char* argv[]) {
+    // 初始化日志
+    Logger::initialize("manager", "manager.log");
+
     // 默认参数
     int port = 8080;
     std::string db_path = "resource_monitor.db";
@@ -31,11 +35,11 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--db-path" && i + 1 < argc) {
             db_path = argv[++i];
         } else if (arg == "--help") {
-            std::cout << "Usage: manager [options]" << std::endl;
-            std::cout << "Options:" << std::endl;
-            std::cout << "  --port <port>       HTTP server port (default: 8080)" << std::endl;
-            std::cout << "  --db-path <path>    Database file path (default: resource_monitor.db)" << std::endl;
-            std::cout << "  --help              Show this help message" << std::endl;
+            LOG_INFO("Usage: manager [options]");
+            LOG_INFO("Options:");
+            LOG_INFO("  --port <port>       HTTP server port (default: 8080)");
+            LOG_INFO("  --db-path <path>    Database file path (default: resource_monitor.db)");
+            LOG_INFO("  --help              Show this help message");
             return 0;
         }
     }
@@ -48,18 +52,18 @@ int main(int argc, char* argv[]) {
     g_manager = std::make_unique<Manager>(port, db_path);
     
     if (!g_manager->initialize()) {
-        std::cerr << "Failed to initialize manager" << std::endl;
+        LOG_ERROR("Failed to initialize manager");
         return 1;
     }
     
     // 启动Manager
     if (!g_manager->start()) {
-        std::cerr << "Failed to start manager" << std::endl;
+        LOG_ERROR("Failed to start manager");
         return 1;
     }
     
-    std::cout << "Manager started on port " << port << std::endl;
-    std::cout << "Press Ctrl+C to stop..." << std::endl;
+    LOG_INFO("Manager started on port {}", port);
+    LOG_INFO("Press Ctrl+C to stop...");
     
     // 等待信号
     while (true) {

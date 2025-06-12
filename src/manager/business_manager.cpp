@@ -1,6 +1,7 @@
 #include "business_manager.h"
 #include "database_manager.h"
 #include "scheduler.h"
+#include "utils/logger.h"
 #include <iostream>
 #include <chrono>
 #include <uuid/uuid.h>
@@ -28,7 +29,7 @@ BusinessManager::~BusinessManager()
 
 bool BusinessManager::initialize()
 {
-    std::cout << "Initializing BusinessManager..." << std::endl;
+    LOG_INFO("Initializing BusinessManager...");
     return true;
 }
 
@@ -68,8 +69,6 @@ nlohmann::json BusinessManager::deployBusinessByTemplateId(const std::string &bu
 // 部署业务
 nlohmann::json BusinessManager::deployBusiness(const nlohmann::json &business_info)
 {
-    std::cout << "Deploying business: " << business_info.dump(4) << std::endl;
-
     // 验证业务信息
     if (!validateBusinessInfo(business_info))
     {
@@ -98,6 +97,8 @@ nlohmann::json BusinessManager::deployBusiness(const nlohmann::json &business_in
     business["created_at"] = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     business["updated_at"] = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
     db_manager_->saveBusiness(business);
+
+    LOG_INFO("Business saved: {}", business.dump(4));
 
     // 获取组件列表
     if (!business_info.contains("components") || !business_info["components"].is_array())
@@ -172,7 +173,7 @@ nlohmann::json BusinessManager::deployBusiness(const nlohmann::json &business_in
 // 停止业务
 nlohmann::json BusinessManager::stopBusiness(const std::string &business_id, bool permanently)
 {
-    std::cout << "Stopping business: " << business_id << std::endl;
+    LOG_INFO("Stopping business: {}", business_id);
 
     // 获取业务信息
     auto business = db_manager_->getBusinessDetails(business_id);
@@ -202,7 +203,7 @@ nlohmann::json BusinessManager::stopBusiness(const std::string &business_id, boo
 // 重启业务
 nlohmann::json BusinessManager::restartBusiness(const std::string &business_id)
 {
-    std::cout << "Restarting business: " << business_id << std::endl;
+    LOG_INFO("Restarting business: {}", business_id);
     // 先停止业务
     stopBusiness(business_id);
 
@@ -245,6 +246,7 @@ nlohmann::json BusinessManager::restartBusiness(const std::string &business_id)
 
 nlohmann::json BusinessManager::deleteBusiness(const std::string &business_id)
 {
+    LOG_INFO("Deleting business: {}", business_id);
     stopBusiness(business_id, true);
 
     bool db_result = db_manager_->deleteBusiness(business_id);
@@ -317,6 +319,7 @@ nlohmann::json BusinessManager::deployComponent(const std::string &business_id,
                                                 const nlohmann::json &component_info,
                                                 const std::string &node_id)
 {
+    LOG_INFO("Deploying component: {}", component_info.dump(4));
     // 获取节点信息
     nlohmann::json node_info = db_manager_->getNode(node_id);
     if (node_info.empty() || !node_info.contains("ip_address"))
@@ -376,6 +379,9 @@ nlohmann::json BusinessManager::stopComponent(const std::string &business_id, co
     {
         return {{"status", "error"}, {"message", "Component or node_id not found"}};
     }
+
+    LOG_INFO("Stopping component: {}", component.dump(4));
+
     std::string node_id = component["node_id"].get<std::string>();
     nlohmann::json node_info = db_manager_->getNode(node_id);
     if (node_info.empty() || !node_info.contains("ip_address"))

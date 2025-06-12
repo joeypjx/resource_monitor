@@ -1,6 +1,7 @@
 #include "http_server.h"
 #include "database_manager.h"
 #include "business_manager.h"
+#include "utils/logger.h"
 #include <iostream>
 
 HTTPServer::HTTPServer(std::shared_ptr<DatabaseManager> db_manager,
@@ -21,7 +22,7 @@ HTTPServer::~HTTPServer()
 
 bool HTTPServer::start()
 {
-    std::cout << "Starting HTTP server on port " << port_ << std::endl;
+    LOG_INFO("Starting HTTP server on port {}", port_);
 
     // 初始化节点管理路由
     initNodeRoutes();
@@ -47,7 +48,7 @@ void HTTPServer::stop()
 {
     if (running_)
     {
-        std::cout << "Stopping HTTP server" << std::endl;
+        LOG_INFO("Stopping HTTP server");
         server_.stop();
         running_ = false;
     }

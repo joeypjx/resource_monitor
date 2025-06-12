@@ -2,8 +2,12 @@
 #include <string>
 #include <cstdlib>
 #include "agent/agent.h"
+#include "utils/logger.h"
 
 int main(int argc, char* argv[]) {
+    // 初始化日志
+    Logger::initialize("agent", "agent.log");
+
     // 默认参数
     std::string manager_url = "http://localhost:8080";
     std::string hostname = "";
@@ -19,12 +23,12 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--interval" && i + 1 < argc) {
             collection_interval_sec = std::atoi(argv[++i]);
         } else if (arg == "--help") {
-            std::cout << "Usage: agent [options]" << std::endl;
-            std::cout << "Options:" << std::endl;
-            std::cout << "  --manager-url <url>    Manager URL (default: http://localhost:8080)" << std::endl;
-            std::cout << "  --hostname <name>      Override hostname" << std::endl;
-            std::cout << "  --interval <seconds>   Collection interval in seconds (default: 5)" << std::endl;
-            std::cout << "  --help                 Show this help message" << std::endl;
+            LOG_INFO("Usage: agent [options]");
+            LOG_INFO("Options:");
+            LOG_INFO("  --manager-url <url>    Manager URL (default: http://localhost:8080)");
+            LOG_INFO("  --hostname <name>      Override hostname");
+            LOG_INFO("  --interval <seconds>   Collection interval in seconds (default: 5)");
+            LOG_INFO("  --help                 Show this help message");
             return 0;
         }
     }
@@ -34,11 +38,11 @@ int main(int argc, char* argv[]) {
     
     // 启动Agent
     if (!agent.start()) {
-        std::cerr << "Failed to start agent" << std::endl;
+        LOG_ERROR("Failed to start agent");
         return 1;
     }
     
-    std::cout << "Press Ctrl+C to stop..." << std::endl;
+    LOG_INFO("Press Ctrl+C to stop...");
     
     // 等待信号
     while (true) {

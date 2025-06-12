@@ -1,5 +1,6 @@
 #include "http_server.h"
 #include "business_manager.h"
+#include "utils/logger.h"
 #include <iostream>
 #include <nlohmann/json.hpp>
 
@@ -43,6 +44,7 @@ void HTTPServer::handleDeployBusinessByTemplateId(const httplib::Request &req, h
     try
     {
         std::string business_template_id = req.path_params.at("business_template_id");
+        LOG_INFO("Deploying business by template ID: {}", business_template_id);
         auto result = business_manager_->deployBusinessByTemplateId(business_template_id);
         res.set_content(result.dump().c_str(), "application/json");
     }
@@ -55,6 +57,7 @@ void HTTPServer::handleDeployBusinessByTemplateId(const httplib::Request &req, h
 // 处理业务部署
 void HTTPServer::handleDeployBusiness(const httplib::Request &req, httplib::Response &res)
 {
+    LOG_INFO("Deploying business: {}", req.body);
     try
     {
         auto json = nlohmann::json::parse(req.body);
@@ -144,6 +147,7 @@ void HTTPServer::handleGetBusinessDetails(const httplib::Request &req, httplib::
 // 新增：处理部署某个业务的某个组件
 void HTTPServer::handleDeployBusinessComponent(const httplib::Request &req, httplib::Response &res)
 {
+    LOG_INFO("Deploying business component: {}", req.body);
     try
     {
         std::string business_id = req.path_params.at("business_id");
@@ -161,6 +165,7 @@ void HTTPServer::handleDeployBusinessComponent(const httplib::Request &req, http
 // 新增：处理停止某个业务的某个组件
 void HTTPServer::handleStopBusinessComponent(const httplib::Request &req, httplib::Response &res)
 {
+    LOG_INFO("Stopping business component: {}", req.body);
     try
     {
         std::string business_id = req.path_params.at("business_id");

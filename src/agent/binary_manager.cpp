@@ -1,4 +1,5 @@
 #include "binary_manager.h"
+#include "utils/logger.h"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -36,12 +37,12 @@ BinaryManager::~BinaryManager() {
 }
 
 bool BinaryManager::initialize() {
-    std::cout << "Initializing BinaryManager..." << std::endl;
+    LOG_INFO("Initializing BinaryManager...");
     return true;
 }
 
 nlohmann::json BinaryManager::downloadBinary(const std::string& binary_url, const std::string& binary_path) {
-    std::cout << "Downloading binary from " << binary_url << " to " << binary_path << std::endl;
+    LOG_INFO("Downloading binary from {} to {}", binary_url, binary_path);
     
     // 创建目录（如果不存在）
     size_t last_slash = binary_path.find_last_of('/');
@@ -172,7 +173,7 @@ nlohmann::json BinaryManager::startProcess(const std::string& binary_path, const
 
 nlohmann::json BinaryManager::stopProcess(const std::string& process_id) {
     int pid = std::stoi(process_id);
-    std::cout << "Stopping process: " << pid << std::endl;
+    LOG_INFO("Stopping process: {}", pid);
     if (!isProcessRunning(process_id)) {
         return {
             {"status", "error"},

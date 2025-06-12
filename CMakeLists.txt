@@ -47,6 +47,15 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(cpp_httplib)
 
+# 添加spdlog
+include(FetchContent)
+FetchContent_Declare(
+    spdlog
+    GIT_REPOSITORY https://github.com/gabime/spdlog.git
+    GIT_TAG v1.14.1
+)
+FetchContent_MakeAvailable(spdlog)
+
 # 包含目录
 include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/src
@@ -55,6 +64,11 @@ include_directories(
     ${CURL_INCLUDE_DIRS}
     ${SQLite3_INCLUDE_DIRS}
     ${cpp_httplib_SOURCE_DIR}
+)
+
+# 工具类源文件
+set(UTILS_SOURCES
+    src/utils/logger.cpp
 )
 
 # Agent源文件
@@ -85,10 +99,15 @@ set(MANAGER_SOURCES
     src/manager/agent_control_manager.cpp
 )
 
+# 工具库
+add_library(utils STATIC ${UTILS_SOURCES})
+target_link_libraries(utils PUBLIC spdlog::spdlog)
+
 # Agent可执行文件
 add_executable(agent src/agent_main.cpp ${AGENT_SOURCES})
 target_link_libraries(agent
     PRIVATE
+    utils
     Threads::Threads
     ${CURL_LIBRARIES}
     nlohmann_json::nlohmann_json
@@ -99,6 +118,7 @@ target_link_libraries(agent
 add_executable(manager src/manager_main.cpp ${MANAGER_SOURCES})
 target_link_libraries(manager
     PRIVATE
+    utils
     Threads::Threads
     SQLite::SQLite3
     SQLiteCpp

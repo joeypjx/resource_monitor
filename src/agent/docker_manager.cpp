@@ -1,4 +1,5 @@
 #include "docker_manager.h"
+#include "utils/logger.h"
 #include <iostream>
 #include <sstream>
 #include <cstdio>
@@ -43,7 +44,7 @@ DockerManager::DockerManager()
 bool DockerManager::initialize() {
     // 检查Docker守护进程是否可用
     if (!checkDockerAvailable()) {
-        std::cerr << "Docker daemon is not available" << std::endl;
+        LOG_ERROR("Docker daemon is not available");
         return false;
     }
     
@@ -65,7 +66,7 @@ bool DockerManager::checkDockerAvailable() {
         nlohmann::json response = dockerApiRequest("GET", "/info");
         return !response.empty() && response.contains("ServerVersion");
     } catch (const std::exception& e) {
-        std::cerr << "Error checking Docker availability: " << e.what() << std::endl;
+        LOG_ERROR("Error checking Docker availability: {}", e.what());
         return false;
     }
 }
@@ -210,12 +211,13 @@ nlohmann::json DockerManager::createContainer(const std::string& image_name,
         cmd << " " << image_name;
         
         // 执行命令
-        std::string output = exec(cmd.str().c_str());
+        std::string full_cmd = cmd.str();
+        LOG_INFO("Creating container with command: {}", full_cmd);
+        
+        std::string container_id = exec(full_cmd.c_str());
         
         // 检查输出是否包含容器ID（40个字符的哈希值）
-        if (output.length() >= 12) {
-            std::string container_id = output.substr(0, 12);
-            
+        if (container_id.length() >= 12) {
             return {
                 {"status", "success"},
                 {"message", "Container created successfully"},
@@ -225,10 +227,11 @@ nlohmann::json DockerManager::createContainer(const std::string& image_name,
             return {
                 {"status", "error"},
                 {"message", "Failed to create container"},
-                {"output", output}
+                {"output", container_id}
             };
         }
     } catch (const std::exception& e) {
+        LOG_ERROR("Error creating container: {}", e.what());
         return {
             {"status", "error"},
             {"message", std::string("Error creating container: ") + e.what()}
@@ -238,6 +241,7 @@ nlohmann::json DockerManager::createContainer(const std::string& image_name,
 
 nlohmann::json DockerManager::stopContainer(const std::string& container_id) {
     try {
+        LOG_INFO("Stopping container: {}", container_id);
         // 构建停止容器的命令
         std::string cmd = "docker stop " + container_id;
         std::string output = exec(cmd.c_str());
@@ -256,6 +260,7 @@ nlohmann::json DockerManager::stopContainer(const std::string& container_id) {
             };
         }
     } catch (const std::exception& e) {
+        LOG_ERROR("Error stopping container: {}", e.what());
         return {
             {"status", "error"},
             {"message", std::string("Error stopping container: ") + e.what()}
@@ -265,6 +270,7 @@ nlohmann::json DockerManager::stopContainer(const std::string& container_id) {
 
 nlohmann::json DockerManager::removeContainer(const std::string& container_id) {
     try {
+        LOG_INFO("Removing container: {}", container_id);
         // 构建删除容器的命令
         std::string cmd = "docker rm -f " + container_id;
         std::string output = exec(cmd.c_str());
@@ -283,6 +289,7 @@ nlohmann::json DockerManager::removeContainer(const std::string& container_id) {
             };
         }
     } catch (const std::exception& e) {
+        LOG_ERROR("Error removing container: {}", e.what());
         return {
             {"status", "error"},
             {"message", std::string("Error removing container: ") + e.what()}
@@ -315,6 +322,7 @@ nlohmann::json DockerManager::getContainerStatus(const std::string& container_id
             };
         }
     } catch (const std::exception& e) {
+        LOG_ERROR("Error getting container status: {}", e.what());
         return {
             {"status", "error"},
             {"message", std::string("Error getting container status: ") + e.what()}
@@ -384,6 +392,7 @@ nlohmann::json DockerManager::getContainerStats(const std::string& container_id)
             {"resource_usage", stats}
         };
     } catch (const std::exception& e) {
+        LOG_ERROR("Error getting container stats: {}", e.what());
         return {
             {"status", "error"},
             {"message", std::string("Error getting container stats: ") + e.what()}
@@ -431,6 +440,7 @@ nlohmann::json DockerManager::listContainers(bool all) {
             {"containers", containers}
         };
     } catch (const std::exception& e) {
+        LOG_ERROR("Error listing containers: {}", e.what());
         return {
             {"status", "error"},
             {"message", std::string("Error listing containers: ") + e.what()}
@@ -485,7 +495,7 @@ nlohmann::json DockerManager::dockerApiRequest(const std::string& method,
         
         // 检查结果
         if (res != CURLE_OK) {
-            std::cerr << "curl_easy_perform() failed: " << curl_easy_strerror(res) << std::endl;
+            LOG_ERROR("Docker API request failed: {}", curl_easy_strerror(res));
             curl_easy_cleanup(curl);
             return nlohmann::json();
         }
@@ -497,7 +507,7 @@ nlohmann::json DockerManager::dockerApiRequest(const std::string& method,
         try {
             return nlohmann::json::parse(response_string);
         } catch (const std::exception& e) {
-            std::cerr << "Error parsing JSON response: " << e.what() << std::endl;
+            LOG_ERROR("Error parsing JSON response: {}", e.what());
             return nlohmann::json();
         }
     }

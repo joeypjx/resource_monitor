@@ -1,5 +1,6 @@
 #include "scheduler.h"
 #include "database_manager.h"
+#include "utils/logger.h"
 #include <iostream>
 #include <algorithm>
 #include <cmath>
@@ -12,7 +13,7 @@ Scheduler::~Scheduler() {}
 
 bool Scheduler::initialize()
 {
-    std::cout << "Initializing Scheduler..." << std::endl;
+    LOG_INFO("Initializing Scheduler...");
     return true;
 }
 

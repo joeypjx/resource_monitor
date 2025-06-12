@@ -3,6 +3,7 @@
 #include "memory_collector.h"
 #include "http_client.h"
 #include "component_manager.h"
+#include "utils/logger.h"
 #include <nlohmann/json.hpp>
 #include <iostream>
 #include <unistd.h>
@@ -59,28 +60,28 @@ bool Agent::start()
     // 向Manager注册
     if (!registerToManager())
     {
-        std::cerr << "Failed to register to Manager" << std::endl;
+        LOG_ERROR("Failed to register to Manager");
         return false;
     }
 
     // 初始化组件管理器
     if (!component_manager_->initialize())
     {
-        std::cerr << "Failed to initialize component manager" << std::endl;
+        LOG_ERROR("Failed to initialize component manager");
         return false;
     }
 
     // 启动组件状态收集
     if (!component_manager_->startStatusCollection(collection_interval_sec_))
     {
-        std::cerr << "Failed to start component status collection" << std::endl;
+        LOG_ERROR("Failed to start component status collection");
         return false;
     }
 
     // 启动HTTP服务器
     if (!startHttpServer())
     {
-        std::cerr << "Failed to start HTTP server" << std::endl;
+        LOG_ERROR("Failed to start HTTP server");
         return false;
     }
 
@@ -158,7 +159,7 @@ bool Agent::registerToManager()
             agent_id_ = response["node_id"];
             writeAgentIdToFile(agent_id_file, agent_id_);
         }
-        std::cout << "Successfully registered to Manager with Node ID: " << agent_id_ << std::endl;
+        LOG_INFO("Successfully registered to Manager with Node ID: {}", agent_id_);
 
         // 将response中的components保存到component_manager中
         if (response.contains("components"))
@@ -173,9 +174,7 @@ bool Agent::registerToManager()
     }
     else
     {
-        std::cerr << "Failed to register to Manager: "
-                  << (response.contains("message") ? response["message"].get<std::string>() : "Unknown error")
-                  << std::endl;
+        LOG_ERROR("Failed to register to Manager: {}", response.contains("message") ? response["message"].get<std::string>() : "Unknown error");
         return false;
     }
 }
@@ -203,13 +202,11 @@ void Agent::collectAndReportResources()
     // 检查响应
     if (response.contains("status") && response["status"] == "success")
     {
-        std::cout << "Successfully reported resource data to Manager" << report_json.dump(4) << std::endl;
+        // LOG_INFO("Successfully reported resource data to Manager: {}", report_json.dump(4));
     }
     else
     {
-        std::cerr << "Failed to report resource data to Manager: "
-                  << (response.contains("message") ? response["message"].get<std::string>() : "Unknown error")
-                  << std::endl;
+        LOG_ERROR("Failed to report resource data to Manager: {}", response.contains("message") ? response["message"].get<std::string>() : "Unknown error");
     }
 }
 
@@ -251,7 +248,7 @@ bool Agent::startHttpServer(int port)
             auto response = handleDeployRequest(request);
             res.set_content(response.dump(), "application/json");
         } catch (const std::exception& e) {
-            std::cout << "error: " << e.what() << std::endl;
+            LOG_ERROR("error: {}", e.what());
             res.set_content(nlohmann::json({
                 {"status", "error"},
                 {"message", std::string("Invalid request: ") + e.what()}
@@ -273,7 +270,7 @@ bool Agent::startHttpServer(int port)
         } });
 
     // 启动服务器
-    std::cout << "Starting HTTP server on port " << port << std::endl;
+    LOG_INFO("Starting HTTP server on port {}", port);
     server_running_ = true;
 
     // 在新线程中启动服务器
@@ -437,7 +434,7 @@ int Agent::getGpuCount() {
     try {
         return std::stoi(result);
     } catch (const std::exception &e) {
-        std::cerr << "Error getting GPU count: " << e.what() << std::endl;
+        LOG_ERROR("Error getting GPU count: {}", e.what());
         return 0;
     }
 }

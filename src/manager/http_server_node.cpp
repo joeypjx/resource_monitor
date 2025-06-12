@@ -1,6 +1,7 @@
 #include "http_server.h"
 #include "database_manager.h"
 #include "business_manager.h"
+#include "utils/logger.h"
 #include <iostream>
 #include <sstream>
 #include <uuid/uuid.h>
@@ -42,6 +43,8 @@ void HTTPServer::handleNodeRegistration(const httplib::Request &req, httplib::Re
         } else {
             node_id = json["node_id"].get<std::string>();
         }
+
+        LOG_INFO("Node registered: {}", json.dump(4));
 
         if (db_manager_->saveNode(json))
         {

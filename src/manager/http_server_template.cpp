@@ -1,5 +1,6 @@
 #include "http_server.h"
 #include "database_manager.h"
+#include "utils/logger.h"
 #include <iostream>
 #include <nlohmann/json.hpp>
 
@@ -49,6 +50,8 @@ void HTTPServer::handleCreateComponentTemplate(const httplib::Request &req, http
     try
     {
         auto json = nlohmann::json::parse(req.body);
+        LOG_INFO("Creating component template: {}", json.dump(4));
+        
         auto result = db_manager_->saveComponentTemplate(json);
         res.set_content(result.dump(), "application/json");
     }
@@ -95,6 +98,7 @@ void HTTPServer::handleUpdateComponentTemplate(const httplib::Request &req, http
         std::string template_id = req.path_params.at("template_id");
         auto json = nlohmann::json::parse(req.body);
         json["component_template_id"] = template_id;
+        LOG_INFO("Updating component template: {}", json.dump(4));
         auto result = db_manager_->saveComponentTemplate(json);
         res.set_content(result.dump(), "application/json");
     }
@@ -110,6 +114,8 @@ void HTTPServer::handleDeleteComponentTemplate(const httplib::Request &req, http
     try
     {
         std::string template_id = req.path_params.at("template_id");
+        LOG_INFO("Deleting component template: {}", template_id);
+
         auto result = db_manager_->deleteComponentTemplate(template_id);
         res.set_content(result.dump(), "application/json");
     }
@@ -125,6 +131,7 @@ void HTTPServer::handleCreateBusinessTemplate(const httplib::Request &req, httpl
     try
     {
         auto json = nlohmann::json::parse(req.body);
+        LOG_INFO("Creating business template: {}", json.dump(4));
         auto result = db_manager_->saveBusinessTemplate(json);
         res.set_content(result.dump(), "application/json");
     }
@@ -171,6 +178,7 @@ void HTTPServer::handleUpdateBusinessTemplate(const httplib::Request &req, httpl
         std::string template_id = req.path_params.at("template_id");
         auto json = nlohmann::json::parse(req.body);
         json["business_template_id"] = template_id;
+        LOG_INFO("Updating business template: {}", json.dump(4));
         auto result = db_manager_->saveBusinessTemplate(json);
         res.set_content(result.dump(), "application/json");
     }
@@ -186,6 +194,7 @@ void HTTPServer::handleDeleteBusinessTemplate(const httplib::Request &req, httpl
     try
     {
         std::string template_id = req.path_params.at("template_id");
+        LOG_INFO("Deleting business template: {}", template_id);
         auto result = db_manager_->deleteBusinessTemplate(template_id);
         res.set_content(result.dump(), "application/json");
     }

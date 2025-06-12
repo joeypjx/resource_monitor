@@ -2,6 +2,7 @@
 #include "docker_manager.h"
 #include "binary_manager.h"
 #include "http_client.h"
+#include "utils/logger.h"
 #include <iostream>
 #include <thread>
 #include <chrono>
@@ -30,7 +31,7 @@ bool ComponentManager::initialize()
     // 初始化Docker管理器
     if (!docker_manager_->initialize())
     {
-        std::cerr << "Failed to initialize Docker manager" << std::endl;
+        LOG_ERROR("Failed to initialize Docker manager");
         return false;
     }
 
@@ -40,7 +41,7 @@ bool ComponentManager::initialize()
     // 初始化二进制运行体管理器
     if (!binary_manager_->initialize())
     {
-        std::cerr << "Failed to initialize Binary manager" << std::endl;
+        LOG_ERROR("Failed to initialize Binary manager");
         return false;
     }
 
@@ -61,7 +62,7 @@ void ComponentManager::addComponent(const nlohmann::json &component_info)
 nlohmann::json ComponentManager::deployComponent(const nlohmann::json &component_info)
 {
     // 打印组件信息 格式化
-    std::cout << "Deploying component: " << component_info.dump(4) << std::endl;
+    LOG_INFO("Deploying component: {}", component_info.dump(4));
 
     // 检查必要字段
     if (!component_info.contains("component_id") || !component_info.contains("business_id") ||
@@ -486,12 +487,13 @@ void ComponentManager::statusCollectionThread()
 {
     while (running_)
     {
-        // 收集组件状态
+        // 收集所有组件的状态
         collectComponentStatus();
 
-        // 等待下一次收集
+        // 等待指定时间间隔
         std::this_thread::sleep_for(std::chrono::seconds(collection_interval_sec_));
     }
+    LOG_INFO("Status collection thread stopped");
 }
 
 bool ComponentManager::startStatusCollection(int interval_sec)
