@@ -122,8 +122,8 @@ void HTTPServer::handleGetNodeDetails(const httplib::Request &req, httplib::Resp
         if (!node.empty())
         {
             // 获取最新CPU和内存资源状态
-            auto cpu_metrics = db_manager_->getCpuMetrics(node_id, 1);
-            auto memory_metrics = db_manager_->getMemoryMetrics(node_id, 1);
+            auto cpu_metrics = db_manager_->getCpuMetrics(node_id);
+            auto memory_metrics = db_manager_->getMemoryMetrics(node_id);
             if (!cpu_metrics.empty()) {
                 node["latest_cpu"] = cpu_metrics[0];
             }

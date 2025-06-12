@@ -46,9 +46,8 @@ public:
 
     nlohmann::json getNodes();
     nlohmann::json getNode(const std::string& node_id);
-    nlohmann::json getCpuMetrics(const std::string& node_id, int limit = 100);
-    nlohmann::json getMemoryMetrics(const std::string& node_id, int limit = 100);
-    nlohmann::json getNodeResourceHistory(const std::string& node_id, int limit = 100);
+    nlohmann::json getCpuMetrics(const std::string& node_id);
+    nlohmann::json getMemoryMetrics(const std::string& node_id);
 
     // 业务管理相关
     bool saveBusiness(const nlohmann::json& business_info);
