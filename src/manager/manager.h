@@ -23,7 +23,7 @@ public:
      * @param port HTTP服务器端口
      * @param db_path 数据库文件路径
      */
-    Manager(int port = 8080, const std::string& db_path = "resource_monitor.db");
+    Manager(int port = 8080, const std::string& db_path = "resource_monitor.db", const std::string& sftp_host = "");
     
     /**
      * 析构函数
@@ -57,6 +57,7 @@ public:
 private:
     int port_;                                          // HTTP服务器端口
     std::string db_path_;                               // 数据库文件路径
+    std::string sftp_host_;                             // SFTP服务器地址
     bool running_;                                      // 运行标志
     
     std::unique_ptr<HTTPServer> http_server_;           // HTTP服务器

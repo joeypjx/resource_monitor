@@ -7,8 +7,8 @@
 #include <thread>
 #include <chrono>
 
-Manager::Manager(int port, const std::string& db_path)
-    : db_path_(db_path), port_(port), running_(false) {
+Manager::Manager(int port, const std::string& db_path, const std::string& sftp_host)
+    : db_path_(db_path), port_(port), sftp_host_(sftp_host), running_(false) {
 }
 
 Manager::~Manager() {
@@ -18,7 +18,7 @@ Manager::~Manager() {
 }
 
 bool Manager::initialize() {
-    LOG_INFO("Initializing Manager...");
+    LOG_INFO("Initializing Manager, db_path: {}, port: {}, sftp_host: {}", db_path_, port_, sftp_host_);
     
     // 创建数据库管理器
     db_manager_ = std::make_shared<DatabaseManager>(db_path_);
@@ -35,7 +35,7 @@ bool Manager::initialize() {
     }
     
     // 创建业务管理器
-    business_manager_ = std::make_shared<BusinessManager>(db_manager_, scheduler_);
+    business_manager_ = std::make_shared<BusinessManager>(db_manager_, scheduler_, sftp_host_);
     if (!business_manager_->initialize()) {
         LOG_ERROR("Failed to initialize business manager");
         return false;

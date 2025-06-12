@@ -24,7 +24,7 @@ public:
      * @param db_manager 数据库管理器
      * @param scheduler 调度器
      */
-    BusinessManager(std::shared_ptr<DatabaseManager> db_manager, std::shared_ptr<Scheduler> scheduler);
+    BusinessManager(std::shared_ptr<DatabaseManager> db_manager, std::shared_ptr<Scheduler> scheduler, const std::string& sftp_host);
     
     /**
      * 析构函数
@@ -153,6 +153,7 @@ private:
 private:
     std::shared_ptr<DatabaseManager> db_manager_;  // 数据库管理器
     std::shared_ptr<Scheduler> scheduler_;         // 调度器
+    std::string sftp_host_;                       // SFTP服务器地址
 };
 
 #endif // BUSINESS_MANAGER_H

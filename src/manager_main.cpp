@@ -26,7 +26,8 @@ int main(int argc, char* argv[]) {
     // 默认参数
     int port = 8080;
     std::string db_path = "resource_monitor.db";
-    
+    std::string sftp_host = "";
+
     // 解析命令行参数
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
@@ -34,11 +35,14 @@ int main(int argc, char* argv[]) {
             port = std::atoi(argv[++i]);
         } else if (arg == "--db-path" && i + 1 < argc) {
             db_path = argv[++i];
+        } else if (arg == "--sftp-host" && i + 1 < argc) {
+            sftp_host = argv[++i];
         } else if (arg == "--help") {
             LOG_INFO("Usage: manager [options]");
             LOG_INFO("Options:");
             LOG_INFO("  --port <port>       HTTP server port (default: 8080)");
             LOG_INFO("  --db-path <path>    Database file path (default: resource_monitor.db)");
+            LOG_INFO("  --sftp-host <host>  SFTP host (like sftp://root:password@192.168.10.15:22/data/)");
             LOG_INFO("  --help              Show this help message");
             return 0;
         }
@@ -49,7 +53,7 @@ int main(int argc, char* argv[]) {
     signal(SIGTERM, signalHandler);
     
     // 创建Manager实例
-    g_manager = std::make_unique<Manager>(port, db_path);
+    g_manager = std::make_unique<Manager>(port, db_path, sftp_host);
     
     if (!g_manager->initialize()) {
         LOG_ERROR("Failed to initialize manager");

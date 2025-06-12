@@ -18,8 +18,8 @@ std::string generate_uuid()
     return std::string(uuid_str);
 }
 
-BusinessManager::BusinessManager(std::shared_ptr<DatabaseManager> db_manager, std::shared_ptr<Scheduler> scheduler)
-    : db_manager_(db_manager), scheduler_(scheduler)
+BusinessManager::BusinessManager(std::shared_ptr<DatabaseManager> db_manager, std::shared_ptr<Scheduler> scheduler, const std::string& sftp_host)
+    : db_manager_(db_manager), scheduler_(scheduler), sftp_host_(sftp_host)
 {
 }
 
@@ -488,7 +488,21 @@ nlohmann::json BusinessManager::expandComponentsFromTemplate(const nlohmann::jso
         }
         if (tpl["config"].contains("binary_url"))
         {
-            new_comp["binary_url"] = tpl["config"]["binary_url"];
+            LOG_INFO("binary_url: {}", tpl["config"]["binary_url"].get<std::string>());
+            if (!tpl["config"]["binary_url"].get<std::string>().empty()) {
+                LOG_INFO("binary_url: {}", tpl["config"]["binary_url"].get<std::string>());
+                new_comp["binary_url"] = tpl["config"]["binary_url"];
+            } else if (!sftp_host_.empty() && new_comp.contains("binary_path")) {
+                LOG_INFO("sftp_host_: {}", sftp_host_);
+                LOG_INFO("binary_path: {}", new_comp["binary_path"].get<std::string>());
+                // new_comp["binary_path"] 的最后一个/后面的内容
+                std::string binary_path = new_comp["binary_path"].get<std::string>();
+                std::string binary_name = binary_path.substr(binary_path.find_last_of("/") + 1);
+                new_comp["binary_url"] = sftp_host_ + binary_name;
+            } else {
+                LOG_INFO("binary_url: empty");
+                new_comp["binary_url"] = "";
+            }
         }
         // 你可以根据需要添加更多字段
         expanded.push_back(new_comp);
