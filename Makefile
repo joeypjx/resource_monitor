@@ -52,6 +52,7 @@ MANAGER_SOURCES = $(MANAGER_DIR)/manager.cpp \
                  $(MANAGER_DIR)/http_server.cpp \
 				 $(MANAGER_DIR)/http_server_business.cpp \
 				 $(MANAGER_DIR)/http_server_template.cpp \
+				 $(MANAGER_DIR)/http_server_task.cpp \
                  $(MANAGER_DIR)/database_manager.cpp \
 				 $(MANAGER_DIR)/database_manager_business.cpp \
 				 $(MANAGER_DIR)/database_manager_metric.cpp \

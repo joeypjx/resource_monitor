@@ -30,6 +30,9 @@ bool HTTPServer::start()
     // 初始化模板管理路由
     initTemplateRoutes();
 
+    // 初始化任务组路由
+    initTaskGroupRoutes();
+
     // 初始化业务管理路由
     initBusinessRoutes();
 
@@ -68,5 +71,5 @@ void HTTPServer::sendErrorResponse(httplib::Response& res, const std::string& me
 }
 
 void HTTPServer::sendExceptionResponse(httplib::Response& res, const std::exception& e) {
-    sendErrorResponse(res, e.what());
+    res.set_content(nlohmann::json({{"status", "error"}, {"message", e.what()}}).dump(), "application/json");
 } 

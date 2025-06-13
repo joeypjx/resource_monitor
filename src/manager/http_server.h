@@ -33,6 +33,7 @@ public:
     void initRoutes();
     void initBusinessRoutes();
     void initTemplateRoutes();
+    void initTaskGroupRoutes();
 
     // 路由初始化
     void initNodeRoutes();
@@ -58,6 +59,12 @@ public:
     void handleUpdateBusinessTemplate(const httplib::Request& req, httplib::Response& res);
     void handleDeleteBusinessTemplate(const httplib::Request& req, httplib::Response& res);
     void handleGetBusinessTemplateAsBusiness(const httplib::Request& req, httplib::Response& res);
+    void handleTaskGroupTemplate(const httplib::Request& req, httplib::Response& res);
+    void handleTaskGroupQuery(const httplib::Request& req, httplib::Response& res);
+    void handleTaskGroupDeploy(const httplib::Request& req, httplib::Response& res);
+    void handleTaskGroupStatus(const httplib::Request& req, httplib::Response& res);
+    void handleTaskGroupStop(const httplib::Request& req, httplib::Response& res);
+    void handleTaskNodeList(const httplib::Request& req, httplib::Response& res);
 
     // 板卡管理相关
     void handleNodeRegistration(const httplib::Request& req, httplib::Response& res);
