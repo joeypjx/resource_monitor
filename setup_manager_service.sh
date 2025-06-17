@@ -38,8 +38,9 @@ Description=DT Manager Service
 After=network.target
 
 [Service]
+WorkingDirectory=/usr/local/zygl
 Type=simple
-ExecStart=/usr/local/zygl/manager --port 38080 --db-path /usr/local/zygl/manager.db --sftp-host sftp://root:${sftp_password}@${sftp_ip}:22/data/
+ExecStart=/usr/local/zygl/manager --port 38080 --db-path /usr/local/zygl/manager.db --sftp-host sftp://root:${sftp_password}@${sftp_ip}:22/data/zygl/
 Restart=always
 RestartSec=3
 

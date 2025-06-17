@@ -62,12 +62,14 @@ void HTTPServer::handleTaskGroupTemplate(const httplib::Request& req, httplib::R
                     {"affinity", {
                         {"ip_address", ip_address}
                     }},
-                    {"binary_path", binary_path}
+                    {"binary_path", binary_path},
+                    {"binary_url", ""}
                 };
             } else {
                 binary_path = command;
                 component_template["config"] = {
-                    {"binary_path", binary_path}
+                    {"binary_path", binary_path},
+                    {"binary_url", ""}
                 };
             }
 
@@ -139,10 +141,15 @@ void HTTPServer::handleTaskGroupQuery(const httplib::Request& req, httplib::Resp
                 for (const auto& comp : template_info["components"]) {
                     if (comp.contains("template_details")) {
                         const auto& details = comp["template_details"];
+                        std::string command = details["config"]["binary_path"].get<std::string>();
+                        if (details["config"].contains("affinity") && details["config"]["affinity"].contains("ip_address")) {
+                            std::string affinity = details["config"]["affinity"]["ip_address"].get<std::string>();
+                            command = affinity + ":" + command;
+                        }
                         nlohmann::json task = {
                             {"name", details["template_name"]},
                             {"config", {
-                                {"command", details["config"]["binary_path"]}
+                                {"command", command}
                             }}
                         };
                         task_group["tasks"].push_back(task);
@@ -227,7 +234,7 @@ void HTTPServer::handleTaskGroupStatus(const httplib::Request& req, httplib::Res
         // 获取业务详情
         bool is_running = true;
         auto business_result = db_manager_->getBusinessDetails(json["id"]);
-        if (business_result["status"] != "success") {
+        if (business_result["status"] != "running") {
             is_running = false;
         }
 

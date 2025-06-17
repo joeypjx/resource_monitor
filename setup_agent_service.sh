@@ -37,8 +37,9 @@ Description=DT Agent Service
 After=network.target
 
 [Service]
+WorkingDirectory=/usr/local/zygl
 Type=simple
-ExecStart=/usr/local/zygl/agent --manager-url http://${manager_ip}:38080
+ExecStart=/usr/local/zygl/agent --manager-url http://${manager_ip}:38080 
 Restart=always
 RestartSec=3
 
