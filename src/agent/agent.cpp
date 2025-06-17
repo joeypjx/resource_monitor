@@ -423,7 +423,7 @@ std::string Agent::getCpuModel() {
 }
 
 int Agent::getGpuCount() {
-    FILE *pipe = popen("ixsmi -L | wc -l", "r");
+    FILE *pipe = popen("/usr/local/corex/bin/ixsmi -L | wc -l", "r");
     if (!pipe) return 0;
     char buffer[128];
     std::string result = "";
