@@ -20,7 +20,7 @@
         {
           "name": "数据清洗器",
           "config": {
-            "command": "/opt/apps/clean.sh"
+            "command": "192.168.1.100:/opt/apps/clean.sh"
           }
         },
         {

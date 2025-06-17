@@ -22,7 +22,7 @@ nlohmann::json HttpClient::get(const std::string& endpoint,
     std::string url = base_url_;
     std::string host;
     std::string path = endpoint;
-    int port = 80;
+    int port = 8080;
     
     // 从base_url中提取host和port
     if (url.substr(0, 7) == "http://") {

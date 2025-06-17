@@ -326,9 +326,8 @@ nlohmann::json BusinessManager::deployComponent(const std::string &business_id,
     {
         return {{"status", "error"}, {"message", "Node not found or missing IP"}};
     }
-    std::string node_url = "http://" + node_info["ip_address"].get<std::string>() + ":8081";
     std::string host = node_info["ip_address"].get<std::string>();
-    int port = 8081;
+    int port = node_info["port"].get<int>();
     std::string path = "/api/deploy";
 
     // 构造部署请求
@@ -389,7 +388,7 @@ nlohmann::json BusinessManager::stopComponent(const std::string &business_id, co
         return {{"status", "error"}, {"message", "Node not found or missing IP"}};
     }
     std::string host = node_info["ip_address"].get<std::string>();
-    int port = 8081;
+    int port = node_info["port"].get<int>();
     std::string path = "/api/stop";
 
     // 构造停止请求

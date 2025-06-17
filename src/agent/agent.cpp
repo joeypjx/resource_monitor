@@ -148,6 +148,7 @@ bool Agent::registerToManager()
     register_info["os_info"] = getOsInfo();
     register_info["cpu_model"] = getCpuModel();
     register_info["gpu_count"] = getGpuCount();
+    register_info["port"] = port_;
 
     // 发送注册请求
     nlohmann::json response = http_client_->registerAgent(register_info);

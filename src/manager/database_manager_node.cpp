@@ -16,6 +16,7 @@ bool DatabaseManager::initializeNodeTables()
                 node_id TEXT PRIMARY KEY,
                 hostname TEXT NOT NULL,
                 ip_address TEXT NOT NULL,
+                port INTEGER NOT NULL,
                 os_info TEXT NOT NULL,
                 gpu_count INTEGER DEFAULT 0,
                 cpu_model TEXT DEFAULT '',
@@ -40,7 +41,7 @@ bool DatabaseManager::saveNode(const nlohmann::json &node_info)
     {
         // 检查必要字段
         if (!node_info.contains("node_id") || !node_info.contains("hostname") ||
-            !node_info.contains("ip_address") || !node_info.contains("os_info"))
+            !node_info.contains("ip_address") || !node_info.contains("os_info") || !node_info.contains("port"))
         {
             return false;
         }
@@ -60,29 +61,31 @@ bool DatabaseManager::saveNode(const nlohmann::json &node_info)
         {
             // Node已存在，更新信息
             SQLite::Statement update(*db_, 
-                "UPDATE node SET hostname = ?, ip_address = ?, os_info = ?, gpu_count = ?, cpu_model = ?, updated_at = ? WHERE node_id = ?");
+                "UPDATE node SET hostname = ?, ip_address = ?, port = ?, os_info = ?, gpu_count = ?, cpu_model = ?, updated_at = ? WHERE node_id = ?");
             update.bind(1, node_info["hostname"].get<std::string>());
             update.bind(2, node_info["ip_address"].get<std::string>());
-            update.bind(3, node_info["os_info"].get<std::string>());
-            update.bind(4, gpu_count);
-            update.bind(5, cpu_model);
-            update.bind(6, static_cast<int64_t>(timestamp));
-            update.bind(7, node_info["node_id"].get<std::string>());
+            update.bind(3, node_info["port"].get<int>());
+            update.bind(4, node_info["os_info"].get<std::string>());
+            update.bind(5, gpu_count);
+            update.bind(6, cpu_model);
+            update.bind(7, static_cast<int64_t>(timestamp));
+            update.bind(8, node_info["node_id"].get<std::string>());
             update.exec();
         }
         else
         {
             // 新Node，插入记录
             SQLite::Statement insert(*db_, 
-                "INSERT INTO node (node_id, hostname, ip_address, os_info, gpu_count, cpu_model, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+                "INSERT INTO node (node_id, hostname, ip_address, port, os_info, gpu_count, cpu_model, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
             insert.bind(1, node_info["node_id"].get<std::string>());
             insert.bind(2, node_info["hostname"].get<std::string>());
             insert.bind(3, node_info["ip_address"].get<std::string>());
-            insert.bind(4, node_info["os_info"].get<std::string>());
-            insert.bind(5, gpu_count);
-            insert.bind(6, cpu_model);
-            insert.bind(7, static_cast<int64_t>(timestamp));
+            insert.bind(4, node_info["port"].get<int>());
+            insert.bind(5, node_info["os_info"].get<std::string>());
+            insert.bind(6, gpu_count);
+            insert.bind(7, cpu_model);
             insert.bind(8, static_cast<int64_t>(timestamp));
+            insert.bind(9, static_cast<int64_t>(timestamp));
             insert.exec();
         }
         
@@ -199,7 +202,7 @@ nlohmann::json DatabaseManager::getNodes()
         nlohmann::json result = nlohmann::json::array();
         
         // 查询所有Node
-        SQLite::Statement query(*db_, "SELECT node_id, hostname, ip_address, os_info, gpu_count, cpu_model, created_at, updated_at, status FROM node");
+        SQLite::Statement query(*db_, "SELECT node_id, hostname, ip_address, port, os_info, gpu_count, cpu_model, created_at, updated_at, status FROM node");
 
         while (query.executeStep())
         {
@@ -209,12 +212,13 @@ nlohmann::json DatabaseManager::getNodes()
             node["node_id"] = node_id;
             node["hostname"] = query.getColumn(1).getString();
             node["ip_address"] = query.getColumn(2).getString();
-            node["os_info"] = query.getColumn(3).getString();
-            node["gpu_count"] = query.getColumn(4).getInt();
-            node["cpu_model"] = query.getColumn(5).getString();
-            node["created_at"] = query.getColumn(6).getInt64();
-            node["updated_at"] = query.getColumn(7).getInt64();
-            node["status"] = query.getColumn(8).getString();
+            node["port"] = query.getColumn(3).getInt();
+            node["os_info"] = query.getColumn(4).getString();
+            node["gpu_count"] = query.getColumn(5).getInt();
+            node["cpu_model"] = query.getColumn(6).getString();
+            node["created_at"] = query.getColumn(7).getInt64();
+            node["updated_at"] = query.getColumn(8).getInt64();
+            node["status"] = query.getColumn(9).getString();
 
             result.push_back(node);
         }
@@ -232,7 +236,7 @@ nlohmann::json DatabaseManager::getNode(const std::string &node_id)
 {
     try
     {
-        SQLite::Statement query(*db_, "SELECT node_id, hostname, ip_address, os_info, gpu_count, cpu_model, created_at, updated_at, status FROM node WHERE node_id = ?");
+        SQLite::Statement query(*db_, "SELECT node_id, hostname, ip_address, port, os_info, gpu_count, cpu_model, created_at, updated_at, status FROM node WHERE node_id = ?");
         query.bind(1, node_id);
 
         while (query.executeStep())
@@ -243,12 +247,13 @@ nlohmann::json DatabaseManager::getNode(const std::string &node_id)
             node["node_id"] = node_id;
             node["hostname"] = query.getColumn(1).getString();
             node["ip_address"] = query.getColumn(2).getString();
-            node["os_info"] = query.getColumn(3).getString();
-            node["gpu_count"] = query.getColumn(4).getInt();
-            node["cpu_model"] = query.getColumn(5).getString();
-            node["created_at"] = query.getColumn(6).getInt64();
-            node["updated_at"] = query.getColumn(7).getInt64();
-            node["status"] = query.getColumn(8).getString();
+            node["port"] = query.getColumn(3).getInt();
+            node["os_info"] = query.getColumn(4).getString();
+            node["gpu_count"] = query.getColumn(5).getInt();
+            node["cpu_model"] = query.getColumn(6).getString();
+            node["created_at"] = query.getColumn(7).getInt64();
+            node["updated_at"] = query.getColumn(8).getInt64();
+            node["status"] = query.getColumn(9).getString();
 
             return node;
         }
@@ -269,7 +274,7 @@ nlohmann::json DatabaseManager::getOnlineNodes()
     {
         nlohmann::json result = nlohmann::json::array();
         // 查询所有在线Node
-        SQLite::Statement query(*db_, "SELECT node_id, hostname, ip_address, os_info, gpu_count, cpu_model, created_at, updated_at, status FROM node WHERE status = 'online'");
+        SQLite::Statement query(*db_, "SELECT node_id, hostname, ip_address, port, os_info, gpu_count, cpu_model, created_at, updated_at, status FROM node WHERE status = 'online'");
         while (query.executeStep())
         {
             nlohmann::json node;
@@ -277,12 +282,13 @@ nlohmann::json DatabaseManager::getOnlineNodes()
             node["node_id"] = node_id;
             node["hostname"] = query.getColumn(1).getString();
             node["ip_address"] = query.getColumn(2).getString();
-            node["os_info"] = query.getColumn(3).getString();
-            node["gpu_count"] = query.getColumn(4).getInt();
-            node["cpu_model"] = query.getColumn(5).getString();
-            node["created_at"] = query.getColumn(6).getInt64();
-            node["updated_at"] = query.getColumn(7).getInt64();
-            node["status"] = query.getColumn(8).getString();
+            node["port"] = query.getColumn(3).getInt();
+            node["os_info"] = query.getColumn(4).getString();
+            node["gpu_count"] = query.getColumn(5).getInt();
+            node["cpu_model"] = query.getColumn(6).getString();
+            node["created_at"] = query.getColumn(7).getInt64();
+            node["updated_at"] = query.getColumn(8).getInt64();
+            node["status"] = query.getColumn(9).getString();
             result.push_back(node);
         }
         return result;
