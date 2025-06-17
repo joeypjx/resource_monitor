@@ -24,13 +24,15 @@
 
 Agent::Agent(const std::string &manager_url,
              const std::string &hostname,
-             int collection_interval_sec)
+             int collection_interval_sec,
+             int port)
     : manager_url_(manager_url),
       hostname_(hostname),
       collection_interval_sec_(collection_interval_sec),
       running_(false),
       http_server_(nullptr),
-      server_running_(false)
+      server_running_(false),
+      port_(port)
 {
     init();
 }
@@ -79,7 +81,7 @@ bool Agent::start()
     }
 
     // 启动HTTP服务器
-    if (!startHttpServer())
+    if (!startHttpServer(port_))
     {
         LOG_ERROR("Failed to start HTTP server");
         return false;

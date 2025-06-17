@@ -36,7 +36,8 @@ public:
      */
     Agent(const std::string& manager_url, 
           const std::string& hostname = "",
-          int collection_interval_sec = 5);
+          int collection_interval_sec = 5,
+          int port = 8081);
     
     /**
      * 析构函数
@@ -92,7 +93,7 @@ private:
      * @param port HTTP服务器端口
      * @return 是否成功启动
      */
-    bool startHttpServer(int port = 8081);
+    bool startHttpServer(int port);
     
     /**
      * 处理组件部署请求
@@ -135,6 +136,8 @@ private:
     std::atomic<bool> server_running_;             // 服务器运行标志
 
     std::shared_ptr<NodeController> node_controller_;
+
+    int port_;                                    // HTTP服务器端口
 };
 
 #endif // RESOURCE_MONITOR_AGENT_H

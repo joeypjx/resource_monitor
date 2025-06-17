@@ -12,6 +12,7 @@ int main(int argc, char* argv[]) {
     std::string manager_url = "http://localhost:8080";
     std::string hostname = "";
     int collection_interval_sec = 5;
+    int port = 8081;
     
     // 解析命令行参数
     for (int i = 1; i < argc; i++) {
@@ -22,6 +23,8 @@ int main(int argc, char* argv[]) {
             hostname = argv[++i];
         } else if (arg == "--interval" && i + 1 < argc) {
             collection_interval_sec = std::atoi(argv[++i]);
+        } else if (arg == "--port" && i + 1 < argc) {
+            port = std::atoi(argv[++i]);
         } else if (arg == "--help") {
             LOG_INFO("Usage: agent [options]");
             LOG_INFO("Options:");
@@ -34,7 +37,7 @@ int main(int argc, char* argv[]) {
     }
     
     // 创建Agent实例
-    Agent agent(manager_url, hostname, collection_interval_sec);
+    Agent agent(manager_url, hostname, collection_interval_sec, port);
     
     // 启动Agent
     if (!agent.start()) {
