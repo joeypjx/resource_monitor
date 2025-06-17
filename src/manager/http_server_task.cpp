@@ -55,8 +55,9 @@ void HTTPServer::handleTaskGroupTemplate(const httplib::Request& req, httplib::R
             std::string ip_address = "";
             std::string binary_path = "";
             if (task["config"]["command"].find(":") != std::string::npos) {
-                ip_address = task["config"]["command"].substr(0, task["config"]["command"].find(":"));
-                binary_path = task["config"]["command"].substr(task["config"]["command"].find(":") + 1);
+                std::string command = task["config"]["command"].get<std::string>();
+                ip_address = command.substr(0, command.find(":"));
+                binary_path = command.substr(command.find(":") + 1);
                 component_template["config"] = {
                     {"affinity", {
                         {"ip_address", ip_address}
@@ -64,7 +65,8 @@ void HTTPServer::handleTaskGroupTemplate(const httplib::Request& req, httplib::R
                     {"binary_path", binary_path}
                 };
             } else {
-                binary_path = task["config"]["command"];
+                std::string command = task["config"]["command"].get<std::string>();
+                binary_path = command;
                 component_template["config"] = {
                     {"binary_path", binary_path}
                 };
