@@ -51,9 +51,24 @@ void HTTPServer::handleTaskGroupTemplate(const httplib::Request& req, httplib::R
             nlohmann::json component_template;
             component_template["template_name"] = task["name"];
             component_template["type"] = "binary";
-            component_template["config"] = {
-                {"binary_path", task["config"]["command"]}
-            };
+            // task["config"]["command"] [192.168.1.100:]/bin/agent or /bin/agent
+            std::string ip_address = "";
+            std::string binary_path = "";
+            if (task["config"]["command"].find(":") != std::string::npos) {
+                ip_address = task["config"]["command"].substr(0, task["config"]["command"].find(":"));
+                binary_path = task["config"]["command"].substr(task["config"]["command"].find(":") + 1);
+                component_template["config"] = {
+                    {"affinity", {
+                        {"ip_address", ip_address}
+                    }},
+                    {"binary_path", binary_path}
+                };
+            } else {
+                binary_path = task["config"]["command"];
+                component_template["config"] = {
+                    {"binary_path", binary_path}
+                };
+            }
 
             auto component_result = db_manager_->saveComponentTemplate(component_template);
             if (component_result["status"] != "success") {
