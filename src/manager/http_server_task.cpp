@@ -38,49 +38,59 @@ void HTTPServer::handleTaskGroupTemplate(const httplib::Request& req, httplib::R
         
         // 验证必要字段
         if (!json.contains("name") || !json.contains("task_groups") || 
-            !json["task_groups"].is_array() || json["task_groups"].empty() ||
-            !json["task_groups"][0].contains("tasks") || !json["task_groups"][0]["tasks"].is_array() ||
-            json["task_groups"][0]["tasks"].empty()) {
+            !json["task_groups"].is_array() || json["task_groups"].empty()) {
             sendErrorResponse(res, "Invalid request format");
             return;
         }
 
         // 1. 创建所有组件模板
         nlohmann::json component_ids = nlohmann::json::array();
-        for (const auto& task : json["task_groups"][0]["tasks"]) {
-            nlohmann::json component_template;
-            component_template["template_name"] = task["name"];
-            component_template["type"] = "binary";
-            // task["config"]["command"] [192.168.1.100:]/bin/agent or /bin/agent
-            std::string ip_address = "";
-            std::string binary_path = "";
-            std::string command = task["config"]["command"].get<std::string>();
-            if (command.find(":") != std::string::npos) {
-                ip_address = command.substr(0, command.find(":"));
-                binary_path = command.substr(command.find(":") + 1);
-                component_template["config"] = {
-                    {"affinity", {
-                        {"ip_address", ip_address}
-                    }},
-                    {"binary_path", binary_path},
-                    {"binary_url", ""}
-                };
-            } else {
-                binary_path = command;
-                component_template["config"] = {
-                    {"binary_path", binary_path},
-                    {"binary_url", ""}
-                };
-            }
-
-            auto component_result = db_manager_->saveComponentTemplate(component_template);
-            if (component_result["status"] != "success") {
-                sendErrorResponse(res, "Failed to create component template: " + component_result["message"].get<std::string>());
+        for (const auto& task_group : json["task_groups"]) {
+            if (!task_group.contains("tasks") || !task_group["tasks"].is_array() || task_group["tasks"].empty()) {
+                sendErrorResponse(res, "Invalid task_group: must contain a non-empty tasks array");
                 return;
             }
-            component_ids.push_back({
-                {"component_template_id", component_result["component_template_id"]}
-            });
+
+            for (const auto& task : task_group["tasks"]) {
+                if (!task.contains("name") || !task.contains("config") || !task["config"].contains("command")) {
+                    sendErrorResponse(res, "Invalid task: must contain name and config with command");
+                    return;
+                }
+
+                nlohmann::json component_template;
+                component_template["template_name"] = task["name"];
+                component_template["type"] = "binary";
+                // task["config"]["command"] [192.168.1.100:]/bin/agent or /bin/agent
+                std::string ip_address = "";
+                std::string binary_path = "";
+                std::string command = task["config"]["command"].get<std::string>();
+                if (command.find(":") != std::string::npos) {
+                    ip_address = command.substr(0, command.find(":"));
+                    binary_path = command.substr(command.find(":") + 1);
+                    component_template["config"] = {
+                        {"affinity", {
+                            {"ip_address", ip_address}
+                        }},
+                        {"binary_path", binary_path},
+                        {"binary_url", ""}
+                    };
+                } else {
+                    binary_path = command;
+                    component_template["config"] = {
+                        {"binary_path", binary_path},
+                        {"binary_url", ""}
+                    };
+                }
+
+                auto component_result = db_manager_->saveComponentTemplate(component_template);
+                if (component_result["status"] != "success") {
+                    sendErrorResponse(res, "Failed to create component template: " + component_result["message"].get<std::string>());
+                    return;
+                }
+                component_ids.push_back({
+                    {"component_template_id", component_result["component_template_id"]}
+                });
+            }
         }
 
         // 2. 创建业务模板

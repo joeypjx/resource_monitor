@@ -31,6 +31,7 @@ int main(int argc, char* argv[]) {
             LOG_INFO("  --manager-url <url>    Manager URL (default: http://localhost:8080)");
             LOG_INFO("  --hostname <name>      Override hostname");
             LOG_INFO("  --interval <seconds>   Collection interval in seconds (default: 5)");
+            LOG_INFO("  --port <port>          Agent local port (default: 8081)");
             LOG_INFO("  --help                 Show this help message");
             return 0;
         }

@@ -1,4 +1,4 @@
-# 任务管理 (Task Management)
+# 任务管理API文档
 
 本文档详细描述了与任务管理相关的API接口。
 
@@ -7,6 +7,9 @@
 ## 1. 创建任务组模板
 
 **描述**：定义一个新的任务组模板，该模板包含一个名称和一组任务配置。此模板可用于后续的任务部署。
+`command` 字段支持两种格式：
+1.  `[ip_address]:[binary_path]`：指定该任务需要在一个特定IP地址的节点上执行。
+2.  `[binary_path]`：不指定节点亲和性，由系统自动选择节点执行。
 
 **接口**：`POST /api/task/task_group`
 
@@ -18,13 +21,13 @@
     {
       "tasks": [
         {
-          "name": "数据清洗器",
+          "name": "有特定节点的数据清洗器",
           "config": {
             "command": "192.168.1.100:/opt/apps/clean.sh"
           }
         },
         {
-          "name": "数据分析器",
+          "name": "无特定节点的数据分析器",
           "config": {
             "command": "/opt/apps/analyze.py"
           }
@@ -65,13 +68,13 @@
     {
       "tasks": [
         {
-          "name": "数据清洗器",
+          "name": "有特定节点的数据清洗器",
           "config": {
             "command": "/opt/apps/clean.sh"
           }
         },
         {
-          "name": "数据分析器",
+          "name": "无特定节点的数据分析器",
           "config": {
             "command": "/opt/apps/analyze.py"
           }
@@ -81,6 +84,7 @@
   ]
 }
 ```
+*注意：查询接口返回的`command`中当前不会体现IP地址，此为已知待优化点。*
 
 ---
 
@@ -152,7 +156,7 @@
 
 ---
 
-# 节点管理 (Node Management)
+# 节点管理API文档
 
 ## 1. 查询节点列表
 
