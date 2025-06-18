@@ -8,7 +8,6 @@
 
 CpuCollector::CpuCollector() : last_total_time_(0), last_idle_time_(0) {
     // 初始化时先采集一次CPU时间，为计算使用率做准备
-    double dummy;
     getCpuUsagePercent();
 }
 

@@ -8,7 +8,7 @@
 #include <chrono>
 
 Manager::Manager(int port, const std::string& db_path, const std::string& sftp_host)
-    : db_path_(db_path), port_(port), sftp_host_(sftp_host), running_(false) {
+    : port_(port), db_path_(db_path), sftp_host_(sftp_host), running_(false) {
 }
 
 Manager::~Manager() {

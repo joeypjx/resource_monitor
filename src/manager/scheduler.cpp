@@ -64,8 +64,9 @@ bool Scheduler::checkNodeAffinity(const std::string &node_id, const nlohmann::js
     if (node_info.empty())
         return false;
 
-    for (const auto &[key, value] : affinity.items())
-    {
+    for (auto it = affinity.items().begin(); it != affinity.items().end(); ++it) {
+        const auto &key = it.key();
+        const auto &value = it.value();
         // 亲和性要求ip地址相同
         if (key == "ip_address")
         {

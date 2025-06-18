@@ -222,7 +222,6 @@ nlohmann::json BinaryManager::getProcessStatus(const std::string& process_id) {
 }
 
 nlohmann::json BinaryManager::getProcessStats(const std::string& process_id) {
-    int pid = std::stoi(process_id);
     if (!isProcessRunning(process_id)) {
         return {
             {"status", "error"},
@@ -265,7 +264,6 @@ bool BinaryManager::extractFile(const std::string& file_path, const std::string&
 }
 
 bool BinaryManager::isProcessRunning(const std::string& process_id) {
-    int pid = std::stoi(process_id);
     std::string cmd = "ps -o stat= -p " + process_id + " 2>/dev/null";
     FILE* pipe = popen(cmd.c_str(), "r");
     if (!pipe) return false;

@@ -134,7 +134,6 @@ private:
      * @return 停止结果
      */
     nlohmann::json stopDockerComponent(const std::string& component_id, 
-                                     const std::string& business_id, 
                                      const std::string& container_id);
     
     /**
@@ -146,7 +145,6 @@ private:
      * @return 停止结果
      */
     nlohmann::json stopBinaryComponent(const std::string& component_id, 
-                                     const std::string& business_id, 
                                      const std::string& process_id);
     
     /**

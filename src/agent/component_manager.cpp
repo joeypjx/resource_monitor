@@ -307,11 +307,11 @@ nlohmann::json ComponentManager::stopComponent(const nlohmann::json &component_i
 
     if (component_type == ComponentType::DOCKER)
     {
-        return stopDockerComponent(component_id, business_id, container_or_process_id);
+        return stopDockerComponent(component_id, container_or_process_id);
     }
     else if (component_type == ComponentType::BINARY)
     {
-        return stopBinaryComponent(component_id, business_id, container_or_process_id);
+        return stopBinaryComponent(component_id, container_or_process_id);
     }
     else
     {
@@ -322,7 +322,6 @@ nlohmann::json ComponentManager::stopComponent(const nlohmann::json &component_i
 }
 
 nlohmann::json ComponentManager::stopDockerComponent(const std::string &component_id,
-                                                     const std::string &business_id,
                                                      const std::string &container_id)
 {
 
@@ -359,7 +358,6 @@ nlohmann::json ComponentManager::stopDockerComponent(const std::string &componen
 }
 
 nlohmann::json ComponentManager::stopBinaryComponent(const std::string &component_id,
-                                                     const std::string &business_id,
                                                      const std::string &process_id)
 {
     if (process_id.empty())

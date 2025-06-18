@@ -109,6 +109,7 @@ void HTTPServer::handleResourceReport(const httplib::Request &req, httplib::Resp
 // 处理获取节点列表
 void HTTPServer::handleGetNodes(const httplib::Request &req, httplib::Response &res)
 {
+    (void)req;
     try
     {
         auto nodes = db_manager_->getNodes();

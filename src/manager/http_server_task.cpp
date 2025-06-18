@@ -290,6 +290,7 @@ void HTTPServer::handleTaskGroupStop(const httplib::Request& req, httplib::Respo
 }
 
 void HTTPServer::handleTaskNodeList(const httplib::Request& req, httplib::Response& res) {
+    (void)req;
     try {
         // 获取所有节点
         auto nodes_result = db_manager_->getNodes();

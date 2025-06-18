@@ -64,6 +64,7 @@ void HTTPServer::handleCreateComponentTemplate(const httplib::Request &req, http
 // 处理获取组件模板列表
 void HTTPServer::handleGetComponentTemplates(const httplib::Request &req, httplib::Response &res)
 {
+    (void)req;
     try
     {
         auto result = db_manager_->getComponentTemplates();
@@ -144,6 +145,7 @@ void HTTPServer::handleCreateBusinessTemplate(const httplib::Request &req, httpl
 // 处理获取业务模板列表
 void HTTPServer::handleGetBusinessTemplates(const httplib::Request &req, httplib::Response &res)
 {
+    (void)req;
     try
     {
         auto result = db_manager_->getBusinessTemplates();
