@@ -121,8 +121,7 @@ bool DatabaseManager::saveResourceUsage(const nlohmann::json &resource_usage)
     std::string node_id = resource_usage["node_id"];
     long long timestamp = resource_usage["timestamp"];
     const auto& resource = resource_usage["resource"];
-    // 更新Board最后一次上报时间
-    updateNodeLastSeen(node_id);
+
     // 保存各类资源数据
     if (resource.contains("cpu")) {
         saveCpuMetrics(node_id, timestamp, resource["cpu"]);

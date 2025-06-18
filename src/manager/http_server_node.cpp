@@ -74,6 +74,15 @@ void HTTPServer::handleResourceReport(const httplib::Request &req, httplib::Resp
     try
     {
         auto json = nlohmann::json::parse(req.body);
+        
+        // 提前检查并更新节点状态
+        if (json.contains("node_id")) {
+            std::string node_id = json["node_id"].get<std::string>();
+            db_manager_->updateNodeLastSeen(node_id);
+        } else {
+            sendErrorResponse(res, "Missing node_id in resource report");
+            return;
+        }
 
         if (db_manager_->saveResourceUsage(json))
         {

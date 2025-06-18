@@ -16,6 +16,12 @@ namespace SQLite {
     class Database;
 }
 
+// 节点实时状态结构体
+struct NodeStatus {
+    std::string status = "offline";
+    int64_t updated_at = 0;
+};
+
 /**
  * DatabaseManager类 - 数据库管理器
  * 
@@ -35,8 +41,9 @@ public:
 
     // 节点监控相关
     bool saveNode(const nlohmann::json& node_info);
-    bool updateNodeLastSeen(const std::string& node_id);
-    bool updateNodeStatus(const std::string& node_id, const std::string& status);
+    void updateNodeLastSeen(const std::string& node_id);
+    void updateNodeStatus(const std::string& node_id, const std::string& status);
+    NodeStatus getNodeStatus(const std::string& node_id);
 
     // 节点监控与资源采集
     void startNodeStatusMonitor();
@@ -92,6 +99,10 @@ private:
 
     bool node_monitor_running_;               // 节点监控线程运行标志
     std::unique_ptr<std::thread> node_monitor_thread_; // 节点监控线程
+
+    // 节点状态内存缓存
+    std::unordered_map<std::string, NodeStatus> node_status_map_;
+    std::mutex node_status_mutex_;
 
     // Slot Status Monitor
     std::unique_ptr<std::thread> slot_status_monitor_thread_;

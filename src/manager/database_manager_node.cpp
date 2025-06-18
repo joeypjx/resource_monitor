@@ -20,12 +20,18 @@ bool DatabaseManager::initializeNodeTables()
                 os_info TEXT NOT NULL,
                 gpu_count INTEGER DEFAULT 0,
                 cpu_model TEXT DEFAULT '',
-                created_at TIMESTAMP NOT NULL,
-                updated_at TIMESTAMP NOT NULL,
-                status TEXT NOT NULL DEFAULT 'online'
+                created_at TIMESTAMP NOT NULL
             )
         )");
         
+        // 从数据库加载现有节点到内存状态地图
+        SQLite::Statement query(*db_, "SELECT node_id FROM node");
+        while (query.executeStep()) {
+            std::string node_id = query.getColumn(0).getString();
+            std::lock_guard<std::mutex> lock(node_status_mutex_);
+            node_status_map_[node_id] = NodeStatus{"offline", 0};
+        }
+
         return true;
     }
     catch (const std::exception &e)
@@ -61,22 +67,21 @@ bool DatabaseManager::saveNode(const nlohmann::json &node_info)
         {
             // Node已存在，更新信息
             SQLite::Statement update(*db_, 
-                "UPDATE node SET hostname = ?, ip_address = ?, port = ?, os_info = ?, gpu_count = ?, cpu_model = ?, updated_at = ? WHERE node_id = ?");
+                "UPDATE node SET hostname = ?, ip_address = ?, port = ?, os_info = ?, gpu_count = ?, cpu_model = ? WHERE node_id = ?");
             update.bind(1, node_info["hostname"].get<std::string>());
             update.bind(2, node_info["ip_address"].get<std::string>());
             update.bind(3, node_info["port"].get<int>());
             update.bind(4, node_info["os_info"].get<std::string>());
             update.bind(5, gpu_count);
             update.bind(6, cpu_model);
-            update.bind(7, static_cast<int64_t>(timestamp));
-            update.bind(8, node_info["node_id"].get<std::string>());
+            update.bind(7, node_info["node_id"].get<std::string>());
             update.exec();
         }
         else
         {
             // 新Node，插入记录
             SQLite::Statement insert(*db_, 
-                "INSERT INTO node (node_id, hostname, ip_address, port, os_info, gpu_count, cpu_model, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+                "INSERT INTO node (node_id, hostname, ip_address, port, os_info, gpu_count, cpu_model, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             insert.bind(1, node_info["node_id"].get<std::string>());
             insert.bind(2, node_info["hostname"].get<std::string>());
             insert.bind(3, node_info["ip_address"].get<std::string>());
@@ -85,8 +90,11 @@ bool DatabaseManager::saveNode(const nlohmann::json &node_info)
             insert.bind(6, gpu_count);
             insert.bind(7, cpu_model);
             insert.bind(8, static_cast<int64_t>(timestamp));
-            insert.bind(9, static_cast<int64_t>(timestamp));
             insert.exec();
+
+            // 同时初始化内存中的状态
+            std::lock_guard<std::mutex> lock(node_status_mutex_);
+            node_status_map_[node_info["node_id"].get<std::string>()] = NodeStatus{"online", static_cast<int64_t>(timestamp)};
         }
         
         return true;
@@ -98,46 +106,30 @@ bool DatabaseManager::saveNode(const nlohmann::json &node_info)
     }
 }
 
-bool DatabaseManager::updateNodeLastSeen(const std::string &node_id)
+void DatabaseManager::updateNodeLastSeen(const std::string &node_id)
 {
-    try
-    {
-        // 获取当前时间戳
-        auto now = std::chrono::system_clock::now();
-        auto timestamp = std::chrono::system_clock::to_time_t(now);
-        
-        // 更新Node最后活动时间和状态为在线
-        SQLite::Statement update(*db_, "UPDATE node SET updated_at = ?, status = 'online' WHERE node_id = ?");
-        update.bind(1, static_cast<int64_t>(timestamp));
-        update.bind(2, node_id);
-        update.exec();
-        
-        return true;
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << "Update node last seen error: " << e.what() << std::endl;
-        return false;
+    auto now = std::chrono::system_clock::now();
+    auto timestamp = std::chrono::system_clock::to_time_t(now);
+    
+    std::lock_guard<std::mutex> lock(node_status_mutex_);
+    node_status_map_[node_id] = NodeStatus{"online", static_cast<int64_t>(timestamp)};
+}
+
+void DatabaseManager::updateNodeStatus(const std::string &node_id, const std::string &status)
+{
+    std::lock_guard<std::mutex> lock(node_status_mutex_);
+    if (node_status_map_.count(node_id)) {
+        node_status_map_[node_id].status = status;
     }
 }
 
-bool DatabaseManager::updateNodeStatus(const std::string &node_id, const std::string &status)
+NodeStatus DatabaseManager::getNodeStatus(const std::string& node_id)
 {
-    try
-    {
-        // 更新Node状态
-        SQLite::Statement update(*db_, "UPDATE node SET status = ? WHERE node_id = ?");
-        update.bind(1, status);
-        update.bind(2, node_id);
-        update.exec();
-        
-        return true;
+    std::lock_guard<std::mutex> lock(node_status_mutex_);
+    if (node_status_map_.count(node_id)) {
+        return node_status_map_.at(node_id);
     }
-    catch (const std::exception &e)
-    {
-        std::cerr << "Update node status error: " << e.what() << std::endl;
-        return false;
-    }
+    return NodeStatus{}; // 返回默认的 offline 状态
 }
 
 void DatabaseManager::startNodeStatusMonitor()
@@ -155,32 +147,39 @@ void DatabaseManager::startNodeStatusMonitor()
                                                          {
         while (node_monitor_running_) {
             try {
-                // 获取当前时间戳
                 auto now = std::chrono::system_clock::now();
                 auto current_timestamp = std::chrono::system_clock::to_time_t(now);
-                
-                // 查询所有节点
-                SQLite::Statement query(*db_, "SELECT node_id, ip_address, updated_at FROM node where status = 'online'");
-                
-                while (query.executeStep()) {
-                    std::string node_id = query.getColumn(0).getString();
-                    std::string ip_address = query.getColumn(1).getString();
-                    int64_t updated_at = query.getColumn(2).getInt64();
-                    
-                    // 如果超过5秒没有上报，则标记为离线
-                    if (current_timestamp - updated_at > 10) {
-                        LOG_INFO("Node {} is offline", ip_address);
-                        updateNodeStatus(node_id, "offline");
 
-                        // 查询node_id对应的business_components表，如果status为running，则更新为error
-                        SQLite::Statement query_business_components(*db_, "SELECT component_id, status FROM business_components WHERE node_id = ?");
-                        query_business_components.bind(1, node_id);
-                        while (query_business_components.executeStep()) {
-                            std::string component_id = query_business_components.getColumn(0).getString();
-                            std::string status = query_business_components.getColumn(1).getString();
-                            if (status == "running") {
-                                updateComponentStatus(component_id, "error");
-                            }
+                std::vector<std::string> offline_nodes;
+                
+                // 检查内存中的节点状态
+                node_status_mutex_.lock();
+                for (const auto& pair : node_status_map_) {
+                    if (pair.second.status == "online" && (current_timestamp - pair.second.updated_at > 10)) {
+                        offline_nodes.push_back(pair.first);
+                    }
+                }
+                node_status_mutex_.unlock();
+
+                for (const auto& node_id : offline_nodes) {
+                    // 获取ip用于日志
+                    auto node_info = getNode(node_id);
+                    if (!node_info.is_null() && node_info.contains("ip_address")) {
+                         LOG_INFO("Node {} ({}) is offline", node_id, node_info["ip_address"].get<std::string>());
+                    } else {
+                         LOG_INFO("Node {} is offline", node_id);
+                    }
+                   
+                    updateNodeStatus(node_id, "offline");
+
+                    // 查询node_id对应的business_components表，如果status为running，则更新为error
+                    SQLite::Statement query_business_components(*db_, "SELECT component_id, status FROM business_components WHERE node_id = ?");
+                    query_business_components.bind(1, node_id);
+                    while (query_business_components.executeStep()) {
+                        std::string component_id = query_business_components.getColumn(0).getString();
+                        std::string status = query_business_components.getColumn(1).getString();
+                        if (status == "running") {
+                            updateComponentStatus(component_id, "error");
                         }
                     }
                 }
@@ -202,7 +201,7 @@ nlohmann::json DatabaseManager::getNodes()
         nlohmann::json result = nlohmann::json::array();
         
         // 查询所有Node
-        SQLite::Statement query(*db_, "SELECT node_id, hostname, ip_address, port, os_info, gpu_count, cpu_model, created_at, updated_at, status FROM node");
+        SQLite::Statement query(*db_, "SELECT node_id, hostname, ip_address, port, os_info, gpu_count, cpu_model, created_at FROM node");
 
         while (query.executeStep())
         {
@@ -217,8 +216,11 @@ nlohmann::json DatabaseManager::getNodes()
             node["gpu_count"] = query.getColumn(5).getInt();
             node["cpu_model"] = query.getColumn(6).getString();
             node["created_at"] = query.getColumn(7).getInt64();
-            node["updated_at"] = query.getColumn(8).getInt64();
-            node["status"] = query.getColumn(9).getString();
+            
+            // 从内存获取实时状态
+            NodeStatus current_status = getNodeStatus(node_id);
+            node["updated_at"] = current_status.updated_at;
+            node["status"] = current_status.status;
 
             result.push_back(node);
         }
@@ -236,15 +238,14 @@ nlohmann::json DatabaseManager::getNode(const std::string &node_id)
 {
     try
     {
-        SQLite::Statement query(*db_, "SELECT node_id, hostname, ip_address, port, os_info, gpu_count, cpu_model, created_at, updated_at, status FROM node WHERE node_id = ?");
+        SQLite::Statement query(*db_, "SELECT node_id, hostname, ip_address, port, os_info, gpu_count, cpu_model, created_at FROM node WHERE node_id = ?");
         query.bind(1, node_id);
 
-        while (query.executeStep())
+        if (query.executeStep())
         {
             nlohmann::json node;
-            std::string node_id = query.getColumn(0).getString();
             
-            node["node_id"] = node_id;
+            node["node_id"] = query.getColumn(0).getString();
             node["hostname"] = query.getColumn(1).getString();
             node["ip_address"] = query.getColumn(2).getString();
             node["port"] = query.getColumn(3).getInt();
@@ -252,50 +253,34 @@ nlohmann::json DatabaseManager::getNode(const std::string &node_id)
             node["gpu_count"] = query.getColumn(5).getInt();
             node["cpu_model"] = query.getColumn(6).getString();
             node["created_at"] = query.getColumn(7).getInt64();
-            node["updated_at"] = query.getColumn(8).getInt64();
-            node["status"] = query.getColumn(9).getString();
+            
+            // 从内存获取实时状态
+            NodeStatus current_status = getNodeStatus(node_id);
+            node["updated_at"] = current_status.updated_at;
+            node["status"] = current_status.status;
 
             return node;
         }
-        return nlohmann::json::array();
+        return {}; // 返回空json
     }
     catch (const std::exception &e)
     {
         std::cerr << "Get node error: " << e.what() << std::endl;
-        return nlohmann::json::array();
+        return {}; // 返回空json
     }
 
-    return nlohmann::json::array();
+    return {}; // 返回空json
 }
 
 nlohmann::json DatabaseManager::getOnlineNodes()
 {
-    try
-    {
-        nlohmann::json result = nlohmann::json::array();
-        // 查询所有在线Node
-        SQLite::Statement query(*db_, "SELECT node_id, hostname, ip_address, port, os_info, gpu_count, cpu_model, created_at, updated_at, status FROM node WHERE status = 'online'");
-        while (query.executeStep())
-        {
-            nlohmann::json node;
-            std::string node_id = query.getColumn(0).getString();
-            node["node_id"] = node_id;
-            node["hostname"] = query.getColumn(1).getString();
-            node["ip_address"] = query.getColumn(2).getString();
-            node["port"] = query.getColumn(3).getInt();
-            node["os_info"] = query.getColumn(4).getString();
-            node["gpu_count"] = query.getColumn(5).getInt();
-            node["cpu_model"] = query.getColumn(6).getString();
-            node["created_at"] = query.getColumn(7).getInt64();
-            node["updated_at"] = query.getColumn(8).getInt64();
-            node["status"] = query.getColumn(9).getString();
-            result.push_back(node);
+    nlohmann::json all_nodes = getNodes();
+    nlohmann::json online_nodes = nlohmann::json::array();
+
+    for (const auto& node : all_nodes) {
+        if (node.contains("status") && node["status"] == "online") {
+            online_nodes.push_back(node);
         }
-        return result;
     }
-    catch (const std::exception &e)
-    {
-        std::cerr << "Get online nodes error: " << e.what() << std::endl;
-        return nlohmann::json::array();
-    }
+    return online_nodes;
 } 
