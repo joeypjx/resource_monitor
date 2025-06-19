@@ -22,12 +22,23 @@ if ! ping -c 1 ${manager_ip} > /dev/null 2>&1; then
     exit 1
 fi
 
+# Prompt for network interface (optional)
+read -p "Enter network interface name (optional, press Enter to auto-detect): " network_interface
+
 # Check if service already exists, replace it
 if systemctl list-unit-files | grep -q "dtagent.service"; then
     echo "dtagent.service already exists, replacing it"
     systemctl stop dtagent.service
     systemctl disable dtagent.service
     rm -f /etc/systemd/system/dtagent.service
+fi
+
+# Build the ExecStart command
+exec_start_cmd="/usr/local/zygl/agent --manager-url http://${manager_ip}:38080 --port 38081"
+
+# Add network interface parameter if provided
+if [ ! -z "$network_interface" ]; then
+    exec_start_cmd="${exec_start_cmd} --network-interface ${network_interface}"
 fi
 
 # Create service file
@@ -39,7 +50,7 @@ After=network.target
 [Service]
 WorkingDirectory=/usr/local/zygl
 Type=simple
-ExecStart=/usr/local/zygl/agent --manager-url http://${manager_ip}:38080 --port 38081
+ExecStart=${exec_start_cmd}
 Restart=always
 RestartSec=3
 

@@ -11,6 +11,7 @@ int main(int argc, char* argv[]) {
     // 默认参数
     std::string manager_url = "http://localhost:8080";
     std::string hostname = "";
+    std::string network_interface = "";
     int collection_interval_sec = 5;
     int port = 8081;
     
@@ -21,6 +22,8 @@ int main(int argc, char* argv[]) {
             manager_url = argv[++i];
         } else if (arg == "--hostname" && i + 1 < argc) {
             hostname = argv[++i];
+        } else if (arg == "--network-interface" && i + 1 < argc) {
+            network_interface = argv[++i];
         } else if (arg == "--interval" && i + 1 < argc) {
             collection_interval_sec = std::atoi(argv[++i]);
         } else if (arg == "--port" && i + 1 < argc) {
@@ -28,17 +31,18 @@ int main(int argc, char* argv[]) {
         } else if (arg == "--help") {
             LOG_INFO("Usage: agent [options]");
             LOG_INFO("Options:");
-            LOG_INFO("  --manager-url <url>    Manager URL (default: http://localhost:8080)");
-            LOG_INFO("  --hostname <name>      Override hostname");
-            LOG_INFO("  --interval <seconds>   Collection interval in seconds (default: 5)");
-            LOG_INFO("  --port <port>          Agent local port (default: 8081)");
-            LOG_INFO("  --help                 Show this help message");
+            LOG_INFO("  --manager-url <url>         Manager URL (default: http://localhost:8080)");
+            LOG_INFO("  --hostname <name>           Override hostname");
+            LOG_INFO("  --network-interface <name>  Network interface name (default: auto-detect)");
+            LOG_INFO("  --interval <seconds>        Collection interval in seconds (default: 5)");
+            LOG_INFO("  --port <port>               Agent local port (default: 8081)");
+            LOG_INFO("  --help                      Show this help message");
             return 0;
         }
     }
     
     // 创建Agent实例
-    Agent agent(manager_url, hostname, collection_interval_sec, port);
+    Agent agent(manager_url, hostname, collection_interval_sec, port, network_interface);
     
     // 启动Agent
     if (!agent.start()) {

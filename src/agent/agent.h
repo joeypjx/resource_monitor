@@ -33,11 +33,14 @@ public:
      * @param manager_url Manager的URL地址
      * @param hostname 主机名
      * @param collection_interval_sec 资源采集间隔（秒）
+     * @param port HTTP服务器端口
+     * @param network_interface 网络接口名称
      */
     Agent(const std::string& manager_url, 
           const std::string& hostname = "",
           int collection_interval_sec = 5,
-          int port = 8081);
+          int port = 8081,
+          const std::string& network_interface = "");
     
     /**
      * 析构函数
@@ -138,6 +141,7 @@ private:
     std::shared_ptr<NodeController> node_controller_;
 
     int port_;                                    // HTTP服务器端口
+    std::string network_interface_;                 // 网络接口名称
 };
 
 #endif // RESOURCE_MONITOR_AGENT_H

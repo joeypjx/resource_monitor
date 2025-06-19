@@ -25,14 +25,16 @@
 Agent::Agent(const std::string &manager_url,
              const std::string &hostname,
              int collection_interval_sec,
-             int port)
+             int port,
+             const std::string &network_interface)
     : manager_url_(manager_url),
       hostname_(hostname),
       collection_interval_sec_(collection_interval_sec),
       running_(false),
       http_server_(nullptr),
       server_running_(false),
-      port_(port)
+      port_(port),
+      network_interface_(network_interface)
 {
     init();
 }
@@ -382,21 +384,42 @@ std::string Agent::getLocalIpAddress() {
     int family, s;
     char host[NI_MAXHOST];
     std::string ip;
+    
     if (getifaddrs(&ifaddr) == -1) {
         return "127.0.0.1";
     }
-    for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
-        if (ifa->ifa_addr == nullptr) continue;
-        family = ifa->ifa_addr->sa_family;
-        if (family == AF_INET) {
-            s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, nullptr, 0, NI_NUMERICHOST);
-            if (s != 0) continue;
-            if (strcmp(ifa->ifa_name, "lo") != 0) {
-                ip = host;
-                break;
+    
+    // 如果指定了网络接口，优先使用该接口的IP地址
+    if (!network_interface_.empty()) {
+        for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+            if (ifa->ifa_addr == nullptr) continue;
+            family = ifa->ifa_addr->sa_family;
+            if (family == AF_INET && strcmp(ifa->ifa_name, network_interface_.c_str()) == 0) {
+                s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, nullptr, 0, NI_NUMERICHOST);
+                if (s == 0) {
+                    ip = host;
+                    break;
+                }
             }
         }
     }
+    
+    // 如果没有找到指定接口的IP地址，或者没有指定接口，则使用原来的逻辑
+    if (ip.empty()) {
+        for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
+            if (ifa->ifa_addr == nullptr) continue;
+            family = ifa->ifa_addr->sa_family;
+            if (family == AF_INET) {
+                s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, nullptr, 0, NI_NUMERICHOST);
+                if (s != 0) continue;
+                if (strcmp(ifa->ifa_name, "lo") != 0) {
+                    ip = host;
+                    break;
+                }
+            }
+        }
+    }
+    
     freeifaddrs(ifaddr);
     if (ip.empty()) ip = "127.0.0.1";
     return ip;

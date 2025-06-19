@@ -503,31 +503,19 @@ nlohmann::json DatabaseManager::getNodeResourceInfo(const std::string& node_id) 
         nlohmann::json result;
         
         // 获取最新的CPU指标
-        {
-            SQLite::Statement query(*db_, 
-                "SELECT usage_percent, core_count "
-                "FROM cpu_metrics WHERE node_id = ? ORDER BY timestamp DESC LIMIT 1");
-            query.bind(1, node_id);
-            
-            if (query.executeStep()) {
-                result["cpu_usage_percent"] = query.getColumn(0).getDouble();
-                result["cpu_core_count"] = query.getColumn(1).getInt();
-            }
+        auto cpu_metrics = getCpuMetrics(node_id);
+        if (!cpu_metrics.empty()) {
+            result["cpu_usage_percent"] = cpu_metrics[0]["usage_percent"].get<double>();
+            result["cpu_core_count"] = cpu_metrics[0]["core_count"].get<int>();
         }
         
         // 获取最新的内存指标
-        {
-            SQLite::Statement query(*db_, 
-                "SELECT total, used, free, usage_percent "
-                "FROM memory_metrics WHERE node_id = ? ORDER BY timestamp DESC LIMIT 1");
-            query.bind(1, node_id);
-            
-            if (query.executeStep()) {
-                result["memory_total"] = query.getColumn(0).getInt64();
-                result["memory_used"] = query.getColumn(1).getInt64();
-                result["memory_free"] = query.getColumn(2).getInt64();
-                result["memory_usage_percent"] = query.getColumn(3).getDouble();
-            }
+        auto memory_metrics = getMemoryMetrics(node_id);
+        if (!memory_metrics.empty()) {
+            result["memory_total"] = memory_metrics[0]["total"].get<uint64_t>();
+            result["memory_used"] = memory_metrics[0]["used"].get<uint64_t>();
+            result["memory_free"] = memory_metrics[0]["free"].get<uint64_t>();
+            result["memory_usage_percent"] = memory_metrics[0]["usage_percent"].get<double>();
         }
                
         return result;
