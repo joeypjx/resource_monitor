@@ -7,18 +7,6 @@
 #include <thread>
 #include <chrono>
 
-Manager::Manager()
-    : port_(8080)
-    , db_path_("resource_monitor.db")
-    , sftp_host_("")
-    , running_(false)
-    , http_server_(nullptr)
-    , db_manager_(nullptr)
-    , business_manager_(nullptr)
-    , scheduler_(nullptr)
-{
-}
-
 Manager::Manager(int port, const std::string& db_path, const std::string& sftp_host)
     : port_(port)
     , db_path_(db_path)

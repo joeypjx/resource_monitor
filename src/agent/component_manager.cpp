@@ -13,18 +13,6 @@
 #include <errno.h>
 #include "dir_utils.h"
 
-ComponentManager::ComponentManager()
-    : http_client_(nullptr)
-    , docker_manager_(nullptr)
-    , binary_manager_(nullptr)
-    , components_()
-    , components_mutex_()
-    , running_(false)
-    , collection_thread_(nullptr)
-    , collection_interval_sec_(5)
-{
-}
-
 ComponentManager::ComponentManager(std::shared_ptr<HttpClient> http_client)
     : http_client_(http_client)
     , docker_manager_(nullptr)
