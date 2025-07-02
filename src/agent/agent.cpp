@@ -412,7 +412,9 @@ std::string Agent::getLocalIpAddress() {
             if (family == AF_INET) {
                 s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, nullptr, 0, NI_NUMERICHOST);
                 if (s != 0) continue;
-                if (strcmp(ifa->ifa_name, "lo") != 0) {
+                // 跳过lo和docker网络接口
+                if (strcmp(ifa->ifa_name, "lo") != 0 && 
+                    strncmp(ifa->ifa_name, "docker", 6) != 0) {
                     ip = host;
                     break;
                 }
