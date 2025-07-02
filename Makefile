@@ -16,7 +16,7 @@ DEPS_DIR = deps
 JSON_DIR = $(DEPS_DIR)/nlohmann_json
 HTTPLIB_DIR = $(DEPS_DIR)/cpp-httplib
 SQLITECPP_DIR = $(DEPS_DIR)/SQLiteCpp
-SSH_DIR = $(DEPS_DIR)/libssh
+SSH_DIR = $(DEPS_DIR)/libssh2
 SPDLOG_DIR = $(DEPS_DIR)/spdlog
 
 # 包含目录
@@ -28,7 +28,7 @@ INCLUDES = -I$(SRC_DIR) \
           -I$(HTTPLIB_DIR) \
           -I$(SQLITECPP_DIR)/include \
           -I$(SPDLOG_DIR)/include \
-		  -I$(SSH_DIR)/ \
+		  -I$(SSH_DIR)/include \
           -I/usr/local/include
 
 # 库目录
@@ -69,8 +69,8 @@ AGENT_OBJECTS = $(AGENT_SOURCES:%.cpp=$(BUILD_DIR)/%.o)
 MANAGER_OBJECTS = $(MANAGER_SOURCES:%.cpp=$(BUILD_DIR)/%.o)
 
 # 依赖库
-AGENT_LIBS = -lcurl -luuid -lpthread -lssh
-MANAGER_LIBS = -lsqlite3 -lpthread -lSQLiteCpp -luuid -lssh
+AGENT_LIBS = -lcurl -luuid -lpthread -lssh2
+MANAGER_LIBS = -lsqlite3 -lpthread -lSQLiteCpp -luuid -lssh2
 
 # 目标可执行文件
 AGENT_TARGET = $(BUILD_DIR)/agent
