@@ -14,8 +14,8 @@
 
 // 辅助函数：执行系统命令并获取输出
 static std::string exec(const char* cmd) {
-    std::array<char, 128> buffer;
-    std::string result;
+    std::array<char, 128> buffer = {0};
+    std::string result = "";
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
     if (!pipe) {
         throw std::runtime_error("popen() failed!");
@@ -27,10 +27,10 @@ static std::string exec(const char* cmd) {
 }
 
 // 辅助函数：CURL写回调
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* s) {
+static size_t WriteCallback(void* contents, size_t size, size_t nmemb, std::string* sstream) {
     size_t newLength = size * nmemb;
     try {
-        s->append((char*)contents, newLength);
+        sstream->append((char*)contents, newLength);
     } catch(std::bad_alloc &e) {
         return 0;
     }
@@ -73,7 +73,7 @@ bool DockerManager::checkDockerAvailable() {
 
 nlohmann::json DockerManager::pullImage(const std::string& image_url, const std::string& image_name) {
     try {
-        std::string cmd;
+        std::string cmd = "";
         
         // 如果提供了URL，则从URL加载镜像
         if (!image_url.empty()) {
@@ -90,7 +90,7 @@ nlohmann::json DockerManager::pullImage(const std::string& image_url, const std:
 
             // 下载镜像文件，支持sftp/http
             int download_result = 1;
-            std::string download_err;
+            std::string download_err = "";
             if (image_url.rfind("sftp://", 0) == 0) {
                 SFTPClient sftp;
                 if (sftp.downloadFile(image_url, "/tmp/image.tar", download_err)) {
@@ -332,7 +332,7 @@ nlohmann::json DockerManager::getContainerStatus(const std::string& container_id
 
 nlohmann::json DockerManager::getContainerStats(const std::string& container_id) {
     try {
-        nlohmann::json stats;
+        nlohmann::json stats = nlohmann::json::object();
         
         // 获取CPU使用率
         std::string cpu_cmd = "docker stats --no-stream --format '{{.CPUPerc}}' " + container_id;
@@ -410,7 +410,7 @@ nlohmann::json DockerManager::listContainers(bool all) {
         
         std::string output = exec(cmd.c_str());
         std::istringstream iss(output);
-        std::string line;
+        std::string line = "";
         
         nlohmann::json containers = nlohmann::json::array();
         
@@ -425,7 +425,7 @@ nlohmann::json DockerManager::listContainers(bool all) {
                 std::string status = line.substr(pos2 + 1, pos3 - pos2 - 1);
                 std::string image = line.substr(pos3 + 1);
                 
-                nlohmann::json container;
+                nlohmann::json container = nlohmann::json::object();
                 container["id"] = id;
                 container["name"] = name;
                 container["status"] = status;
@@ -456,7 +456,7 @@ nlohmann::json DockerManager::dockerApiRequest(const std::string& method,
                                             const std::string& endpoint, 
                                             const nlohmann::json& request_body) {
     CURL* curl = curl_easy_init();
-    std::string response_string;
+    std::string response_string = "";
     
     if (curl) {
         std::string url = "http://localhost/v1.40" + endpoint;
@@ -475,15 +475,18 @@ nlohmann::json DockerManager::dockerApiRequest(const std::string& method,
         }
         
         // 设置请求体
-        std::string request_body_str;
+        std::string request_body_str = "";
+        struct curl_slist* headers = nullptr;
+        
         if (!request_body.empty()) {
             request_body_str = request_body.dump();
             curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request_body_str.c_str());
             
             // 设置Content-Type
-            struct curl_slist* headers = NULL;
             headers = curl_slist_append(headers, "Content-Type: application/json");
-            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+            if (headers != nullptr) {
+                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+            }
         }
         
         // 设置回调函数
@@ -496,11 +499,20 @@ nlohmann::json DockerManager::dockerApiRequest(const std::string& method,
         // 检查结果
         if (res != CURLE_OK) {
             LOG_ERROR("Docker API request failed: {}", curl_easy_strerror(res));
+            // 清理headers
+            if (headers != nullptr) {
+                curl_slist_free_all(headers);
+            }
             curl_easy_cleanup(curl);
             return nlohmann::json();
         }
         
-        // 清理
+        // 清理headers
+        if (headers != nullptr) {
+            curl_slist_free_all(headers);
+        }
+        
+        // 清理curl
         curl_easy_cleanup(curl);
         
         // 解析响应

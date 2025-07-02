@@ -31,11 +31,11 @@ void HTTPServer::handleNodeRegistration(const httplib::Request &req, httplib::Re
     try
     {
         auto json = nlohmann::json::parse(req.body);
-        std::string node_id;
+        std::string node_id = "";
         if (!json.contains("node_id") || json["node_id"].get<std::string>().empty()) {
             // 生成新的board_id
-            uuid_t uuid;
-            char uuid_str[37];
+            uuid_t uuid = {0};
+            char uuid_str[37] = {0};
             uuid_generate(uuid);
             uuid_unparse_lower(uuid, uuid_str);
             node_id = std::string("node-") + uuid_str;
@@ -109,7 +109,6 @@ void HTTPServer::handleResourceReport(const httplib::Request &req, httplib::Resp
 // 处理获取节点列表
 void HTTPServer::handleGetNodes(const httplib::Request &req, httplib::Response &res)
 {
-    (void)req;
     try
     {
         auto nodes = db_manager_->getNodes();

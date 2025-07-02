@@ -8,7 +8,7 @@ MemoryCollector::MemoryCollector() {
 }
 
 nlohmann::json MemoryCollector::collect() {
-    nlohmann::json result;
+    nlohmann::json result = nlohmann::json::object();
     
     // 获取内存信息
     unsigned long long total = 0, free = 0, available = 0;
@@ -16,8 +16,11 @@ nlohmann::json MemoryCollector::collect() {
         // 计算已使用内存
         unsigned long long used = total - available;
         
-        // 计算使用率
-        double usage_percent = 100.0 * static_cast<double>(used) / total;
+        // 计算使用率，防止除零错误
+        double usage_percent = 0.0;
+        if (total > 0) {
+            usage_percent = 100.0 * static_cast<double>(used) / static_cast<double>(total);
+        }
         
         // 构建JSON结果
         result["total"] = total * 1024;  // 转换为字节
@@ -39,12 +42,12 @@ bool MemoryCollector::getMemoryInfo(unsigned long long& total, unsigned long lon
         return false;
     }
     
-    std::string line;
+    std::string line = "";
     while (std::getline(file, line)) {
         std::istringstream iss(line);
-        std::string key;
-        unsigned long long value;
-        std::string unit;
+        std::string key = "";
+        unsigned long long value = 0;
+        std::string unit = "";
         
         iss >> key >> value >> unit;
         

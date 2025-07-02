@@ -64,7 +64,6 @@ void HTTPServer::handleCreateComponentTemplate(const httplib::Request &req, http
 // 处理获取组件模板列表
 void HTTPServer::handleGetComponentTemplates(const httplib::Request &req, httplib::Response &res)
 {
-    (void)req;
     try
     {
         auto result = db_manager_->getComponentTemplates();
@@ -145,7 +144,6 @@ void HTTPServer::handleCreateBusinessTemplate(const httplib::Request &req, httpl
 // 处理获取业务模板列表
 void HTTPServer::handleGetBusinessTemplates(const httplib::Request &req, httplib::Response &res)
 {
-    (void)req;
     try
     {
         auto result = db_manager_->getBusinessTemplates();
@@ -219,26 +217,29 @@ void HTTPServer::handleGetBusinessTemplateAsBusiness(const httplib::Request &req
             return;
         }
         auto tpl = result["template"];
-        nlohmann::json business_json;
+        nlohmann::json business_json = nlohmann::json::object();
         business_json["business_name"] = tpl["template_name"];
         business_json["components"] = nlohmann::json::array();
         for (const auto &comp : tpl["components"])
         {
-            nlohmann::json c;
+            if (comp.is_null()) {
+                continue;
+            }
+            nlohmann::json comp_json = nlohmann::json::object();
             // 兼容模板中有component_id/component_name
             if (comp.contains("template_details"))
             {
                 const auto &details = comp["template_details"];
-                c["type"] = details["type"];
-                c["component_id"] = details["component_template_id"];
-                c["component_name"] = details["template_name"];
+                comp_json["type"] = details["type"];
+                comp_json["component_id"] = details["component_template_id"];
+                comp_json["component_name"] = details["template_name"];
                 // 合并config内容
                 for (auto it = details["config"].begin(); it != details["config"].end(); ++it)
                 {
-                    c[it.key()] = it.value();
+                    comp_json[it.key()] = it.value();
                 }
             }
-            business_json["components"].push_back(c);
+            business_json["components"].push_back(comp_json);
         }
         res.set_content(business_json.dump(), "application/json");
     }

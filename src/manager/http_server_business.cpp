@@ -118,7 +118,6 @@ void HTTPServer::handleDeleteBusiness(const httplib::Request &req, httplib::Resp
 // 处理获取业务列表
 void HTTPServer::handleGetBusinesses(const httplib::Request &req, httplib::Response &res)
 {
-    (void)req;
     try
     {
         auto result = business_manager_->getBusinesses();

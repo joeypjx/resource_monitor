@@ -25,7 +25,11 @@ size_t writeCallback(void* ptr, size_t size, size_t nmemb, FILE* stream) {
     return written;
 }
 
-BinaryManager::BinaryManager() {
+BinaryManager::BinaryManager() 
+    : process_map_()
+    , process_mutex_()
+    , sftp_client_(nullptr)
+{
     // 初始化curl
     curl_global_init(CURL_GLOBAL_DEFAULT);
     sftp_client_ = std::make_unique<SFTPClient>();
@@ -51,9 +55,9 @@ nlohmann::json BinaryManager::downloadBinary(const std::string& binary_url, cons
     
     // 判断协议
     if (binary_url.rfind("sftp://", 0) == 0) {
-        std::string err_msg;
-        bool ok = sftp_client_->downloadFile(binary_url, binary_path, err_msg);
-        if (!ok) {
+        std::string err_msg = "";
+        bool ret_ok = sftp_client_->downloadFile(binary_url, binary_path, err_msg);
+        if (!ret_ok) {
             return {
                 {"status", "error"},
                 {"message", "SFTP下载失败: " + err_msg}
@@ -68,8 +72,8 @@ nlohmann::json BinaryManager::downloadBinary(const std::string& binary_url, cons
                 {"message", "Failed to initialize curl"}
             };
         }
-        FILE* fp = fopen(binary_path.c_str(), "wb");
-        if (!fp) {
+        FILE* file_ptr = fopen(binary_path.c_str(), "wb");
+        if (!file_ptr) {
             curl_easy_cleanup(curl);
             return {
                 {"status", "error"},
@@ -78,11 +82,11 @@ nlohmann::json BinaryManager::downloadBinary(const std::string& binary_url, cons
         }
         curl_easy_setopt(curl, CURLOPT_URL, binary_url.c_str());
         curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, writeCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, fp);
+        curl_easy_setopt(curl, CURLOPT_WRITEDATA, file_ptr);
         curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
         curl_easy_setopt(curl, CURLOPT_TIMEOUT, 300L); // 5分钟超时
         CURLcode res = curl_easy_perform(curl);
-        fclose(fp);
+        fclose(file_ptr);
         if (res != CURLE_OK) {
             curl_easy_cleanup(curl);
             return {
@@ -206,7 +210,7 @@ nlohmann::json BinaryManager::stopProcess(const std::string& process_id) {
 
 nlohmann::json BinaryManager::getProcessStatus(const std::string& process_id) {
     bool running = isProcessRunning(process_id);
-    std::string binary_path;
+    std::string binary_path = "";
     {
         std::lock_guard<std::mutex> lock(process_mutex_);
         auto it = process_map_.find(process_id);
@@ -231,8 +235,8 @@ nlohmann::json BinaryManager::getProcessStats(const std::string& process_id) {
     std::string cmd = "ps -p " + process_id + " -o %cpu,%mem,rss --no-headers";
     std::string output = executeCommand(cmd);
     std::istringstream iss(output);
-    float cpu_percent, mem_percent;
-    long rss_kb;
+    float cpu_percent = 0.0f, mem_percent = 0.0f;
+    long rss_kb = 0;
     iss >> cpu_percent >> mem_percent >> rss_kb;
     return {
         {"process_id", process_id},
@@ -243,14 +247,19 @@ nlohmann::json BinaryManager::getProcessStats(const std::string& process_id) {
 }
 
 std::string BinaryManager::executeCommand(const std::string& command) {
-    std::string result;
+    std::string result = "";
     FILE* pipe = popen(command.c_str(), "r");
     if (!pipe) return "";
-    char buffer[128];
+    
+    char buffer[128] = {0};
     if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
         result = buffer;
     }
-    pclose(pipe);
+    
+    // 确保pipe不为NULL后再关闭
+    if (pipe) {
+        pclose(pipe);
+    }
 
     // 去掉换行符
     if (!result.empty() && result.back() == '\n') result.pop_back();
@@ -267,12 +276,18 @@ bool BinaryManager::isProcessRunning(const std::string& process_id) {
     std::string cmd = "ps -o stat= -p " + process_id + " 2>/dev/null";
     FILE* pipe = popen(cmd.c_str(), "r");
     if (!pipe) return false;
-    char buffer[128];
-    std::string status;
+    
+    char buffer[128] = {0};
+    std::string status = "";
     if (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
         status = buffer;
     }
-    pclose(pipe);
+    
+    // 确保pipe不为NULL后再关闭
+    if (pipe) {
+        pclose(pipe);
+    }
+    
     status.erase(0, status.find_first_not_of(" \t\n\r"));
     status.erase(status.find_last_not_of(" \t\n\r") + 1);
     if (status.empty() || status.find('Z') != std::string::npos) {

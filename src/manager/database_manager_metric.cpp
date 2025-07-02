@@ -25,8 +25,8 @@ struct MemoryMetric {
     uint64_t free;
     double usage_percent;
 };
-std::unordered_map<std::string, CpuMetric> latest_cpu_metrics_;
-std::unordered_map<std::string, MemoryMetric> latest_memory_metrics_;
+std::unordered_map<std::string, CpuMetric> latest_cpu_metrics_ = {};
+std::unordered_map<std::string, MemoryMetric> latest_memory_metrics_ = {};
 std::mutex cpu_metric_mutex_;
 std::mutex memory_metric_mutex_;
 
@@ -46,7 +46,7 @@ bool DatabaseManager::saveCpuMetrics(const std::string &node_id,
     {
         return false;
     }
-    CpuMetric metric;
+    CpuMetric metric = {0};
     metric.timestamp = timestamp;
     metric.usage_percent = cpu_data["usage_percent"].get<double>();
     metric.load_avg_1m = cpu_data["load_avg_1m"].get<double>();
@@ -67,7 +67,7 @@ bool DatabaseManager::saveMemoryMetrics(const std::string &node_id,
     {
         return false;
     }
-    MemoryMetric metric;
+    MemoryMetric metric = {0};
     metric.timestamp = timestamp;
     metric.total = memory_data["total"].get<uint64_t>();
     metric.used = memory_data["used"].get<uint64_t>();
@@ -83,7 +83,7 @@ nlohmann::json DatabaseManager::getCpuMetrics(const std::string &node_id)
     nlohmann::json result = nlohmann::json::array();
     auto it = latest_cpu_metrics_.find(node_id);
     if (it != latest_cpu_metrics_.end()) {
-        nlohmann::json metric;
+        nlohmann::json metric = nlohmann::json::object();
         metric["timestamp"] = it->second.timestamp;
         metric["usage_percent"] = it->second.usage_percent;
         metric["load_avg_1m"] = it->second.load_avg_1m;
@@ -101,7 +101,7 @@ nlohmann::json DatabaseManager::getMemoryMetrics(const std::string &node_id)
     nlohmann::json result = nlohmann::json::array();
     auto it = latest_memory_metrics_.find(node_id);
     if (it != latest_memory_metrics_.end()) {
-        nlohmann::json metric;
+        nlohmann::json metric = nlohmann::json::object();
         metric["timestamp"] = it->second.timestamp;
         metric["total"] = it->second.total;
         metric["used"] = it->second.used;

@@ -54,7 +54,6 @@ bool DatabaseManager::saveNode(const nlohmann::json &node_info)
         
         // 获取当前时间戳
         auto now = std::chrono::system_clock::now();
-        auto timestamp = std::chrono::system_clock::to_time_t(now);
         
         // 检查Node是否已存在
         SQLite::Statement query(*db_, "SELECT node_id FROM node WHERE node_id = ?");
@@ -80,6 +79,7 @@ bool DatabaseManager::saveNode(const nlohmann::json &node_info)
         else
         {
             // 新Node，插入记录
+            auto timestamp = std::chrono::system_clock::to_time_t(now);
             SQLite::Statement insert(*db_, 
                 "INSERT INTO node (node_id, hostname, ip_address, port, os_info, gpu_count, cpu_model, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
             insert.bind(1, node_info["node_id"].get<std::string>());
@@ -109,10 +109,9 @@ bool DatabaseManager::saveNode(const nlohmann::json &node_info)
 void DatabaseManager::updateNodeLastSeen(const std::string &node_id)
 {
     auto now = std::chrono::system_clock::now();
-    auto timestamp = std::chrono::system_clock::to_time_t(now);
     
     std::lock_guard<std::mutex> lock(node_status_mutex_);
-    node_status_map_[node_id] = NodeStatus{"online", static_cast<int64_t>(timestamp)};
+    node_status_map_[node_id] = NodeStatus{"online", static_cast<int64_t>(std::chrono::system_clock::to_time_t(now))};
 }
 
 void DatabaseManager::updateNodeStatus(const std::string &node_id, const std::string &status)
@@ -162,10 +161,20 @@ void DatabaseManager::startNodeStatusMonitor()
                 node_status_mutex_.unlock();
 
                 for (const auto& node_id : offline_nodes) {
-                    // 获取ip用于日志
-                    auto node_info = getNode(node_id);
-                    if (!node_info.is_null() && node_info.contains("ip_address")) {
-                         LOG_INFO("Node {} ({}) is offline", node_id, node_info["ip_address"].get<std::string>());
+                    // 获取ip用于日志 - 直接从数据库查询，避免调用getNode导致的锁问题
+                    std::string ip_address = "";
+                    try {
+                        SQLite::Statement query(*db_, "SELECT ip_address FROM node WHERE node_id = ?");
+                        query.bind(1, node_id);
+                        if (query.executeStep()) {
+                            ip_address = query.getColumn(0).getString();
+                        }
+                    } catch (const std::exception& e) {
+                        std::cerr << "Error getting node IP: " << e.what() << std::endl;
+                    }
+                    
+                    if (!ip_address.empty()) {
+                         LOG_INFO("Node {} ({}) is offline", node_id, ip_address);
                     } else {
                          LOG_INFO("Node {} is offline", node_id);
                     }
@@ -205,7 +214,7 @@ nlohmann::json DatabaseManager::getNodes()
 
         while (query.executeStep())
         {
-            nlohmann::json node;
+            nlohmann::json node = nlohmann::json::object();
             std::string node_id = query.getColumn(0).getString();
             
             node["node_id"] = node_id;
@@ -243,7 +252,7 @@ nlohmann::json DatabaseManager::getNode(const std::string &node_id)
 
         if (query.executeStep())
         {
-            nlohmann::json node;
+            nlohmann::json node = nlohmann::json::object();
             
             node["node_id"] = query.getColumn(0).getString();
             node["hostname"] = query.getColumn(1).getString();

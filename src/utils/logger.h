@@ -6,6 +6,11 @@
 
 class Logger {
 public:
+    /**
+     * 默认构造函数
+     */
+    Logger() = default;
+
     static void initialize(const std::string& logger_name = "resource_monitor",
                            const std::string& file_path = "resource_monitor.log",
                            spdlog::level::level_enum level = spdlog::level::info);

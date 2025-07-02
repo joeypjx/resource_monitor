@@ -11,8 +11,8 @@
 // 生成UUID
 std::string generate_uuid()
 {
-    uuid_t uuid;
-    char uuid_str[37];
+    uuid_t uuid = {0};
+    char uuid_str[37] = {0};
     uuid_generate(uuid);
     uuid_unparse_lower(uuid, uuid_str);
     return std::string(uuid_str);
@@ -45,14 +45,17 @@ nlohmann::json BusinessManager::deployBusinessByTemplateId(const std::string &bu
     }
     const auto &template_info = template_result["template"];
     // 2. 组装业务部署信息
-    nlohmann::json business_info;
+    nlohmann::json business_info = nlohmann::json::object();
     business_info["business_name"] = template_info.contains("template_name") ? template_info["template_name"].get<std::string>() : "业务实例";
     business_info["components"] = nlohmann::json::array();
     if (template_info.contains("components") && template_info["components"].is_array())
     {
         for (const auto &comp : template_info["components"])
         {
-            nlohmann::json comp_info;
+            if (comp.is_null()) {
+                continue;
+            }
+            nlohmann::json comp_info = nlohmann::json::object();
             if (comp.contains("component_template_id"))
             {
                 comp_info["component_template_id"] = comp["component_template_id"];
@@ -78,7 +81,7 @@ nlohmann::json BusinessManager::deployBusiness(const nlohmann::json &business_in
     }
 
     // 生成业务ID（如果没有提供）
-    std::string business_id;
+    std::string business_id = "";
     if (business_info.contains("business_id"))
     {
         business_id = business_info["business_id"];
@@ -128,10 +131,13 @@ nlohmann::json BusinessManager::deployBusiness(const nlohmann::json &business_in
     bool has_error = false;
     for (const auto &schedule : schedule_result["component_schedules"])
     {
+        if (schedule.is_null()) {
+            continue;
+        }
         std::string component_id = schedule["component_id"];
         std::string node_id = schedule["node_id"];
 
-        nlohmann::json component_info;
+        nlohmann::json component_info = nlohmann::json::object();
         for (const auto &component : components)
         {
             if (component["component_id"] == component_id)
@@ -181,6 +187,9 @@ nlohmann::json BusinessManager::stopBusiness(const std::string &business_id, boo
     // 停止所有组件
     for (const auto &component_item : business["components"])
     {
+        if (component_item.is_null()) {
+            continue;
+        }
         std::string component_id = component_item["component_id"];
 
         // 停止组件
@@ -297,7 +306,7 @@ nlohmann::json BusinessManager::deployComponent(const std::string &business_id, 
         return {{"status", "error"}, {"message", "Component not found"}};
     }
     // 检查组件归属和节点信息
-    std::string err_msg;
+    std::string err_msg = "";
     if (!component.contains("business_id") || component["business_id"] != business_id)
     {
         err_msg = "Component does not belong to this business";
@@ -334,7 +343,6 @@ nlohmann::json BusinessManager::deployComponent(const std::string &business_id,
     nlohmann::json deploy_request = component_info;
     deploy_request["business_id"] = business_id;
 
-    nlohmann::json response;
     try
     {
         httplib::Client cli(host, port);
@@ -349,25 +357,23 @@ nlohmann::json BusinessManager::deployComponent(const std::string &business_id,
         {
             try
             {
-                response = nlohmann::json::parse(res->body);
+                return nlohmann::json::parse(res->body);
             }
             catch (const std::exception &e)
             {
-                response = {{"status", "error"}, {"message", "Invalid JSON response"}};
+                return {{"status", "error"}, {"message", "Invalid JSON response"}};
             }
         }
         else
         {
             std::string error_msg = res ? "HTTP error: " + std::to_string(res->status) : "Connection error";
-            response = {{"status", "error"}, {"message", error_msg}};
+            return {{"status", "error"}, {"message", error_msg}};
         }
     }
     catch (const std::exception &e)
     {
-        response = {{"status", "error"}, {"message", std::string("Exception: ") + e.what()}};
+        return {{"status", "error"}, {"message", std::string("Exception: ") + e.what()}};
     }
-
-    return response;
 }
 
 nlohmann::json BusinessManager::stopComponent(const std::string &business_id, const std::string &component_id, bool permanently)
@@ -409,7 +415,6 @@ nlohmann::json BusinessManager::stopComponent(const std::string &business_id, co
         stop_request["permanently"] = true;
     }
 
-    nlohmann::json response;
     try
     {
         httplib::Client cli(host, port);
@@ -424,25 +429,23 @@ nlohmann::json BusinessManager::stopComponent(const std::string &business_id, co
         {
             try
             {
-                response = nlohmann::json::parse(res->body);
+                return nlohmann::json::parse(res->body);
             }
             catch (const std::exception &e)
             {
-                response = {{"status", "error"}, {"message", "Invalid JSON response"}};
+                return {{"status", "error"}, {"message", "Invalid JSON response"}};
             }
         }
         else
         {
             std::string error_msg = res ? "HTTP error: " + std::to_string(res->status) : "Connection error";
-            response = {{"status", "error"}, {"message", error_msg}};
+            return {{"status", "error"}, {"message", error_msg}};
         }
     }
     catch (const std::exception &e)
     {
-        response = {{"status", "error"}, {"message", std::string("Exception: ") + e.what()}};
+        return {{"status", "error"}, {"message", std::string("Exception: ") + e.what()}};
     }
-
-    return response;
 }
 
 nlohmann::json BusinessManager::expandComponentsFromTemplate(const nlohmann::json &components)
@@ -450,6 +453,9 @@ nlohmann::json BusinessManager::expandComponentsFromTemplate(const nlohmann::jso
     nlohmann::json expanded = nlohmann::json::array();
     for (const auto &comp : components)
     {
+        if (comp.is_null()) {
+            continue;
+        }
         if (!comp.contains("component_template_id"))
             continue;
         std::string template_id = comp["component_template_id"];
@@ -460,7 +466,7 @@ nlohmann::json BusinessManager::expandComponentsFromTemplate(const nlohmann::jso
         }
 
         auto tpl = tpl_result["template"];
-        nlohmann::json new_comp;
+        nlohmann::json new_comp = nlohmann::json::object();
         new_comp["component_id"] = generate_uuid();
         new_comp["component_name"] = tpl["template_name"];
         new_comp["type"] = tpl["type"];

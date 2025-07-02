@@ -52,12 +52,15 @@ void HTTPServer::handleTaskGroupTemplate(const httplib::Request& req, httplib::R
             }
 
             for (const auto& task : task_group["tasks"]) {
+                if (task.is_null()) {
+                    continue;
+                }
                 if (!task.contains("name") || !task.contains("config") || !task["config"].contains("command")) {
                     sendErrorResponse(res, "Invalid task: must contain name and config with command");
                     return;
                 }
 
-                nlohmann::json component_template;
+                nlohmann::json component_template = nlohmann::json::object();
                 component_template["template_name"] = task["name"];
                 component_template["type"] = "binary";
                 // task["config"]["command"] [192.168.1.100:]/bin/agent or /bin/agent
@@ -94,7 +97,7 @@ void HTTPServer::handleTaskGroupTemplate(const httplib::Request& req, httplib::R
         }
 
         // 2. 创建业务模板
-        nlohmann::json business_template;
+        nlohmann::json business_template = nlohmann::json::object();
         business_template["template_name"] = json["name"];
         business_template["components"] = component_ids;
 
@@ -149,6 +152,9 @@ void HTTPServer::handleTaskGroupQuery(const httplib::Request& req, httplib::Resp
 
                 // 获取组件详情
                 for (const auto& comp : template_info["components"]) {
+                    if (comp.is_null()) {
+                        continue;
+                    }
                     if (comp.contains("template_details")) {
                         const auto& details = comp["template_details"];
                         std::string command = details["config"]["binary_path"].get<std::string>();
@@ -199,7 +205,7 @@ void HTTPServer::handleTaskGroupDeploy(const httplib::Request& req, httplib::Res
         }
 
         // 查找匹配的业务模板
-        std::string template_id;
+        std::string template_id = "";
         for (const auto& template_info : templates_result["templates"]) {
             if (template_info["template_name"] == json["name"]) {
                 template_id = template_info["business_template_id"];
@@ -290,7 +296,6 @@ void HTTPServer::handleTaskGroupStop(const httplib::Request& req, httplib::Respo
 }
 
 void HTTPServer::handleTaskNodeList(const httplib::Request& req, httplib::Response& res) {
-    (void)req;
     try {
         // 获取所有节点
         auto nodes_result = db_manager_->getNodes();

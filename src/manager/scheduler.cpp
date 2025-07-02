@@ -35,12 +35,18 @@ nlohmann::json Scheduler::scheduleComponents(const std::string &business_id, con
     std::unordered_map<std::string, int> node_assign_count;
     for (const auto &node : available_nodes)
     {
+        if (node.is_null()) {
+            continue;
+        }
         node_assign_count[node["node_id"].get<std::string>()] = 0;
     }
 
     // 为每个组件选择最佳节点
     for (const auto &component : components)
     {
+        if (component.is_null()) {
+            continue;
+        }
         std::string component_id = component["component_id"];
         std::string component_type = component["type"];
         std::string best_node_id = selectBestNodeForComponent(component, available_nodes, node_assign_count);
@@ -99,28 +105,31 @@ bool Scheduler::checkNodeAffinity(const std::string &node_id, const nlohmann::js
 
 std::string Scheduler::selectBestNodeForComponent(const nlohmann::json &component, const nlohmann::json &available_nodes, std::unordered_map<std::string, int> &node_assign_count)
 {
-    std::string best_node_id;
-    float best_score = -1.0f;
+    std::string best_node_id = "";
+    float best_score = -1.0F;
 
     // 有亲和性，按亲和性优先分配
-    nlohmann::json affinity;
+    nlohmann::json affinity = nlohmann::json::object();
     if (component.contains("affinity"))
         affinity = component["affinity"];
     if (!affinity.is_null() && !affinity.empty())
     {
         for (const auto &node : available_nodes)
         {
+            if (node.is_null()) {
+                continue;
+            }
             std::string node_id = node["node_id"];
             if (!checkNodeAffinity(node_id, affinity))
                 continue;
 
             nlohmann::json resource_usage = db_manager_->getNodeResourceInfo(node_id);
-            float cpu_score = 0.0f, memory_score = 0.0f;
+            float cpu_score = 0.0F, memory_score = 0.0F;
             if (resource_usage.contains("cpu_usage_percent"))
-                cpu_score = 100.0f - resource_usage["cpu_usage_percent"].get<float>();
+                cpu_score = 100.0F - resource_usage["cpu_usage_percent"].get<float>();
             if (resource_usage.contains("memory_usage_percent"))
-                memory_score = 100.0f - resource_usage["memory_usage_percent"].get<float>();
-            float score = 0.5f * cpu_score + 0.5f * memory_score;
+                memory_score = 100.0F - resource_usage["memory_usage_percent"].get<float>();
+            float score = 0.5F * cpu_score + 0.5F * memory_score;
             if (score > best_score)
             {
                 best_score = score;
@@ -134,6 +143,9 @@ std::string Scheduler::selectBestNodeForComponent(const nlohmann::json &componen
     std::vector<std::string> unused_nodes;
     for (const auto &node : available_nodes)
     {
+        if (node.is_null()) {
+            continue;
+        }
         std::string node_id = node["node_id"];
         if (node_assign_count[node_id] == 0)
             unused_nodes.push_back(node_id);
@@ -148,12 +160,18 @@ std::string Scheduler::selectBestNodeForComponent(const nlohmann::json &componen
         int min_count = INT_MAX;
         for (const auto &node : available_nodes)
         {
+            if (node.is_null()) {
+                continue;
+            }
             std::string node_id = node["node_id"];
             if (node_assign_count[node_id] < min_count)
                 min_count = node_assign_count[node_id];
         }
         for (const auto &node : available_nodes)
         {
+            if (node.is_null()) {
+                continue;
+            }
             std::string node_id = node["node_id"];
             if (node_assign_count[node_id] == min_count)
                 candidate_nodes.push_back(node_id);
@@ -163,12 +181,12 @@ std::string Scheduler::selectBestNodeForComponent(const nlohmann::json &componen
     for (const auto &node_id : candidate_nodes)
     {
         nlohmann::json resource_usage = db_manager_->getNodeResourceInfo(node_id);
-        float cpu_score = 0.0f, memory_score = 0.0f;
+        float cpu_score = 0.0F, memory_score = 0.0F;
         if (resource_usage.contains("cpu_usage_percent"))
-            cpu_score = 100.0f - resource_usage["cpu_usage_percent"].get<float>();
+            cpu_score = 100.0F - resource_usage["cpu_usage_percent"].get<float>();
         if (resource_usage.contains("memory_usage_percent"))
-            memory_score = 100.0f - resource_usage["memory_usage_percent"].get<float>();
-        float score = 0.5f * cpu_score + 0.5f * memory_score;
+            memory_score = 100.0F - resource_usage["memory_usage_percent"].get<float>();
+        float score = 0.5F * cpu_score + 0.5F * memory_score;
         if (score > best_score)
         {
             best_score = score;

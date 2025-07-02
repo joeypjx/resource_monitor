@@ -327,7 +327,7 @@ nlohmann::json DatabaseManager::getBusinesses() {
             "SELECT business_id, business_name, status, created_at, updated_at FROM businesses");
         
         while (query.executeStep()) {
-            nlohmann::json business;
+            nlohmann::json business = nlohmann::json::object();
             business["business_id"] = query.getColumn(0).getString();
             business["business_name"] = query.getColumn(1).getString();
             business["status"] = query.getColumn(2).getString();
@@ -358,7 +358,7 @@ nlohmann::json DatabaseManager::getBusinessDetails(const std::string& business_i
         query.bind(1, business_id);
         
         if (query.executeStep()) {
-            nlohmann::json business;
+            nlohmann::json business = nlohmann::json::object();
             business["business_id"] = query.getColumn(0).getString();
             business["business_name"] = query.getColumn(1).getString();
             business["status"] = query.getColumn(2).getString();
@@ -396,7 +396,7 @@ nlohmann::json DatabaseManager::getBusinessComponents(const std::string& busines
         query.bind(1, business_id);
         
         while (query.executeStep()) {
-            nlohmann::json component;
+            nlohmann::json component = nlohmann::json::object();
             component["component_id"] = query.getColumn(0).getString();
             component["business_id"] = query.getColumn(1).getString();
             component["component_name"] = query.getColumn(2).getString();
@@ -446,7 +446,7 @@ nlohmann::json DatabaseManager::getComponentMetrics(const std::string& component
         query.bind(2, limit);
         
         while (query.executeStep()) {
-            nlohmann::json metric;
+            nlohmann::json metric = nlohmann::json::object();
             metric["timestamp"] = query.getColumn(0).getInt64();
             metric["cpu_percent"] = query.getColumn(1).getDouble();
             metric["memory_mb"] = query.getColumn(2).getInt();
@@ -500,7 +500,7 @@ bool DatabaseManager::deleteBusiness(const std::string& business_id) {
 // 获取节点资源信息
 nlohmann::json DatabaseManager::getNodeResourceInfo(const std::string& node_id) {
     try {
-        nlohmann::json result;
+        nlohmann::json result = nlohmann::json::object();
         
         // 获取最新的CPU指标
         auto cpu_metrics = getCpuMetrics(node_id);
@@ -532,7 +532,7 @@ nlohmann::json DatabaseManager::getComponentById(const std::string& component_id
             "SELECT component_id, business_id, component_name, type, image_url, image_name, binary_path, binary_url, process_id, resource_requirements, environment_variables, config_files, affinity, node_id, container_id, status, started_at, updated_at FROM business_components WHERE component_id = ?");
         query.bind(1, component_id);
         if (query.executeStep()) {
-            nlohmann::json component;
+            nlohmann::json component = nlohmann::json::object();
             component["component_id"] = query.getColumn(0).getString();
             component["business_id"] = query.getColumn(1).getString();
             component["component_name"] = query.getColumn(2).getString();
@@ -620,7 +620,7 @@ nlohmann::json DatabaseManager::getComponentsByNodeId(const std::string& node_id
             "FROM business_components WHERE node_id = ?");
         query.bind(1, node_id);
         while (query.executeStep()) {
-            nlohmann::json component;
+            nlohmann::json component = nlohmann::json::object();
             component["component_id"] = query.getColumn(0).getString();
             component["business_id"] = query.getColumn(1).getString();
             component["component_name"] = query.getColumn(2).getString();

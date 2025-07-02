@@ -7,7 +7,11 @@
 HTTPServer::HTTPServer(std::shared_ptr<DatabaseManager> db_manager,
                        std::shared_ptr<BusinessManager> business_manager,
                        int port)
-    : business_manager_(business_manager), db_manager_(db_manager), port_(port), running_(false)
+    : server_()
+    , business_manager_(business_manager)
+    , db_manager_(db_manager)
+    , port_(port)
+    , running_(false)
 {
     
 }

@@ -12,7 +12,7 @@ CpuCollector::CpuCollector() : last_total_time_(0), last_idle_time_(0) {
 }
 
 nlohmann::json CpuCollector::collect() {
-    nlohmann::json result;
+    nlohmann::json result = nlohmann::json::object();
     
     // 获取CPU使用率
     double usage_percent = getCpuUsagePercent();
@@ -44,15 +44,15 @@ double CpuCollector::getCpuUsagePercent() {
         return -1.0;
     }
     
-    std::string line;
+    std::string line = "";
     if (!std::getline(file, line)) {
         return -1.0;
     }
     
     // 解析CPU时间
     std::istringstream iss(line);
-    std::string cpu_label;
-    unsigned long long user, nice, system, idle, iowait, irq, softirq, steal, guest, guest_nice;
+    std::string cpu_label = "";
+    unsigned long long user = 0, nice = 0, system = 0, idle = 0, iowait = 0, irq = 0, softirq = 0, steal = 0, guest = 0, guest_nice = 0;
     
     iss >> cpu_label >> user >> nice >> system >> idle >> iowait >> irq >> softirq >> steal >> guest >> guest_nice;
     
@@ -74,7 +74,7 @@ double CpuCollector::getCpuUsagePercent() {
     }
     
     // 计算CPU使用率
-    double usage_percent = 100.0 * (1.0 - static_cast<double>(idle_time_delta) / total_time_delta);
+    double usage_percent = 100.0 * (1.0 - static_cast<double>(idle_time_delta) / static_cast<double>(total_time_delta));
     
     return usage_percent;
 }

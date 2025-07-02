@@ -8,8 +8,8 @@
 
 // 生成UUID
 std::string generate_template_uuid(const std::string& prefix) {
-    uuid_t uuid;
-    char uuid_str[37];
+    uuid_t uuid = {0};
+    char uuid_str[37] = {0};
     uuid_generate(uuid);
     uuid_unparse_lower(uuid, uuid_str);
     return prefix + "-" + std::string(uuid_str);
@@ -19,9 +19,9 @@ std::string generate_template_uuid(const std::string& prefix) {
 std::string get_current_timestamp() {
     auto now = std::chrono::system_clock::now();
     auto now_c = std::chrono::system_clock::to_time_t(now);
-    std::stringstream ss;
-    ss << std::put_time(std::localtime(&now_c), "%Y-%m-%d %H:%M:%S");
-    return ss.str();
+    std::stringstream sstream;
+    sstream << std::put_time(std::localtime(&now_c), "%Y-%m-%d %H:%M:%S");
+    return sstream.str();
 }
 
 // 创建组件模板表
@@ -107,7 +107,7 @@ nlohmann::json DatabaseManager::getComponentTemplates() {
         SQLite::Statement query(*db_, "SELECT component_template_id, template_name, description, type, config, created_at, updated_at FROM component_templates ORDER BY created_at DESC");
         nlohmann::json templates = nlohmann::json::array();
         while (query.executeStep()) {
-            nlohmann::json template_info;
+            nlohmann::json template_info = nlohmann::json::object();
             template_info["component_template_id"] = query.getColumn(0).getString();
             template_info["template_name"] = query.getColumn(1).getString();
             template_info["description"] = query.getColumn(2).isNull() ? "" : query.getColumn(2).getString();
@@ -129,7 +129,7 @@ nlohmann::json DatabaseManager::getComponentTemplate(const std::string& template
         SQLite::Statement query(*db_, "SELECT component_template_id, template_name, description, type, config, created_at, updated_at FROM component_templates WHERE component_template_id = ?");
         query.bind(1, template_id);
         if (query.executeStep()) {
-            nlohmann::json template_info;
+            nlohmann::json template_info = nlohmann::json::object();
             template_info["component_template_id"] = query.getColumn(0).getString();
             template_info["template_name"] = query.getColumn(1).getString();
             template_info["description"] = query.getColumn(2).isNull() ? "" : query.getColumn(2).getString();
@@ -178,6 +178,9 @@ nlohmann::json DatabaseManager::saveBusinessTemplate(const nlohmann::json& templ
         // 验证组件模板是否存在
         if (template_info.contains("components") && template_info["components"].is_array()) {
             for (const auto& component : template_info["components"]) {
+                if (component.is_null()) {
+                    continue;
+                }
                 if (!component.contains("component_template_id")) {
                     return {{"status", "error"}, {"message", "Missing component_template_id in component"}};
                 }
@@ -222,13 +225,16 @@ nlohmann::json DatabaseManager::getBusinessTemplates() {
         SQLite::Statement query(*db_, "SELECT business_template_id, template_name, description, components, created_at, updated_at FROM business_templates ORDER BY created_at DESC");
         nlohmann::json templates = nlohmann::json::array();
         while (query.executeStep()) {
-            nlohmann::json template_info;
+            nlohmann::json template_info = nlohmann::json::object();
             template_info["business_template_id"] = query.getColumn(0).getString();
             template_info["template_name"] = query.getColumn(1).getString();
             template_info["description"] = query.getColumn(2).isNull() ? "" : query.getColumn(2).getString();
             auto components = nlohmann::json::parse(query.getColumn(3).getString());
             nlohmann::json components_with_details = nlohmann::json::array();
             for (const auto& component : components) {
+                if (component.is_null()) {
+                    continue;
+                }
                 nlohmann::json component_with_details = component;
                 if (component.contains("component_template_id")) {
                     std::string component_template_id = component["component_template_id"];
@@ -256,13 +262,16 @@ nlohmann::json DatabaseManager::getBusinessTemplate(const std::string& template_
         SQLite::Statement query(*db_, "SELECT business_template_id, template_name, description, components, created_at, updated_at FROM business_templates WHERE business_template_id = ?");
         query.bind(1, template_id);
         if (query.executeStep()) {
-            nlohmann::json template_info;
+            nlohmann::json template_info = nlohmann::json::object();
             template_info["business_template_id"] = query.getColumn(0).getString();
             template_info["template_name"] = query.getColumn(1).getString();
             template_info["description"] = query.getColumn(2).isNull() ? "" : query.getColumn(2).getString();
             auto components = nlohmann::json::parse(query.getColumn(3).getString());
             nlohmann::json components_with_details = nlohmann::json::array();
             for (const auto& component : components) {
+                if (component.is_null()) {
+                    continue;
+                }
                 nlohmann::json component_with_details = component;
                 if (component.contains("component_template_id")) {
                     std::string component_template_id = component["component_template_id"];

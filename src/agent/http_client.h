@@ -13,6 +13,11 @@
 class HttpClient {
 public:
     /**
+     * 默认构造函数
+     */
+    HttpClient() = default;
+    
+    /**
      * 构造函数
      * 
      * @param base_url 基础URL，如"http://manager:8080"

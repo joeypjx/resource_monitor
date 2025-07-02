@@ -13,8 +13,27 @@
 #include <errno.h>
 #include "dir_utils.h"
 
+ComponentManager::ComponentManager()
+    : http_client_(nullptr)
+    , docker_manager_(nullptr)
+    , binary_manager_(nullptr)
+    , components_()
+    , components_mutex_()
+    , running_(false)
+    , collection_thread_(nullptr)
+    , collection_interval_sec_(5)
+{
+}
+
 ComponentManager::ComponentManager(std::shared_ptr<HttpClient> http_client)
-    : http_client_(http_client), running_(false), collection_interval_sec_(5)
+    : http_client_(http_client)
+    , docker_manager_(nullptr)
+    , binary_manager_(nullptr)
+    , components_()
+    , components_mutex_()
+    , running_(false)
+    , collection_thread_(nullptr)
+    , collection_interval_sec_(5)
 {
 }
 
@@ -162,6 +181,9 @@ nlohmann::json ComponentManager::deployDockerComponent(const nlohmann::json &com
     {
         for (const auto &config : component_info["config_files"])
         {
+            if (config.is_null()) {
+                continue;
+            }
             if (config.contains("path"))
             {
                 std::string path = config["path"];
@@ -205,7 +227,7 @@ nlohmann::json ComponentManager::deployBinaryComponent(const nlohmann::json &com
     std::string business_id = component_info["business_id"];
     std::string component_name = component_info["component_name"];
 
-    std::string binary_path;
+    std::string binary_path = "";
     // 首先确定binary_path
     if (component_info.contains("binary_path") && !component_info["binary_path"].get<std::string>().empty()) {
         binary_path = component_info["binary_path"];
@@ -252,7 +274,7 @@ nlohmann::json ComponentManager::deployBinaryComponent(const nlohmann::json &com
     }
 
     // 设置工作目录
-    std::string working_dir;
+    std::string working_dir = "";
     size_t last_slash = binary_path.find_last_of("/");
     if (last_slash != std::string::npos)
     {
@@ -532,6 +554,9 @@ bool ComponentManager::createConfigFiles(const nlohmann::json &config_files)
 {
     for (const auto &config : config_files)
     {
+        if (config.is_null()) {
+            continue;
+        }
         if (!config.contains("path") || !config.contains("content"))
         {
             continue;

@@ -9,9 +9,9 @@ SFTPClient::~SFTPClient() {}
 
 bool SFTPClient::parseUrl(const std::string& url, std::string& user, std::string& pass, std::string& host, int& port, std::string& remote_path) {
     // sftp://user:pass@host:port/path
-    std::regex re(R"(sftp://([^:]+):([^@]+)@([^/:]+)(:(\d+))?(/.+))");
-    std::smatch match;
-    if (std::regex_match(url, match, re)) {
+    std::regex re_sftp(R"(sftp://([^:]+):([^@]+)@([^/:]+)(:(\d+))?(/.+))");
+    std::smatch match = {};
+    if (std::regex_match(url, match, re_sftp)) {
         user = match[1];
         pass = match[2];
         host = match[3];
@@ -23,7 +23,7 @@ bool SFTPClient::parseUrl(const std::string& url, std::string& user, std::string
 }
 
 bool SFTPClient::downloadFile(const std::string& url, const std::string& local_path, std::string& err_msg) {
-    std::string user, pass, host, remote_path;
+    std::string user = "", pass = "", host = "", remote_path = "";
     int port = 22;
     if (!parseUrl(url, user, pass, host, port, remote_path)) {
         err_msg = "SFTP URL格式错误";
@@ -79,8 +79,8 @@ bool SFTPClient::downloadFile(const std::string& url, const std::string& local_p
         ssh_free(session);
         return false;
     }
-    char buffer[4096];
-    int nbytes;
+    char buffer[4096] = {0};
+    int nbytes = 0;
     while ((nbytes = sftp_read(file, buffer, sizeof(buffer))) > 0) {
         ofs.write(buffer, nbytes);
     }

@@ -30,6 +30,7 @@ struct NodeStatus {
 class DatabaseManager {
 public:
     // 构造与析构
+    DatabaseManager() = default;
     explicit DatabaseManager(const std::string& db_path);
     ~DatabaseManager();
 

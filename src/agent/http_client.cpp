@@ -20,7 +20,7 @@ nlohmann::json HttpClient::get(const std::string& endpoint,
                              const std::map<std::string, std::string>& headers) {
     // 解析URL
     std::string url = base_url_;
-    std::string host;
+    std::string host = "";
     std::string path = endpoint;
     int port = 8080;
     
@@ -49,7 +49,7 @@ nlohmann::json HttpClient::get(const std::string& endpoint,
     cli.set_read_timeout(5);
     
     // 设置请求头
-    httplib::Headers header_map;
+    httplib::Headers header_map = {};
     for (const auto& header : headers) {
         header_map.emplace(header.first, header.second);
     }
@@ -76,7 +76,7 @@ nlohmann::json HttpClient::post(const std::string& endpoint,
                               const std::map<std::string, std::string>& headers) {
     // 解析URL
     std::string url = base_url_;
-    std::string host;
+    std::string host = "";
     std::string path = endpoint;
     int port = 80;
     
@@ -105,7 +105,7 @@ nlohmann::json HttpClient::post(const std::string& endpoint,
     cli.set_read_timeout(5);
     
     // 设置请求头
-    httplib::Headers header_map;
+    httplib::Headers header_map = {};
     header_map.emplace("Content-Type", "application/json");
     for (const auto& header : headers) {
         header_map.emplace(header.first, header.second);

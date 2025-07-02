@@ -18,21 +18,21 @@ public:
     /**
      * 析构函数
      */
-    ~CpuCollector() override = default;
+    virtual ~CpuCollector() override = default;
     
     /**
      * 采集CPU资源信息
      * 
      * @return JSON格式的CPU资源信息
      */
-    nlohmann::json collect() override;
+    virtual nlohmann::json collect() override;
     
     /**
      * 获取采集器类型
      * 
      * @return 采集器类型名称
      */
-    std::string getType() const override;
+    virtual std::string getType() const override;
 
 private:
     /**

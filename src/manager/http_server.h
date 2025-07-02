@@ -20,6 +20,7 @@ class BusinessManager;
 class HTTPServer {
 public:
     // 构造与析构
+    HTTPServer() = default;
     HTTPServer(std::shared_ptr<DatabaseManager> db_manager, 
               std::shared_ptr<BusinessManager> business_manager,
               int port = 8080);

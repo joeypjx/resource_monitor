@@ -4,7 +4,15 @@
 #include <chrono>
 #include <thread>
 
-DatabaseManager::DatabaseManager(const std::string &db_path) : db_path_(db_path), db_(nullptr), node_monitor_running_(false), slot_status_monitor_running_(false)
+DatabaseManager::DatabaseManager(const std::string &db_path) 
+    : db_path_(db_path)
+    , db_(nullptr)
+    , node_monitor_running_(false)
+    , node_monitor_thread_(nullptr)
+    , node_status_map_()
+    , node_status_mutex_()
+    , slot_status_monitor_thread_(nullptr)
+    , slot_status_monitor_running_(false)
 {
     // 构造函数，初始化数据库路径
 }

@@ -18,21 +18,21 @@ public:
     /**
      * 析构函数
      */
-    ~MemoryCollector() override = default;
+    virtual ~MemoryCollector() override = default;
     
     /**
      * 采集内存资源信息
      * 
      * @return JSON格式的内存资源信息
      */
-    nlohmann::json collect() override;
+    virtual nlohmann::json collect() override;
     
     /**
      * 获取采集器类型
      * 
      * @return 采集器类型名称
      */
-    std::string getType() const override;
+    virtual std::string getType() const override;
 
 private:
     /**

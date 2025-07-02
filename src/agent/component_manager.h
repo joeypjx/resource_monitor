@@ -29,6 +29,11 @@ enum class ComponentType {
 class ComponentManager {
 public:
     /**
+     * 默认构造函数
+     */
+    ComponentManager() = default;
+    
+    /**
      * 构造函数
      * 
      * @param http_client HTTP客户端，用于与Manager通信

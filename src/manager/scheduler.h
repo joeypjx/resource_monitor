@@ -19,6 +19,11 @@ class DatabaseManager;
 class Scheduler {
 public:
     /**
+     * 默认构造函数
+     */
+    Scheduler() = default;
+    
+    /**
      * 构造函数
      * 
      * @param db_manager 数据库管理器

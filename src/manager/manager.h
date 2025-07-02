@@ -18,6 +18,11 @@ class BusinessManager;
 class Manager {
 public:
     /**
+     * 默认构造函数
+     */
+    Manager() = default;
+    
+    /**
      * 构造函数
      * 
      * @param port HTTP服务器端口
