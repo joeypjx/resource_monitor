@@ -4,7 +4,7 @@
 if ! command -v jq &> /dev/null
 then
     echo "未找到 jq 命令。请安装 jq 后再运行此脚本。"
-    echo "macOS: brew install jq"
+    echo "CentOS: sudo yum install jq"
     echo "Debian/Ubuntu: sudo apt-get install jq"
     exit
 fi
