@@ -1,11 +1,7 @@
 #include "memory_collector.h"
 #include <fstream>
+#include <iostream>
 #include <sstream>
-#include <string>
-
-MemoryCollector::MemoryCollector() {
-    // 构造函数，无需特殊初始化
-}
 
 nlohmann::json MemoryCollector::collect() {
     nlohmann::json result = nlohmann::json::object();

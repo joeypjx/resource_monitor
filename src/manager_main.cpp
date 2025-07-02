@@ -10,7 +10,12 @@
 // 全局Manager实例，用于信号处理
 std::unique_ptr<Manager> g_manager;
 
-// 信号处理函数
+/**
+ * @brief 信号处理函数
+ * 
+ * @param signum 信号量
+ * 优雅地停止Manager服务。
+ */
 void signalHandler(int signum) {
     LOG_INFO("Received signal {}", signum);
     if (g_manager) {
@@ -19,14 +24,25 @@ void signalHandler(int signum) {
     exit(signum);
 }
 
+/**
+ * @brief Manager主程序入口
+ * 
+ * @param argc 参数个数
+ * @param argv 参数列表
+ * @return int 退出码
+ * 
+ * Manager作为中心控制器，负责接收Agent上报的数据，
+ * 提供Web界面用于展示和管理，以及响应API请求。
+ * 支持通过命令行参数进行配置。
+ */
 int main(int argc, char* argv[]) {
     // 初始化日志
     Logger::initialize("manager", "manager.log");
 
     // 默认参数
-    int port = 8080;
-    std::string db_path = "resource_monitor.db";
-    std::string sftp_host = "";
+    int port = 8080; // HTTP服务端口
+    std::string db_path = "resource_monitor.db"; // SQLite数据库文件路径
+    std::string sftp_host = ""; // SFTP服务器地址，用于二进制包管理
 
     // 解析命令行参数
     for (int i = 1; i < argc; i++) {
@@ -48,19 +64,20 @@ int main(int argc, char* argv[]) {
         }
     }
     
-    // 注册信号处理
+    // 注册信号处理，用于优雅退出
     signal(SIGINT, signalHandler);
     signal(SIGTERM, signalHandler);
     
     // 创建Manager实例
     g_manager = std::make_unique<Manager>(port, db_path, sftp_host);
     
+    // 初始化Manager
     if (!g_manager->initialize()) {
         LOG_ERROR("Failed to initialize manager");
         return 1;
     }
     
-    // 启动Manager
+    // 启动Manager服务
     if (!g_manager->start()) {
         LOG_ERROR("Failed to start manager");
         return 1;
@@ -69,7 +86,7 @@ int main(int argc, char* argv[]) {
     LOG_INFO("Manager started on port {}", port);
     LOG_INFO("Press Ctrl+C to stop...");
     
-    // 等待信号
+    // 主线程阻塞，等待信号
     while (true) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }

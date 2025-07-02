@@ -18,7 +18,7 @@ SFTPClient::~SFTPClient() {
 bool SFTPClient::parseUrl(const std::string& url, std::string& user, std::string& pass, std::string& host, int& port, std::string& remote_path) {
     // sftp://user:pass@host:port/path
     std::regex re_sftp(R"(sftp://([^:]+):([^@]+)@([^/:]+)(:(\d+))?(/.+))");
-    std::smatch match = {};
+    std::smatch match;
     if (std::regex_match(url, match, re_sftp)) {
         user = match[1];
         pass = match[2];

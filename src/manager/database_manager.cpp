@@ -11,8 +11,8 @@ DatabaseManager::DatabaseManager(const std::string &db_path)
     , node_monitor_thread_(nullptr)
     , node_status_map_()
     , node_status_mutex_()
-    , slot_status_monitor_thread_(nullptr)
     , slot_status_monitor_running_(false)
+    , slot_status_monitor_thread_(nullptr)
 {
     // 构造函数，初始化数据库路径
 }

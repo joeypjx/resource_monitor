@@ -30,11 +30,11 @@ Agent::Agent(const std::string &manager_url,
     : manager_url_(manager_url),
       hostname_(hostname),
       collection_interval_sec_(collection_interval_sec),
+      port_(port),
+      network_interface_(network_interface),
       running_(false),
       http_server_(nullptr),
-      server_running_(false),
-      port_(port),
-      network_interface_(network_interface)
+      server_running_(false)
 {
     init();
 }

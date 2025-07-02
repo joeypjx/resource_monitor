@@ -46,7 +46,14 @@ bool DatabaseManager::saveCpuMetrics(const std::string &node_id,
     {
         return false;
     }
-    CpuMetric metric = {0};
+    CpuMetric metric = {
+        .timestamp = 0,
+        .usage_percent = 0.0,
+        .load_avg_1m = 0.0,
+        .load_avg_5m = 0.0,
+        .load_avg_15m = 0.0,
+        .core_count = 0
+    };
     metric.timestamp = timestamp;
     metric.usage_percent = cpu_data["usage_percent"].get<double>();
     metric.load_avg_1m = cpu_data["load_avg_1m"].get<double>();
@@ -67,7 +74,13 @@ bool DatabaseManager::saveMemoryMetrics(const std::string &node_id,
     {
         return false;
     }
-    MemoryMetric metric = {0};
+    MemoryMetric metric = {
+        .timestamp = 0,
+        .total = 0,
+        .used = 0,
+        .free = 0,
+        .usage_percent = 0.0
+    };
     metric.timestamp = timestamp;
     metric.total = memory_data["total"].get<uint64_t>();
     metric.used = memory_data["used"].get<uint64_t>();

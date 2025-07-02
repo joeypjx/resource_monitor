@@ -20,8 +20,8 @@ ComponentManager::ComponentManager(std::shared_ptr<HttpClient> http_client)
     , components_()
     , components_mutex_()
     , running_(false)
-    , collection_thread_(nullptr)
     , collection_interval_sec_(5)
+    , collection_thread_(nullptr)
 {
 }
 
