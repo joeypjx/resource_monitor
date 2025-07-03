@@ -3,6 +3,8 @@
 #include <cstdlib>
 #include "agent/agent.h"
 #include "utils/logger.h"
+#include <fstream>
+#include <nlohmann/json.hpp>
 
 // @brief Agent主程序入口
 // 
@@ -22,8 +24,35 @@ int main(int argc, char* argv[]) {
     std::string network_interface = ""; // 网络接口名称，如果为空则自动检测
     int collection_interval_sec = 5; // 数据收集间隔，单位秒
     int port = 8081; // Agent本地HTTP服务端口
-    
-    // 解析命令行参数，覆盖默认配置
+    std::string config_path = "agent_config.json"; // 默认配置文件路径
+
+    // 先扫描是否有 --config 参数，提前加载配置文件
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if (arg == "--config" && i + 1 < argc) {
+            config_path = argv[++i];
+        }
+    }
+    // 读取配置文件（如果存在）
+    std::ifstream config_ifs(config_path);
+    if (config_ifs) {
+        try {
+            nlohmann::json config_json;
+            config_ifs >> config_json;
+            if (config_json.contains("manager_url")) manager_url = config_json["manager_url"].get<std::string>();
+            if (config_json.contains("hostname")) hostname = config_json["hostname"].get<std::string>();
+            if (config_json.contains("network_interface")) network_interface = config_json["network_interface"].get<std::string>();
+            if (config_json.contains("interval")) collection_interval_sec = config_json["interval"].get<int>();
+            if (config_json.contains("port")) port = config_json["port"].get<int>();
+            LOG_INFO("Loaded config from %s", config_path.c_str());
+        } catch (const std::exception& e) {
+            LOG_WARN("Failed to parse config file %s: %s", config_path.c_str(), e.what());
+        }
+    } else {
+        LOG_INFO("Config file %s not found, using defaults and command line", config_path.c_str());
+    }
+
+    // 解析命令行参数，覆盖配置文件
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
         if (arg == "--manager-url" && i + 1 < argc) {
@@ -44,6 +73,7 @@ int main(int argc, char* argv[]) {
             LOG_INFO("  --network-interface <name>  Network interface name (default: auto-detect)");
             LOG_INFO("  --interval <seconds>        Collection interval in seconds (default: 5)");
             LOG_INFO("  --port <port>               Agent local port (default: 8081)");
+            LOG_INFO("  --config <file>             JSON config file (default: agent_config.json)");
             LOG_INFO("  --help                      Show this help message");
             return 0;
         }

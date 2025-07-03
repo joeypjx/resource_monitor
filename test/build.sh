@@ -1,1 +1,1 @@
-g++ -o sleep sleep.cpp
+g++ -o test.bin sleep.cpp

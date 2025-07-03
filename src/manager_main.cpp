@@ -6,6 +6,8 @@
 #include <chrono>
 #include "manager/manager.h"
 #include "utils/logger.h"
+#include <fstream>
+#include <nlohmann/json.hpp>
 
 // 全局Manager实例，用于信号处理
 std::unique_ptr<Manager> g_manager;
@@ -39,8 +41,33 @@ int main(int argc, char* argv[]) {
     int port = 8080; // HTTP服务端口
     std::string db_path = "resource_monitor.db"; // SQLite数据库文件路径
     std::string sftp_host = ""; // SFTP服务器地址，用于二进制包管理
+    std::string config_path = "manager_config.json"; // 默认配置文件路径
 
-    // 解析命令行参数
+    // 先扫描是否有 --config 参数，提前加载配置文件
+    for (int i = 1; i < argc; i++) {
+        std::string arg = argv[i];
+        if (arg == "--config" && i + 1 < argc) {
+            config_path = argv[++i];
+        }
+    }
+    // 读取配置文件（如果存在）
+    std::ifstream config_ifs(config_path);
+    if (config_ifs) {
+        try {
+            nlohmann::json config_json;
+            config_ifs >> config_json;
+            if (config_json.contains("port")) port = config_json["port"].get<int>();
+            if (config_json.contains("db_path")) db_path = config_json["db_path"].get<std::string>();
+            if (config_json.contains("sftp_host")) sftp_host = config_json["sftp_host"].get<std::string>();
+            LOG_INFO("Loaded config from %s", config_path.c_str());
+        } catch (const std::exception& e) {
+            LOG_WARN("Failed to parse config file %s: %s", config_path.c_str(), e.what());
+        }
+    } else {
+        LOG_INFO("Config file %s not found, using defaults and command line", config_path.c_str());
+    }
+
+    // 解析命令行参数，覆盖配置文件
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
         if (arg == "--port" && i + 1 < argc) {
@@ -55,6 +82,7 @@ int main(int argc, char* argv[]) {
             LOG_INFO("  --port <port>       HTTP server port (default: 8080)");
             LOG_INFO("  --db-path <path>    Database file path (default: resource_monitor.db)");
             LOG_INFO("  --sftp-host <host>  SFTP host (like sftp://root:password@192.168.10.15:22/data/)");
+            LOG_INFO("  --config <file>     JSON config file (default: manager_config.json)");
             LOG_INFO("  --help              Show this help message");
             return 0;
         }

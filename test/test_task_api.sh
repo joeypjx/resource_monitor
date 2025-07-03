@@ -41,21 +41,21 @@ CREATE_PAYLOAD=$(cat <<EOF
     {
       "tasks": [
         {
-          "name": "休眠任务1",
+          "name": "测试任务1",
           "config": {
-            "command": "/root/sleep"
+            "command": "/root/test.bin"
           }
         },
         {
-          "name": "休眠任务2",
+          "name": "测试任务2",
           "config": {
-            "command": "/root/sleep"
+            "command": "/root/test.bin"
           }
         },
         {
-          "name": "休眠任务3",
+          "name": "测试任务3",
           "config": {
-            "command": "/root/sleep"
+            "command": "/root/test.bin"
           }
         }
       ]
