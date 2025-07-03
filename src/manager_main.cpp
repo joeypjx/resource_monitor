@@ -33,7 +33,7 @@ void signalHandler(int signum) {
 // 支持通过命令行参数进行配置。
 int main(int argc, char* argv[]) {
     // 初始化日志
-    Logger::initialize("manager", "manager.log");
+    // Logger::initialize("manager", "manager.log");
 
     // 默认参数
     int port = 8080; // HTTP服务端口

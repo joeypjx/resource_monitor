@@ -14,7 +14,7 @@
 // 支持通过命令行参数进行配置。
 int main(int argc, char* argv[]) {
     // 初始化日志系统
-    Logger::initialize("agent", "agent.log");
+    // Logger::initialize("agent", "agent.log");
 
     // 默认配置参数
     std::string manager_url = "http://localhost:8080"; // Manager服务地址
