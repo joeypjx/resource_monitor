@@ -100,7 +100,7 @@ void HTTPServer::handleRestartBusiness(const httplib::Request &req, httplib::Res
     }
 }
 
-//
+
 void HTTPServer::handleDeleteBusiness(const httplib::Request &req, httplib::Response &res)
 {
     try

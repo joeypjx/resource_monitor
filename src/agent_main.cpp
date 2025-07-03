@@ -4,16 +4,14 @@
 #include "agent/agent.h"
 #include "utils/logger.h"
 
-/**
- * @brief Agent主程序入口
- * 
- * @param argc 参数个数
- * @param argv 参数列表
- * @return int 退出码
- * 
- * Agent负责在受控节点上收集资源信息，并上报给Manager。
- * 支持通过命令行参数进行配置。
- */
+// @brief Agent主程序入口
+// 
+// @param argc 参数个数
+// @param argv 参数列表
+// @return int 退出码
+// 
+// Agent负责在受控节点上收集资源信息，并上报给Manager。
+// 支持通过命令行参数进行配置。
 int main(int argc, char* argv[]) {
     // 初始化日志系统
     Logger::initialize("agent", "agent.log");

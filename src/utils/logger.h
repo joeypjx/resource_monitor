@@ -6,9 +6,7 @@
 
 class Logger {
 public:
-    /**
-     * 默认构造函数
-     */
+    // 默认构造函数
     Logger() = default;
 
     static void initialize(const std::string& logger_name = "resource_monitor",

@@ -10,12 +10,10 @@
 // 全局Manager实例，用于信号处理
 std::unique_ptr<Manager> g_manager;
 
-/**
- * @brief 信号处理函数
- * 
- * @param signum 信号量
- * 优雅地停止Manager服务。
- */
+// @brief 信号处理函数
+// 
+// @param signum 信号量
+// 优雅地停止Manager服务。
 void signalHandler(int signum) {
     LOG_INFO("Received signal {}", signum);
     if (g_manager) {
@@ -24,17 +22,15 @@ void signalHandler(int signum) {
     exit(signum);
 }
 
-/**
- * @brief Manager主程序入口
- * 
- * @param argc 参数个数
- * @param argv 参数列表
- * @return int 退出码
- * 
- * Manager作为中心控制器，负责接收Agent上报的数据，
- * 提供Web界面用于展示和管理，以及响应API请求。
- * 支持通过命令行参数进行配置。
- */
+// @brief Manager主程序入口
+// 
+// @param argc 参数个数
+// @param argv 参数列表
+// @return int 退出码
+// 
+// Manager作为中心控制器，负责接收Agent上报的数据，
+// 提供Web界面用于展示和管理，以及响应API请求。
+// 支持通过命令行参数进行配置。
 int main(int argc, char* argv[]) {
     // 初始化日志
     Logger::initialize("manager", "manager.log");
