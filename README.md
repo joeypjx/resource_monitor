@@ -12,10 +12,26 @@
 | 组件 | 文件/目录 | 描述 | 保密性与恢复 |
 | :--- | :--- | :--- | :--- |
 | **管理端** | `manager` | 主程序可执行文件。 | - |
-| | `config.yaml` | Manager服务的配置文件。 | 可能包含敏感信息，需妥善保管。 |
-| | `resource_monitor.db` | 存储所有任务组模板、节点信息和监控数据的数据库文件。 | **关键恢复文件**，需定期备份以防配置丢失。 |
+| | `manager_config.json` | Manager服务的JSON格式配置文件。详见下方字段说明。 | 可能包含敏感信息，需妥善保管。 |
+| | `manager.db` | 存储所有任务组模板、节点信息和监控数据的数据库文件。 | **关键恢复文件**，需定期备份以防配置丢失。 |
 | **代理端** | `agent` | 主程序可执行文件。 | - |
-| | `config.yaml` | Agent服务的配置文件，包含Manager地址等。 | - |
+| | `agent_config.json` | Agent服务的JSON格式配置文件，包含Manager地址等。详见下方字段说明。 | - |
+
+**manager_config.json 字段说明：**
+| 字段 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `port` | int | Manager对外提供API服务的HTTP端口。 |
+| `db_path` | string | SQLite数据库文件的存储路径，建议与上表保持一致。 |
+| `sftp_host` | string | SFTP服务器地址，用于分发任务可执行文件，格式如`sftp://user:password@host:port/path/`。 |
+
+**agent_config.json 字段说明：**
+| 字段 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `manager_url` | string | Manager服务的URL地址，Agent通过此地址与Manager通信。 |
+| `hostname` | string | Agent上报给Manager的主机名，留空则自动获取本机主机名。 |
+| `network_interface` | string | 用于采集和上报的网络接口名称，留空则自动检测。 |
+| `interval` | int | Agent采集并上报监控数据的时间间隔（秒）。 |
+| `port` | int | Agent本地HTTP服务端口。 |
 
 #### **3.3 软件环境**
 用户安装并运行该软件需满足以下软硬件及其他资源要求。
@@ -113,7 +129,7 @@
 ```json
 {
   "port": 8080,
-  "db_path": "resource_monitor.db",
+  "db_path": "manager.db",
   "sftp_host": "sftp://root:password@192.168.10.15:22/data/"
 }
 ```
@@ -156,7 +172,7 @@
 ```json
 {
   "manager_url": "http://localhost:8080",
-  "hostname": "",
+  "hostname": "test",
   "network_interface": "",
   "interval": 5,
   "port": 8081
