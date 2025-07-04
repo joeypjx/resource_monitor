@@ -46,7 +46,7 @@ int main(int argc, char* argv[]) {
     // 先扫描是否有 --config 参数，提前加载配置文件
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
-        if (arg == "--config" && i + 1 < argc) {
+        if ((arg == "--config") && (i + 1 < argc)) {
             config_path = argv[++i];
         }
     }
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
     std::ifstream config_ifs(config_path);
     if (config_ifs) {
         try {
-            nlohmann::json config_json;
+            nlohmann::json config_json = nlohmann::json::object();
             config_ifs >> config_json;
             if (config_json.contains("port")) port = config_json["port"].get<int>();
             if (config_json.contains("db_path")) db_path = config_json["db_path"].get<std::string>();
@@ -70,11 +70,11 @@ int main(int argc, char* argv[]) {
     // 解析命令行参数，覆盖配置文件
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
-        if (arg == "--port" && i + 1 < argc) {
+        if ((arg == "--port") && (i + 1 < argc)) {
             port = std::atoi(argv[++i]);
-        } else if (arg == "--db-path" && i + 1 < argc) {
+        } else if ((arg == "--db-path") && (i + 1 < argc)) {
             db_path = argv[++i];
-        } else if (arg == "--sftp-host" && i + 1 < argc) {
+        } else if ((arg == "--sftp-host") && (i + 1 < argc)) {
             sftp_host = argv[++i];
         } else if (arg == "--help") {
             LOG_INFO("Usage: manager [options]");

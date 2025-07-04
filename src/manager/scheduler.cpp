@@ -112,7 +112,7 @@ std::string Scheduler::selectBestNodeForComponent(const nlohmann::json &componen
     nlohmann::json affinity = nlohmann::json::object();
     if (component.contains("affinity"))
         affinity = component["affinity"];
-    if (!affinity.is_null() && !affinity.empty())
+    if ((!affinity.is_null()) && (!affinity.empty()))
     {
         for (const auto &node : available_nodes)
         {

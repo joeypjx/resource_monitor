@@ -1,7 +1,7 @@
 {
   "manager_url": "http://localhost:8080",
-  "hostname": "test",
+  "hostname": "",
   "network_interface": "",
   "interval": 5,
   "port": 8081
-} 
+}

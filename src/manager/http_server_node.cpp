@@ -32,7 +32,7 @@ void HTTPServer::handleNodeRegistration(const httplib::Request &req, httplib::Re
     {
         auto json = nlohmann::json::parse(req.body);
         std::string node_id = "";
-        if (!json.contains("node_id") || json["node_id"].get<std::string>().empty()) {
+        if ((!json.contains("node_id")) || (json["node_id"].get<std::string>().empty())) {
             // 生成新的board_id
             uuid_t uuid = {0};
             char uuid_str[37] = {0};

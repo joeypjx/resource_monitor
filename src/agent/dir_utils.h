@@ -12,7 +12,7 @@ inline bool create_directories(const std::string& path) {
         pos = path.find_first_of('/', pos + 1);
         std::string subdir = path.substr(0, pos);
         if (subdir.empty()) continue;
-        if (mkdir(subdir.c_str(), 0755) && errno != EEXIST) {
+        if ((mkdir(subdir.c_str(), 0755)) && (errno != EEXIST)) {
             return false;
         }
     } while (pos != std::string::npos);

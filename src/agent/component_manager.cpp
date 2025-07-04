@@ -72,8 +72,8 @@ nlohmann::json ComponentManager::deployComponent(const nlohmann::json &component
     LOG_INFO("Deploying component: {}", component_info.dump(4));
 
     // 检查必要字段
-    if (!component_info.contains("component_id") || !component_info.contains("business_id") ||
-        !component_info.contains("component_name") || !component_info.contains("type"))
+    if ((!component_info.contains("component_id")) || (!component_info.contains("business_id")) ||
+        (!component_info.contains("component_name")) || (!component_info.contains("type")))
     {
         return {
             {"status", "error"},
@@ -125,7 +125,7 @@ nlohmann::json ComponentManager::deployDockerComponent(const nlohmann::json &com
     std::string component_name = component_info["component_name"];
 
     // 检查Docker相关字段，image_name是必须的，image_url是可选的
-    if (!component_info.contains("image_name") || component_info["image_name"].get<std::string>().empty())
+    if ((!component_info.contains("image_name")) || (component_info["image_name"].get<std::string>().empty()))
     {
         return {
             {"status", "error"},
@@ -145,7 +145,7 @@ nlohmann::json ComponentManager::deployDockerComponent(const nlohmann::json &com
     }
 
     // 创建配置文件
-    if (component_info.contains("config_files") && component_info["config_files"].is_array())
+    if ((component_info.contains("config_files")) && (component_info["config_files"].is_array()))
     {
         if (!createConfigFiles(component_info["config_files"]))
         {
@@ -165,7 +165,7 @@ nlohmann::json ComponentManager::deployDockerComponent(const nlohmann::json &com
     std::vector<std::string> volumes;
 
     // 如果有配置文件，添加卷挂载
-    if (component_info.contains("config_files") && component_info["config_files"].is_array())
+    if ((component_info.contains("config_files")) && (component_info["config_files"].is_array()))
     {
         for (const auto &config : component_info["config_files"])
         {
@@ -217,9 +217,9 @@ nlohmann::json ComponentManager::deployBinaryComponent(const nlohmann::json &com
 
     std::string binary_path = "";
     // 首先确定binary_path
-    if (component_info.contains("binary_path") && !component_info["binary_path"].get<std::string>().empty()) {
+    if ((component_info.contains("binary_path")) && (!component_info["binary_path"].get<std::string>().empty())) {
         binary_path = component_info["binary_path"];
-    } else if (component_info.contains("binary_url") && !component_info["binary_url"].get<std::string>().empty()) {
+    } else if ((component_info.contains("binary_url")) && (!component_info["binary_url"].get<std::string>().empty())) {
         // 从URL中提取文件名作为默认路径
         std::string binary_url = component_info["binary_url"];
         std::string filename = binary_url.substr(binary_url.find_last_of("/") + 1);
@@ -235,7 +235,7 @@ nlohmann::json ComponentManager::deployBinaryComponent(const nlohmann::json &com
     std::ifstream file(binary_path);
     if (!file.good()) {
         // 文件不存在,需要下载
-        if (!component_info.contains("binary_url") || component_info["binary_url"].get<std::string>().empty()) {
+        if ((!component_info.contains("binary_url")) || (component_info["binary_url"].get<std::string>().empty())) {
             return {
                 {"status", "error"},
                 {"message", "Binary file does not exist and no download URL provided"}
@@ -251,7 +251,7 @@ nlohmann::json ComponentManager::deployBinaryComponent(const nlohmann::json &com
     file.close();
 
     // 创建配置文件（如果有）
-    if (component_info.contains("config_files") && component_info["config_files"].is_array())
+    if ((component_info.contains("config_files")) && (component_info["config_files"].is_array()))
     {
         if (!createConfigFiles(component_info["config_files"]))
         {
@@ -278,11 +278,11 @@ nlohmann::json ComponentManager::deployBinaryComponent(const nlohmann::json &com
 
     // 设置命令行参数
     std::vector<std::string> command_args;
-    if (component_info.contains("command_args") && component_info["command_args"].is_array())
+    if ((component_info.contains("command_args")) && (component_info["command_args"].is_array()))
     {
         for (const auto &arg : component_info["command_args"])
         {
-            command_args.push_back(arg);
+            command_args.push_back(arg.get<std::string>());
         }
     }
 
@@ -310,7 +310,7 @@ nlohmann::json ComponentManager::stopComponent(const nlohmann::json &component_i
     
     std::string component_id = component_info["component_id"];
     std::string business_id = component_info["business_id"];
-    ComponentType component_type = component_info.contains("type") && component_info["type"] == "docker" ? ComponentType::DOCKER : ComponentType::BINARY;
+    ComponentType component_type = (component_info.contains("type") && (component_info["type"] == "docker")) ? ComponentType::DOCKER : ComponentType::BINARY;
     std::string container_id = component_info.contains("container_id") ? component_info["container_id"].get<std::string>() : "";
     std::string process_id = component_info.contains("process_id") ? component_info["process_id"].get<std::string>() : "";
     std::string container_or_process_id = container_id.empty() ? process_id : container_id;
@@ -420,7 +420,7 @@ bool ComponentManager::collectComponentStatus()
         if (component["type"] == "docker")
         {
             // 如果组件没有容器ID，跳过
-            if (!component.contains("container_id") || component["container_id"].get<std::string>().empty())
+            if ((!component.contains("container_id")) || (component["container_id"].get<std::string>().empty()))
             {
                 continue;
             }
@@ -454,7 +454,7 @@ bool ComponentManager::collectComponentStatus()
         else if (component["type"] == "binary")
         {
             // 如果组件没有进程ID，跳过
-            if (!component.contains("process_id") || component["process_id"].get<std::string>().empty())
+            if ((!component.contains("process_id")) || (component["process_id"].get<std::string>().empty()))
             {
                 continue;
             }
@@ -532,7 +532,7 @@ void ComponentManager::stopStatusCollection()
     running_ = false;
 
     // 等待线程结束
-    if (collection_thread_ && collection_thread_->joinable())
+    if ((collection_thread_) && (collection_thread_->joinable()))
     {
         collection_thread_->join();
     }
@@ -545,7 +545,7 @@ bool ComponentManager::createConfigFiles(const nlohmann::json &config_files)
         if (config.is_null()) {
             continue;
         }
-        if (!config.contains("path") || !config.contains("content"))
+        if ((!config.contains("path")) || (!config.contains("content")))
         {
             continue;
         }

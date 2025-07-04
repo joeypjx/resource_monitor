@@ -75,8 +75,8 @@ bool DatabaseManager::initializeBusinessTables() {
 bool DatabaseManager::saveBusiness(const nlohmann::json& business_info) {
     try {
         // 检查必要字段
-        if (!business_info.contains("business_id") || !business_info.contains("business_name") || 
-            !business_info.contains("status")) {
+        if ((!business_info.contains("business_id")) || (!business_info.contains("business_name")) || 
+            (!business_info.contains("status"))) {
             return false;
         }
         
@@ -142,9 +142,9 @@ bool DatabaseManager::saveBusinessComponent(const nlohmann::json& component_info
     try {
         
         // 检查必要字段
-        if (!component_info.contains("component_id") || !component_info.contains("business_id") || 
-            !component_info.contains("component_name") || !component_info.contains("type") || 
-            !component_info.contains("status") ) {
+        if ((!component_info.contains("component_id")) || (!component_info.contains("business_id")) || 
+            (!component_info.contains("component_name")) || (!component_info.contains("type")) || 
+            (!component_info.contains("status")) ) {
             return false;
         }
         
@@ -295,7 +295,7 @@ bool DatabaseManager::saveComponentMetrics(const std::string& component_id,
                                          const nlohmann::json& metrics) {
     try {
         // 检查必要字段
-        if (!metrics.contains("cpu_percent") || !metrics.contains("memory_mb")) {
+        if ((!metrics.contains("cpu_percent")) || (!metrics.contains("memory_mb"))) {
             return false;
         }
         
@@ -577,7 +577,7 @@ bool DatabaseManager::updateComponentStatus(const nlohmann::json &component_stat
             return all_success;
         }
         // 单个对象
-        if (!component_status.contains("component_id") || !component_status.contains("type") || !component_status.contains("status")) {
+        if ((!component_status.contains("component_id")) || (!component_status.contains("type")) || (!component_status.contains("status"))) {
             std::cerr << "updateComponentStatus: missing required fields" << std::endl;
             return false;
         }

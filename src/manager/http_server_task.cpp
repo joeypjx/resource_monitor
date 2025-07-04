@@ -37,8 +37,8 @@ void HTTPServer::handleTaskGroupTemplate(const httplib::Request& req, httplib::R
         auto json = nlohmann::json::parse(req.body);
         
         // 验证必要字段
-        if (!json.contains("name") || !json.contains("task_groups") || 
-            !json["task_groups"].is_array() || json["task_groups"].empty()) {
+        if ((!json.contains("name")) || (!json.contains("task_groups")) || 
+            (!json["task_groups"].is_array()) || (json["task_groups"].empty())) {
             sendErrorResponse(res, "Invalid request format");
             return;
         }
@@ -46,7 +46,7 @@ void HTTPServer::handleTaskGroupTemplate(const httplib::Request& req, httplib::R
         // 1. 创建所有组件模板
         nlohmann::json component_ids = nlohmann::json::array();
         for (const auto& task_group : json["task_groups"]) {
-            if (!task_group.contains("tasks") || !task_group["tasks"].is_array() || task_group["tasks"].empty()) {
+            if ((!task_group.contains("tasks")) || (!task_group["tasks"].is_array()) || (task_group["tasks"].empty())) {
                 sendErrorResponse(res, "Invalid task_group: must contain a non-empty tasks array");
                 return;
             }
@@ -55,7 +55,7 @@ void HTTPServer::handleTaskGroupTemplate(const httplib::Request& req, httplib::R
                 if (task.is_null()) {
                     continue;
                 }
-                if (!task.contains("name") || !task.contains("config") || !task["config"].contains("command")) {
+                if ((!task.contains("name")) || (!task.contains("config")) || (!task["config"].contains("command"))) {
                     sendErrorResponse(res, "Invalid task: must contain name and config with command");
                     return;
                 }
@@ -158,7 +158,7 @@ void HTTPServer::handleTaskGroupQuery(const httplib::Request& req, httplib::Resp
                     if (comp.contains("template_details")) {
                         const auto& details = comp["template_details"];
                         std::string command = details["config"]["binary_path"].get<std::string>();
-                        if (details["config"].contains("affinity") && details["config"]["affinity"].contains("ip_address")) {
+                        if ((details["config"].contains("affinity")) && (details["config"]["affinity"].contains("ip_address"))) {
                             std::string affinity = details["config"]["affinity"]["ip_address"].get<std::string>();
                             command = affinity + ":" + command;
                         }

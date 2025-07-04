@@ -64,7 +64,7 @@ bool DockerManager::checkDockerAvailable() {
         
         // 如果命令行方式失败，尝试通过API检查
         nlohmann::json response = dockerApiRequest("GET", "/info");
-        return !response.empty() && response.contains("ServerVersion");
+        return (!response.empty()) && (response.contains("ServerVersion"));
     } catch (const std::exception& e) {
         LOG_ERROR("Error checking Docker availability: {}", e.what());
         return false;
@@ -304,12 +304,12 @@ nlohmann::json DockerManager::getContainerStatus(const std::string& container_id
         std::string status = exec(cmd.c_str());
         
         // 去除末尾的换行符
-        if (!status.empty() && status[status.length() - 1] == '\n') {
+        if ((!status.empty()) && (status[status.length() - 1] == '\n')) {
             status.erase(status.length() - 1);
         }
         
         // 检查是否获取到状态
-        if (status.empty() || status.find("Error") != std::string::npos) {
+        if ((status.empty()) || (status.find("Error") != std::string::npos)) {
             return {
                 {"status", "error"},
                 {"message", "Failed to get container status"},
@@ -419,7 +419,7 @@ nlohmann::json DockerManager::listContainers(bool all) {
             size_t pos2 = line.find("|", pos1 + 1);
             size_t pos3 = line.find("|", pos2 + 1);
             
-            if (pos1 != std::string::npos && pos2 != std::string::npos && pos3 != std::string::npos) {
+            if ((pos1 != std::string::npos) && (pos2 != std::string::npos) && (pos3 != std::string::npos)) {
                 std::string id = line.substr(0, pos1);
                 std::string name = line.substr(pos1 + 1, pos2 - pos1 - 1);
                 std::string status = line.substr(pos2 + 1, pos3 - pos2 - 1);

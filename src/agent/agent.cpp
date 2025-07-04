@@ -44,7 +44,7 @@ Agent::~Agent()
     stop();
 
     // 停止HTTP服务器
-    if (server_running_ && http_server_)
+    if ((server_running_) && (http_server_))
     {
         http_server_->stop();
         delete http_server_;
@@ -119,7 +119,7 @@ void Agent::stop()
     }
 
     // 停止HTTP服务器
-    if (server_running_ && http_server_)
+    if ((server_running_) && (http_server_))
     {
         http_server_->stop();
         delete http_server_;
@@ -156,7 +156,7 @@ bool Agent::registerToManager()
     nlohmann::json response = http_client_->registerAgent(register_info);
 
     // 检查响应
-    if (response.contains("status") && response["status"] == "success")
+    if ((response.contains("status")) && (response["status"] == "success"))
     {
         // 使用服务器返回的Node ID
         if (response.contains("node_id"))
@@ -205,7 +205,7 @@ void Agent::collectAndReportResources()
     // 上报资源数据
     nlohmann::json response = http_client_->reportData(report_json);
     // 检查响应
-    if (response.contains("status") && response["status"] == "success")
+    if ((response.contains("status")) && (response["status"] == "success"))
     {
         // LOG_INFO("Successfully reported resource data to Manager: {}", report_json.dump(4));
     }
@@ -223,7 +223,7 @@ void Agent::workerThread()
         collectAndReportResources();
 
         // 等待指定的时间间隔
-        for (int i = 0; i < collection_interval_sec_ && running_; ++i)
+        for (int i = 0; (i < collection_interval_sec_) && (running_); ++i)
         {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
@@ -289,8 +289,8 @@ bool Agent::startHttpServer(int port)
 nlohmann::json Agent::handleDeployRequest(const nlohmann::json &request)
 {
     // 检查必要字段
-    if (!request.contains("component_id") || !request.contains("business_id") ||
-        !request.contains("component_name") || !request.contains("type"))
+    if ((!request.contains("component_id")) || (!request.contains("business_id")) ||
+        (!request.contains("component_name")) || (!request.contains("type")))
     {
         return {
             {"status", "error"},
@@ -310,7 +310,7 @@ nlohmann::json Agent::handleDeployRequest(const nlohmann::json &request)
 nlohmann::json Agent::handleStopRequest(const nlohmann::json &request)
 {
     // 检查必要字段
-    if (!request.contains("component_id") || !request.contains("business_id"))
+    if ((!request.contains("component_id")) || (!request.contains("business_id")))
     {
         return {
             {"status", "error"},
@@ -322,7 +322,7 @@ nlohmann::json Agent::handleStopRequest(const nlohmann::json &request)
     std::thread([this, request]()
                 { 
                     component_manager_->stopComponent(request);
-                    if (request.contains("permanently") && request["permanently"]) {
+                    if ((request.contains("permanently")) && (request["permanently"])) {
                         component_manager_->removeComponent(request["component_id"]);
                     }
                 })
@@ -394,7 +394,7 @@ std::string Agent::getLocalIpAddress() {
         for (ifa = ifaddr; ifa != nullptr; ifa = ifa->ifa_next) {
             if (ifa->ifa_addr == nullptr) continue;
             family = ifa->ifa_addr->sa_family;
-            if (family == AF_INET && strcmp(ifa->ifa_name, network_interface_.c_str()) == 0) {
+            if ((family == AF_INET) && (strcmp(ifa->ifa_name, network_interface_.c_str()) == 0)) {
                 s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, nullptr, 0, NI_NUMERICHOST);
                 if (s == 0) {
                     ip = host;
@@ -413,8 +413,8 @@ std::string Agent::getLocalIpAddress() {
                 s = getnameinfo(ifa->ifa_addr, sizeof(struct sockaddr_in), host, NI_MAXHOST, nullptr, 0, NI_NUMERICHOST);
                 if (s != 0) continue;
                 // 跳过lo和docker网络接口
-                if (strcmp(ifa->ifa_name, "lo") != 0 && 
-                    strncmp(ifa->ifa_name, "docker", 6) != 0) {
+                if ((strcmp(ifa->ifa_name, "lo") != 0) && 
+                    (strncmp(ifa->ifa_name, "docker", 6) != 0)) {
                     ip = host;
                     break;
                 }

@@ -37,7 +37,7 @@ nlohmann::json BusinessManager::deployBusinessByTemplateId(const std::string &bu
 {
     // 1. 获取业务模板
     auto template_result = db_manager_->getBusinessTemplate(business_template_id);
-    if (!template_result.contains("status") || template_result["status"] != "success")
+    if ((!template_result.contains("status")) || (template_result["status"] != "success"))
     {
         return {
             {"status", "error"},
@@ -48,7 +48,7 @@ nlohmann::json BusinessManager::deployBusinessByTemplateId(const std::string &bu
     nlohmann::json business_info = nlohmann::json::object();
     business_info["business_name"] = template_info.contains("template_name") ? template_info["template_name"].get<std::string>() : "业务实例";
     business_info["components"] = nlohmann::json::array();
-    if (template_info.contains("components") && template_info["components"].is_array())
+    if ((template_info.contains("components")) && (template_info["components"].is_array()))
     {
         for (const auto &comp : template_info["components"])
         {
@@ -104,7 +104,7 @@ nlohmann::json BusinessManager::deployBusiness(const nlohmann::json &business_in
     LOG_INFO("Business saved: {}", business.dump(4));
 
     // 获取组件列表
-    if (!business_info.contains("components") || !business_info["components"].is_array())
+    if ((!business_info.contains("components")) || (!business_info["components"].is_array()))
     {
         return {
             {"status", "error"},
@@ -307,11 +307,11 @@ nlohmann::json BusinessManager::deployComponent(const std::string &business_id, 
     }
     // 检查组件归属和节点信息
     std::string err_msg = "";
-    if (!component.contains("business_id") || component["business_id"] != business_id)
+    if ((!component.contains("business_id")) || (component["business_id"] != business_id))
     {
         err_msg = "Component does not belong to this business";
     }
-    else if (!component.contains("node_id") || component["node_id"].get<std::string>().empty())
+    else if ((!component.contains("node_id")) || (component["node_id"].get<std::string>().empty()))
     {
         err_msg = "Component node_id is empty";
     }
@@ -331,7 +331,7 @@ nlohmann::json BusinessManager::deployComponent(const std::string &business_id,
     LOG_INFO("Deploying component: {}", component_info.dump(4));
     // 获取节点信息
     nlohmann::json node_info = db_manager_->getNode(node_id);
-    if (node_info.empty() || !node_info.contains("ip_address"))
+    if ((node_info.empty()) || (!node_info.contains("ip_address")))
     {
         return {{"status", "error"}, {"message", "Node not found or missing IP"}};
     }
@@ -353,7 +353,7 @@ nlohmann::json BusinessManager::deployComponent(const std::string &business_id,
         std::string json_data = deploy_request.dump();
 
         auto res = cli.Post(path, header_map, json_data, "application/json");
-        if (res && res->status == 200)
+        if ((res) && (res->status == 200))
         {
             try
             {
@@ -380,7 +380,7 @@ nlohmann::json BusinessManager::stopComponent(const std::string &business_id, co
 {
     // 获取组件信息
     nlohmann::json component = db_manager_->getComponentById(component_id);
-    if (component.empty() || !component.contains("node_id"))
+    if ((component.empty()) || (!component.contains("node_id")))
     {
         return {{"status", "error"}, {"message", "Component or node_id not found"}};
     }
@@ -389,7 +389,7 @@ nlohmann::json BusinessManager::stopComponent(const std::string &business_id, co
 
     std::string node_id = component["node_id"].get<std::string>();
     nlohmann::json node_info = db_manager_->getNode(node_id);
-    if (node_info.empty() || !node_info.contains("ip_address"))
+    if ((node_info.empty()) || (!node_info.contains("ip_address")))
     {
         return {{"status", "error"}, {"message", "Node not found or missing IP"}};
     }
@@ -401,12 +401,12 @@ nlohmann::json BusinessManager::stopComponent(const std::string &business_id, co
     nlohmann::json stop_request = {
         {"component_id", component_id},
         {"business_id", business_id}};
-    if (component["type"] == "docker" && component.contains("container_id"))
+    if ((component["type"] == "docker") && (component.contains("container_id")))
     {
         stop_request["container_id"] = component["container_id"];
         stop_request["type"] = "docker";
     }
-    else if (component["type"] == "binary" && component.contains("process_id"))
+    else if ((component["type"] == "binary") && (component.contains("process_id")))
     {
         stop_request["process_id"] = component["process_id"];
         stop_request["type"] = "binary";
@@ -425,7 +425,7 @@ nlohmann::json BusinessManager::stopComponent(const std::string &business_id, co
         std::string json_data = stop_request.dump();
 
         auto res = cli.Post(path, header_map, json_data, "application/json");
-        if (res && res->status == 200)
+        if ((res) && (res->status == 200))
         {
             try
             {
@@ -460,7 +460,7 @@ nlohmann::json BusinessManager::expandComponentsFromTemplate(const nlohmann::jso
             continue;
         std::string template_id = comp["component_template_id"];
         auto tpl_result = db_manager_->getComponentTemplate(template_id);
-        if (!tpl_result.contains("status") || tpl_result["status"] != "success")
+        if ((!tpl_result.contains("status")) || (tpl_result["status"] != "success"))
         {
             continue;
         }
@@ -497,7 +497,7 @@ nlohmann::json BusinessManager::expandComponentsFromTemplate(const nlohmann::jso
             if (!tpl["config"]["binary_url"].get<std::string>().empty()) {
                 LOG_INFO("binary_url: {}", tpl["config"]["binary_url"].get<std::string>());
                 new_comp["binary_url"] = tpl["config"]["binary_url"];
-            } else if (!sftp_host_.empty() && new_comp.contains("binary_path")) {
+            } else if ((!sftp_host_.empty()) && (new_comp.contains("binary_path"))) {
                 LOG_INFO("sftp_host_: {}", sftp_host_);
                 LOG_INFO("binary_path: {}", new_comp["binary_path"].get<std::string>());
                 // new_comp["binary_path"] 的最后一个/后面的内容
@@ -525,7 +525,7 @@ bool BusinessManager::validateBusinessInfo(const nlohmann::json &business_info)
     }
 
     // 检查组件
-    if (!business_info.contains("components") || !business_info["components"].is_array())
+    if ((!business_info.contains("components")) || (!business_info["components"].is_array()))
     {
         return false;
     }
@@ -545,9 +545,9 @@ bool BusinessManager::validateBusinessInfo(const nlohmann::json &business_info)
 bool BusinessManager::validateComponentInfo(const nlohmann::json &component_info)
 {
     // 检查必要字段
-    if (!component_info.contains("component_id") ||
-        !component_info.contains("component_name") ||
-        !component_info.contains("type"))
+    if ((!component_info.contains("component_id")) ||
+        (!component_info.contains("component_name")) ||
+        (!component_info.contains("type")))
     {
         return false;
     }
@@ -557,17 +557,17 @@ bool BusinessManager::validateComponentInfo(const nlohmann::json &component_info
     // 根据类型检查特定字段
     if (type == "docker")
     {
-        // 检查Docker特定字段
-        if ((!component_info.contains("image_url") || component_info["image_url"].get<std::string>().empty()) &&
-            (!component_info.contains("image_name") || component_info["image_name"].get<std::string>().empty()))
+        // 检查Docker组件的字段
+        if (((!component_info.contains("image_url")) || (component_info["image_url"].get<std::string>().empty())) &&
+            ((!component_info.contains("image_name")) || (component_info["image_name"].get<std::string>().empty())))
         {
             return false;
         }
     }
     else if (type == "binary")
     {
-        // 检查二进制特定字段
-        if (!component_info.contains("binary_path") && !component_info.contains("binary_url"))
+        // 检查二进制组件的字段
+        if ((!component_info.contains("binary_path")) && (!component_info.contains("binary_url")))
         {
             return false;
         }

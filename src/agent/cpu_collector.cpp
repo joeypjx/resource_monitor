@@ -69,7 +69,7 @@ double CpuCollector::getCpuUsagePercent() {
     last_idle_time_ = idle_time;
     
     // 如果是第一次采集，返回0
-    if (total_time_delta == 0) {
+    if (static_cast<int>(total_time_delta) == 0) {
         return 0.0;
     }
     

@@ -98,9 +98,9 @@ nlohmann::json BinaryManager::downloadBinary(const std::string& binary_url, cons
     }
     
     // 检查文件是否为压缩包，如果是则解压
-    bool is_tar_gz = (binary_path.size() >= 7 && binary_path.substr(binary_path.size() - 7) == ".tar.gz");
-    bool is_tgz = (binary_path.size() >= 4 && binary_path.substr(binary_path.size() - 4) == ".tgz");
-    if (is_tar_gz || is_tgz) {
+    bool is_tar_gz = ((binary_path.size() >= 7) && (binary_path.substr(binary_path.size() - 7) == ".tar.gz"));
+    bool is_tgz = ((binary_path.size() >= 4) && (binary_path.substr(binary_path.size() - 4) == ".tgz"));
+    if ((is_tar_gz) || (is_tgz)) {
         std::string extract_dir = parent_dir;
         if (!extractFile(binary_path, extract_dir)) {
             return {
@@ -235,7 +235,7 @@ nlohmann::json BinaryManager::getProcessStats(const std::string& process_id) {
     std::string cmd = "ps -p " + process_id + " -o %cpu,%mem,rss --no-headers";
     std::string output = executeCommand(cmd);
     std::istringstream iss(output);
-    float cpu_percent = 0.0f, mem_percent = 0.0f;
+    float cpu_percent = 0.0, mem_percent = 0.0;
     long rss_kb = 0;
     iss >> cpu_percent >> mem_percent >> rss_kb;
     return {
@@ -262,7 +262,7 @@ std::string BinaryManager::executeCommand(const std::string& command) {
     }
 
     // 去掉换行符
-    if (!result.empty() && result.back() == '\n') result.pop_back();
+    if ((!result.empty()) && (result.back() == '\n')) result.pop_back();
     return result;
 }
 
@@ -290,7 +290,7 @@ bool BinaryManager::isProcessRunning(const std::string& process_id) {
     
     status.erase(0, status.find_first_not_of(" \t\n\r"));
     status.erase(status.find_last_not_of(" \t\n\r") + 1);
-    if (status.empty() || status.find('Z') != std::string::npos) {
+    if ((status.empty()) || (status.find('Z') != std::string::npos)) {
         return false;
     }
     return true;

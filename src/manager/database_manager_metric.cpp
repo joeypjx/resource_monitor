@@ -40,9 +40,9 @@ bool DatabaseManager::saveCpuMetrics(const std::string &node_id,
                                      const nlohmann::json &cpu_data)
 {
     std::lock_guard<std::mutex> lock(cpu_metric_mutex_);
-    if (!cpu_data.contains("usage_percent") || !cpu_data.contains("load_avg_1m") ||
-        !cpu_data.contains("load_avg_5m") || !cpu_data.contains("load_avg_15m") ||
-        !cpu_data.contains("core_count"))
+    if ((!cpu_data.contains("usage_percent")) || (!cpu_data.contains("load_avg_1m")) ||
+        (!cpu_data.contains("load_avg_5m")) || (!cpu_data.contains("load_avg_15m")) ||
+        (!cpu_data.contains("core_count")))
     {
         return false;
     }
@@ -69,16 +69,16 @@ bool DatabaseManager::saveMemoryMetrics(const std::string &node_id,
                                         const nlohmann::json &memory_data)
 {
     std::lock_guard<std::mutex> lock(memory_metric_mutex_);
-    if (!memory_data.contains("total") || !memory_data.contains("used") ||
-        !memory_data.contains("free") || !memory_data.contains("usage_percent"))
+    if ((!memory_data.contains("total")) || (!memory_data.contains("used")) ||
+        (!memory_data.contains("free")) || (!memory_data.contains("usage_percent")))
     {
         return false;
     }
     MemoryMetric metric = {
         .timestamp = 0,
-        .total = 0,
-        .used = 0,
-        .free = 0,
+        .total = static_cast<unsigned long long>(0),
+        .used = static_cast<unsigned long long>(0), 
+        .free = static_cast<unsigned long long>(0),
         .usage_percent = 0.0
     };
     metric.timestamp = timestamp;
@@ -128,7 +128,7 @@ nlohmann::json DatabaseManager::getMemoryMetrics(const std::string &node_id)
 bool DatabaseManager::saveResourceUsage(const nlohmann::json &resource_usage)
 {
     // 检查必要字段
-    if (!resource_usage.contains("node_id") || !resource_usage.contains("timestamp") || !resource_usage.contains("resource")) {
+    if ((!resource_usage.contains("node_id")) || (!resource_usage.contains("timestamp")) || (!resource_usage.contains("resource"))) {
         return false;
     }
     std::string node_id = resource_usage["node_id"];

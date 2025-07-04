@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     // 先扫描是否有 --config 参数，提前加载配置文件
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
-        if (arg == "--config" && i + 1 < argc) {
+        if ((arg == "--config") && (i + 1 < argc)) {
             config_path = argv[++i];
         }
     }
@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
     std::ifstream config_ifs(config_path);
     if (config_ifs) {
         try {
-            nlohmann::json config_json;
+            nlohmann::json config_json = nlohmann::json::object();
             config_ifs >> config_json;
             if (config_json.contains("manager_url")) manager_url = config_json["manager_url"].get<std::string>();
             if (config_json.contains("hostname")) hostname = config_json["hostname"].get<std::string>();
@@ -55,15 +55,15 @@ int main(int argc, char* argv[]) {
     // 解析命令行参数，覆盖配置文件
     for (int i = 1; i < argc; i++) {
         std::string arg = argv[i];
-        if (arg == "--manager-url" && i + 1 < argc) {
+        if ((arg == "--manager-url") && (i + 1 < argc)) {
             manager_url = argv[++i];
-        } else if (arg == "--hostname" && i + 1 < argc) {
+        } else if ((arg == "--hostname") && (i + 1 < argc)) {
             hostname = argv[++i];
-        } else if (arg == "--network-interface" && i + 1 < argc) {
+        } else if ((arg == "--network-interface") && (i + 1 < argc)) {
             network_interface = argv[++i];
-        } else if (arg == "--interval" && i + 1 < argc) {
+        } else if ((arg == "--interval") && (i + 1 < argc)) {
             collection_interval_sec = std::atoi(argv[++i]);
-        } else if (arg == "--port" && i + 1 < argc) {
+        } else if ((arg == "--port") && (i + 1 < argc)) {
             port = std::atoi(argv[++i]);
         } else if (arg == "--help") {
             LOG_INFO("Usage: agent [options]");

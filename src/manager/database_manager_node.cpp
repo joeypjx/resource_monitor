@@ -46,8 +46,8 @@ bool DatabaseManager::saveNode(const nlohmann::json &node_info)
     try
     {
         // 检查必要字段
-        if (!node_info.contains("node_id") || !node_info.contains("hostname") ||
-            !node_info.contains("ip_address") || !node_info.contains("os_info") || !node_info.contains("port"))
+        if ((!node_info.contains("node_id")) || (!node_info.contains("hostname")) ||
+            (!node_info.contains("ip_address")) || (!node_info.contains("os_info")) || (!node_info.contains("port")))
         {
             return false;
         }
@@ -154,7 +154,7 @@ void DatabaseManager::startNodeStatusMonitor()
                 // 检查内存中的节点状态
                 node_status_mutex_.lock();
                 for (const auto& pair : node_status_map_) {
-                    if (pair.second.status == "online" && (current_timestamp - pair.second.updated_at > 10)) {
+                    if ((pair.second.status == "online") && (current_timestamp - pair.second.updated_at > 30)) {
                         offline_nodes.push_back(pair.first);
                     }
                 }
@@ -283,11 +283,13 @@ nlohmann::json DatabaseManager::getNode(const std::string &node_id)
 
 nlohmann::json DatabaseManager::getOnlineNodes()
 {
-    nlohmann::json all_nodes = getNodes();
     nlohmann::json online_nodes = nlohmann::json::array();
-
-    for (const auto& node : all_nodes) {
-        if (node.contains("status") && node["status"] == "online") {
+    auto all_nodes = getNodes();
+    for(const auto& node : all_nodes) {
+        if (node.is_null()) {
+            continue;
+        }
+        if ((node.contains("status")) && (node["status"] == "online")) {
             online_nodes.push_back(node);
         }
     }

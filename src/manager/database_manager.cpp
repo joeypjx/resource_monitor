@@ -23,7 +23,7 @@ DatabaseManager::~DatabaseManager()
     if (node_monitor_running_)
     {
         node_monitor_running_ = false;
-        if (node_monitor_thread_ && node_monitor_thread_->joinable())
+        if ((node_monitor_thread_) && (node_monitor_thread_->joinable()))
         {
             node_monitor_thread_->join();
         }
@@ -33,7 +33,7 @@ DatabaseManager::~DatabaseManager()
     if (slot_status_monitor_running_.load())
     {
         slot_status_monitor_running_.store(false);
-        if (slot_status_monitor_thread_ && slot_status_monitor_thread_->joinable())
+        if ((slot_status_monitor_thread_) && (slot_status_monitor_thread_->joinable()))
         {
             slot_status_monitor_thread_->join();
         }

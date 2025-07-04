@@ -56,9 +56,7 @@ nlohmann::json HttpClient::get(const std::string& endpoint,
     
     // 发送GET请求
     auto res = cli.Get(path, header_map);
-    
-    // 处理响应
-    if (res && res->status == 200) {
+    if ((res) && (res->status == 200)) {
         try {
             return nlohmann::json::parse(res->body);
         } catch (const std::exception& e) {
@@ -116,9 +114,7 @@ nlohmann::json HttpClient::post(const std::string& endpoint,
     
     // 发送POST请求
     auto res = cli.Post(path, header_map, json_data, "application/json");
-    
-    // 处理响应
-    if (res && res->status == 200) {
+    if ((res) && (res->status == 200)) {
         try {
             return nlohmann::json::parse(res->body);
         } catch (const std::exception& e) {

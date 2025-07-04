@@ -176,7 +176,7 @@ nlohmann::json DatabaseManager::saveBusinessTemplate(const nlohmann::json& templ
         bool is_update = false;
         std::string created_at = timestamp;
         // 验证组件模板是否存在
-        if (template_info.contains("components") && template_info["components"].is_array()) {
+        if ((template_info.contains("components")) && (template_info["components"].is_array())) {
             for (const auto& component : template_info["components"]) {
                 if (component.is_null()) {
                     continue;

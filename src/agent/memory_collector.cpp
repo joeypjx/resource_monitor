@@ -14,7 +14,7 @@ nlohmann::json MemoryCollector::collect() {
         
         // 计算使用率，防止除零错误
         double usage_percent = 0.0;
-        if (total > 0) {
+        if (static_cast<int>(total) > 0) {
             usage_percent = 100.0 * static_cast<double>(used) / static_cast<double>(total);
         }
         
@@ -57,9 +57,9 @@ bool MemoryCollector::getMemoryInfo(unsigned long long& total, unsigned long lon
     }
     
     // 如果没有MemAvailable字段（较旧的内核），使用MemFree作为近似值
-    if (available == 0) {
+    if (static_cast<int>(available) == 0) {
         available = free;
     }
     
-    return (total > 0);
+    return (static_cast<int>(total) > 0);
 }
