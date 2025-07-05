@@ -18,6 +18,7 @@ HTTPLIB_DIR = $(DEPS_DIR)/cpp-httplib
 SQLITECPP_DIR = $(DEPS_DIR)/SQLiteCpp
 SSH_DIR = $(DEPS_DIR)/libssh2
 SPDLOG_DIR = $(DEPS_DIR)/spdlog
+SQLITE3_DIR = $(DEPS_DIR)/sqlite3
 
 # 包含目录
 INCLUDES = -I$(SRC_DIR) \
@@ -30,11 +31,13 @@ INCLUDES = -I$(SRC_DIR) \
           -I$(SQLITECPP_DIR)/include \
           -I$(SPDLOG_DIR)/include \
 		  -I$(SSH_DIR)/include \
+		  -I$(SQLITE3_DIR)/include \
           -I/usr/local/include
 
 # 库目录
 LIB_DIRS = -L$(SQLITECPP_DIR)/build \
            -L$(SSH_DIR)/lib \
+		   -L$(SQLITE3_DIR)/lib \
            -L/usr/local/lib \
 		   -L/usr/lib64
 
