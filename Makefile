@@ -2,7 +2,7 @@
 
 # 编译器和标准
 CXX = g++
-CXXFLAGS = -std=c++14 -Wall -Wextra
+CXXFLAGS = -std=c++14 -Wall -Wextra -MMD -MP
 
 # 项目目录
 SRC_DIR = src
@@ -12,13 +12,16 @@ UTILS_DIR = $(SRC_DIR)/utils
 BUILD_DIR = build
 
 # 依赖库目录
-DEPS_DIR = deps
+DEPS_DIR = third_party
 JSON_DIR = $(DEPS_DIR)/nlohmann_json
 HTTPLIB_DIR = $(DEPS_DIR)/cpp-httplib
-SQLITECPP_DIR = $(DEPS_DIR)/SQLiteCpp
-SSH_DIR = $(DEPS_DIR)/libssh2
 SPDLOG_DIR = $(DEPS_DIR)/spdlog
+SQLITECPP_DIR = $(DEPS_DIR)/SQLiteCpp
 SQLITE3_DIR = $(DEPS_DIR)/sqlite3
+# devel 头文件
+SSH_DIR = $(DEPS_DIR)/libssh2
+UUID_DIR = $(DEPS_DIR)/libuuid
+CURL_DIR = $(DEPS_DIR)/curl
 
 # 包含目录
 INCLUDES = -I$(SRC_DIR) \
@@ -29,68 +32,37 @@ INCLUDES = -I$(SRC_DIR) \
           -I$(JSON_DIR)/include \
           -I$(HTTPLIB_DIR) \
           -I$(SQLITECPP_DIR)/include \
-          -I$(SPDLOG_DIR)/include \
-		  -I$(SSH_DIR)/include \
 		  -I$(SQLITE3_DIR)/include \
-          -I/usr/local/include
+          -I$(SPDLOG_DIR)/include
 
 # 库目录
 LIB_DIRS = -L$(SQLITECPP_DIR)/build \
-           -L$(SSH_DIR)/lib \
-		   -L$(SQLITE3_DIR)/lib \
-           -L/usr/local/lib \
-		   -L/usr/lib64
+		   -L$(SQLITE3_DIR)/lib
+
+# VPATH告诉make在哪里查找源文件
+VPATH = $(AGENT_DIR):$(MANAGER_DIR):$(UTILS_DIR):$(SRC_DIR)
 
 # Agent源文件
-AGENT_SOURCES = $(AGENT_DIR)/agent.cpp \
-               $(AGENT_DIR)/cpu_collector.cpp \
-               $(AGENT_DIR)/memory_collector.cpp \
-               $(AGENT_DIR)/http_client.cpp \
-			   $(AGENT_DIR)/component_manager.cpp \
-			   $(AGENT_DIR)/docker_manager.cpp \
-			   $(AGENT_DIR)/binary_manager.cpp \
-			   $(AGENT_DIR)/sftp_client.cpp \
-			   $(UTILS_DIR)/logger.cpp \
-               $(SRC_DIR)/agent_main.cpp
-
-# Manager源文件
-MANAGER_SOURCES = $(MANAGER_DIR)/manager.cpp \
-                 $(MANAGER_DIR)/http_server.cpp \
-				 $(MANAGER_DIR)/http_server_business.cpp \
-				 $(MANAGER_DIR)/http_server_template.cpp \
-				 $(MANAGER_DIR)/http_server_task.cpp \
-                 $(MANAGER_DIR)/database_manager.cpp \
-				 $(MANAGER_DIR)/database_manager_business.cpp \
-				 $(MANAGER_DIR)/database_manager_metric.cpp \
-				 $(MANAGER_DIR)/database_manager_node.cpp \
-                 $(MANAGER_DIR)/business_manager.cpp \
-                 $(MANAGER_DIR)/scheduler.cpp \
-				 $(MANAGER_DIR)/database_manager_template.cpp \
-				 $(MANAGER_DIR)/http_server_node.cpp \
-				 $(UTILS_DIR)/logger.cpp \
-                 $(SRC_DIR)/manager_main.cpp 
+AGENT_SRC_FILES = $(wildcard $(AGENT_DIR)/*.cpp) $(SRC_DIR)/agent_main.cpp
+MANAGER_SRC_FILES = $(wildcard $(MANAGER_DIR)/*.cpp) $(SRC_DIR)/manager_main.cpp
+COMMON_SRC_FILES = $(wildcard $(UTILS_DIR)/*.cpp)
 
 # 目标文件
-AGENT_OBJECTS = $(AGENT_SOURCES:%.cpp=$(BUILD_DIR)/%.o)
-MANAGER_OBJECTS = $(MANAGER_SOURCES:%.cpp=$(BUILD_DIR)/%.o)
+AGENT_OBJECTS = $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(notdir $(AGENT_SRC_FILES) $(COMMON_SRC_FILES)))
+MANAGER_OBJECTS = $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(notdir $(MANAGER_SRC_FILES) $(COMMON_SRC_FILES)))
 
 # 依赖库
-AGENT_LIBS = -l:libcurl.so.4 -l:libuuid.so.1 -lpthread -lssh2
-MANAGER_LIBS = -l:libsqlite3.so.0 -l:libuuid.so.1 -lpthread -lSQLiteCpp
+AGENT_LIBS = -l:libcurl.so.4 -l:libuuid.so.1 -l:libssh2.so.1 -lpthread
+MANAGER_LIBS = -l:libuuid.so.1 -lSQLiteCpp $(SQLITE3_DIR)/lib/libsqlite3.a -lpthread -ldl
 
 # 目标可执行文件
 AGENT_TARGET = $(BUILD_DIR)/agent
 MANAGER_TARGET = $(BUILD_DIR)/manager
 
 # 默认目标
-all: prepare $(AGENT_TARGET) $(MANAGER_TARGET)
+all: $(AGENT_TARGET) $(MANAGER_TARGET)
 
 # 准备构建目录
-prepare:
-	mkdir -p $(BUILD_DIR)/$(SRC_DIR)
-	mkdir -p $(BUILD_DIR)/$(AGENT_DIR)
-	mkdir -p $(BUILD_DIR)/$(MANAGER_DIR)
-	mkdir -p $(BUILD_DIR)/$(UTILS_DIR)
 
 # 编译Agent
 $(AGENT_TARGET): $(AGENT_OBJECTS)
@@ -102,6 +74,7 @@ $(MANAGER_TARGET): $(MANAGER_OBJECTS)
 
 # 编译规则
 $(BUILD_DIR)/%.o: %.cpp
+	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCLUDES) -c -o $@ $<
 
 # 清理
@@ -110,18 +83,22 @@ clean:
 
 # 安装
 install: all
-	mkdir -p /usr/local/bin
-	cp $(AGENT_TARGET) /usr/local/bin/
-	cp $(MANAGER_TARGET) /usr/local/bin/
+	mkdir -p /usr/local/zygl/
+	cp $(AGENT_TARGET) /usr/local/zygl/
+	cp $(MANAGER_TARGET) /usr/local/zygl/
+
+# 包含自动生成的依赖文件
+-include $(AGENT_OBJECTS:.o=.d)
+-include $(MANAGER_OBJECTS:.o=.d)
 
 # 依赖检查
 deps:
-	@echo "检查依赖..."
-	@which $(CXX) > /dev/null || (echo "错误: 需要安装 g++" && exit 1)
-	@ldconfig -p | grep libcurl > /dev/null || (echo "错误: 需要安装 libcurl" && exit 1)
-	@ldconfig -p | grep libuuid > /dev/null || (echo "错误: 需要安装 libuuid" && exit 1)
-	@ldconfig -p | grep libsqlite3 > /dev/null || (echo "错误: 需要安装 libsqlite3" && exit 1)
-	@echo "所有依赖已满足"
+	@echo "正在检查 依赖项..."
+	@rpm -q gcc-c++ > /dev/null || (echo "错误: 需要安装 C++ 编译器。请运行: sudo yum install gcc-c++" && exit 1)
+	@rpm -q libcurl-devel > /dev/null || (echo "错误: 需要安装 libcurl 开发库。请运行: sudo yum install libcurl-devel" && exit 1)
+	@rpm -q uuid-devel > /dev/null || (echo "错误: 需要安装 libuuid 开发库。请运行: sudo yum install uuid-devel" && exit 1)
+	@rpm -q libssh2-devel > /dev/null || (echo "错误: 需要安装 libssh2 开发库。请运行: sudo yum install libssh2-devel" && exit 1)
+	@echo "所有依赖项均已满足。"
 
 # 帮助
 help:
@@ -134,9 +111,32 @@ help:
 	@echo "  make install - 安装到系统"
 	@echo "  make deps    - 检查依赖"
 	@echo "  make help    - 显示此帮助信息"
+	@echo "  make build-sqlite3 - 重新编译sqlite3库"
+	@echo "  make build-sqlitecpp - 重新编译SQLiteCpp库"
 
 # 单独构建目标
-agent: prepare $(AGENT_TARGET)
-manager: prepare $(MANAGER_TARGET)
+agent: $(AGENT_TARGET)
+manager: $(MANAGER_TARGET)
 
-.PHONY: all prepare clean install deps help agent manager
+# 重新编译sqlite3
+build-sqlite3:
+	@echo "正在编译 sqlite3..."
+	@cd $(SQLITE3_DIR) && \
+	(make clean || true) && \
+	rm -rf lib include && \
+	./configure --prefix=$(CURDIR)/$(SQLITE3_DIR) --enable-static --disable-shared CFLAGS="-DSQLITE_ENABLE_COLUMN_METADATA" && \
+	make && \
+	make install
+
+# 重新编译 SQLiteCpp
+build-sqlitecpp:
+	@echo "正在编译 SQLiteCpp..."
+	@cd $(SQLITECPP_DIR) && \
+	rm -rf build && \
+	mkdir -p build && \
+	cd build && \
+	cmake .. -DSQLITECPP_BUILD_EXAMPLES=OFF -DSQLITECPP_BUILD_TESTS=OFF && \
+	make
+
+.PHONY: all clean install deps help agent manager build-sqlitecpp
+.DEFAULT_GOAL := all
