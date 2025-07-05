@@ -52,8 +52,8 @@ AGENT_OBJECTS = $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(notdir $(AGENT_SRC_FILES) $(
 MANAGER_OBJECTS = $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(notdir $(MANAGER_SRC_FILES) $(COMMON_SRC_FILES)))
 
 # 依赖库
-AGENT_LIBS = -l:libcurl.so.4 -l:libuuid.so.1 -l:libssh2.so.1 -lpthread
-MANAGER_LIBS = -l:libuuid.so.1 -lSQLiteCpp $(SQLITE3_DIR)/lib/libsqlite3.a -lpthread -ldl
+AGENT_LIBS = -l:libcurl.so.4 -l:libuuid.so.1 /usr/lib64/libssh2.a -pthread -lssl -lcrypto -lz
+MANAGER_LIBS = -l:libuuid.so.1 -lSQLiteCpp $(SQLITE3_DIR)/lib/libsqlite3.a -pthread -ldl
 
 # 目标可执行文件
 AGENT_TARGET = $(BUILD_DIR)/agent
