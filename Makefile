@@ -24,6 +24,7 @@ INCLUDES = -I$(SRC_DIR) \
           -I$(AGENT_DIR) \
           -I$(MANAGER_DIR) \
 		  -I$(UTILS_DIR) \
+		  -I$(DEPS_DIR) \
           -I$(JSON_DIR)/include \
           -I$(HTTPLIB_DIR) \
           -I$(SQLITECPP_DIR)/include \
@@ -32,8 +33,10 @@ INCLUDES = -I$(SRC_DIR) \
           -I/usr/local/include
 
 # 库目录
-LIB_DIRS = -L/usr/local/lib \
-           -L$(SQLITECPP_DIR)/build
+LIB_DIRS = -L$(SQLITECPP_DIR)/build \
+           -L$(SSH_DIR)/lib \
+           -L/usr/local/lib \
+		   -L/usr/lib64
 
 # Agent源文件
 AGENT_SOURCES = $(AGENT_DIR)/agent.cpp \
@@ -69,8 +72,8 @@ AGENT_OBJECTS = $(AGENT_SOURCES:%.cpp=$(BUILD_DIR)/%.o)
 MANAGER_OBJECTS = $(MANAGER_SOURCES:%.cpp=$(BUILD_DIR)/%.o)
 
 # 依赖库
-AGENT_LIBS = -lcurl -luuid -lpthread -lssh2
-MANAGER_LIBS = -lsqlite3 -lpthread -lSQLiteCpp -luuid -lssh2
+AGENT_LIBS = -l:libcurl.so.4 -l:libuuid.so.1 -lpthread -lssh2
+MANAGER_LIBS = -l:libsqlite3.so.0 -l:libuuid.so.1 -lpthread -lSQLiteCpp
 
 # 目标可执行文件
 AGENT_TARGET = $(BUILD_DIR)/agent

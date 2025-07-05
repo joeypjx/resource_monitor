@@ -154,7 +154,7 @@ void DatabaseManager::startNodeStatusMonitor()
                 // 检查内存中的节点状态
                 node_status_mutex_.lock();
                 for (const auto& pair : node_status_map_) {
-                    if ((pair.second.status == "online") && (current_timestamp - pair.second.updated_at > 30)) {
+                    if ((pair.second.status == "online") && (current_timestamp - pair.second.updated_at > 15)) {
                         offline_nodes.push_back(pair.first);
                     }
                 }

@@ -2,32 +2,32 @@
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then 
-    echo "Please run as root"
+    echo "请以 root 身份运行"
     exit 1
 fi
 
 # check if /usr/local/zygl/agent exists
 if [ ! -f /usr/local/zygl/agent ]; then
-    echo "/usr/local/zygl/agent does not exist"
+    echo "/usr/local/zygl/agent 不存在"
     exit 1
 fi
 
 
 # Prompt for manager IP
-read -p "Enter manager server IP: " manager_ip
+read -p "请输入 Manager 服务器 IP: " manager_ip
 
 # check if manager is reachable
 if ! ping -c 1 ${manager_ip} > /dev/null 2>&1; then
-    echo "manager ${manager_ip} is not reachable"
+    echo "无法访问 Manager 服务器 ${manager_ip}"
     exit 1
 fi
 
 # Prompt for network interface (optional)
-read -p "Enter network interface name (optional, press Enter to auto-detect): " network_interface
+read -p "请输入网络接口名称 (可选, 按 Enter 自动检测): " network_interface
 
 # Check if service already exists, replace it
 if systemctl list-unit-files | grep -q "dtagent.service"; then
-    echo "dtagent.service already exists, replacing it"
+    echo "dtagent.service 已存在, 正在替换..."
     systemctl stop dtagent.service
     systemctl disable dtagent.service
     rm -f /etc/systemd/system/dtagent.service
@@ -63,5 +63,5 @@ systemctl daemon-reload
 systemctl enable dtagent.service
 systemctl start dtagent.service
 
-echo "dtagent.service has been created and enabled"
-echo "You can check the status with: systemctl status dtagent.service"
+echo "dtagent.service 已创建并启用"
+echo "您可以使用以下命令检查服务状态: systemctl status dtagent.service"

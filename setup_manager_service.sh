@@ -2,30 +2,30 @@
 
 # Check if running as root
 if [ "$EUID" -ne 0 ]; then 
-    echo "Please run as root"
+    echo "请以 root 身份运行"
     exit 1
 fi
 
 # check if /usr/local/zygl/manager exists
 if [ ! -f /usr/local/zygl/manager ]; then
-    echo "/usr/local/zygl/manager does not exist"
+    echo "/usr/local/zygl/manager 不存在"
     exit 1
 fi
 
 # Prompt for SFTP credentials
-read -p "Enter SFTP server IP: " sftp_ip
-read -s -p "Enter SFTP root password: " sftp_password
+read -p "请输入 SFTP 服务器 IP: " sftp_ip
+read -s -p "请输入 SFTP root 密码: " sftp_password
 echo
 
 # check sftp server is reachable
 if ! ping -c 1 ${sftp_ip} > /dev/null 2>&1; then
-    echo "sftp server ${sftp_ip} is not reachable"
+    echo "无法访问 SFTP 服务器 ${sftp_ip}"
     exit 1
 fi
 
 # Check if service already exists replace it
 if systemctl list-unit-files | grep -q "dtmanager.service"; then
-    echo "dtmanager.service already exists, replacing it"
+    echo "dtmanager.service 已存在, 正在替换..."
     systemctl stop dtmanager.service
     systemctl disable dtmanager.service
     rm -f /etc/systemd/system/dtmanager.service
@@ -53,5 +53,5 @@ systemctl daemon-reload
 systemctl enable dtmanager.service
 systemctl start dtmanager.service
 
-echo "dtmanager.service has been created and enabled"
-echo "You can check the status with: systemctl status dtmanager.service"
+echo "dtmanager.service 已创建并启用"
+echo "您可以使用以下命令检查服务状态: systemctl status dtmanager.service"
