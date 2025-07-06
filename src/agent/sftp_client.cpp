@@ -2,17 +2,12 @@
 #include <iostream>
 #include <fstream>
 #include <regex>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
+#include <fcntl.h>
 
 SFTPClient::SFTPClient() {
-    libssh2_init(0);
 }
 
 SFTPClient::~SFTPClient() {
-    libssh2_exit();
 }
 
 bool SFTPClient::parseUrl(const std::string& url, std::string& user, std::string& pass, std::string& host, int& port, std::string& remote_path) {
@@ -38,92 +33,84 @@ bool SFTPClient::downloadFile(const std::string& url, const std::string& local_p
         return false;
     }
 
-    int sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock == -1) {
-        err_msg = "无法创建套接字";
+    ssh_session session = ssh_new();
+    if (session == nullptr) {
+        err_msg = "无法创建SSH会话";
         return false;
     }
 
-    struct sockaddr_in sin;
-    sin.sin_family = AF_INET;
-    sin.sin_port = htons(port);
-    sin.sin_addr.s_addr = inet_addr(host.c_str());
-    if (connect(sock, (struct sockaddr*)(&sin), sizeof(struct sockaddr_in)) != 0) {
-        err_msg = "无法连接到主机";
-        close(sock);
+    ssh_options_set(session, SSH_OPTIONS_HOST, host.c_str());
+    ssh_options_set(session, SSH_OPTIONS_PORT, &port);
+    ssh_options_set(session, SSH_OPTIONS_USER, user.c_str());
+
+    int rc = ssh_connect(session);
+    if (rc != SSH_OK) {
+        err_msg = "无法连接到主机: " + std::string(ssh_get_error(session));
+        ssh_free(session);
         return false;
     }
 
-    LIBSSH2_SESSION *session = libssh2_session_init();
-    if (!session) {
-        err_msg = "无法初始化libssh2会话";
-        close(sock);
+    rc = ssh_userauth_password(session, nullptr, pass.c_str());
+    if (rc != SSH_AUTH_SUCCESS) {
+        err_msg = "SSH认证失败: " + std::string(ssh_get_error(session));
+        ssh_disconnect(session);
+        ssh_free(session);
         return false;
     }
 
-    libssh2_session_set_blocking(session, 1);
-
-    if (libssh2_session_handshake(session, sock)) {
-        err_msg = "SSH握手失败";
-        libssh2_session_free(session);
-        close(sock);
+    sftp_session sftp = sftp_new(session);
+    if (sftp == nullptr) {
+        err_msg = "无法创建SFTP会话";
+        ssh_disconnect(session);
+        ssh_free(session);
         return false;
     }
 
-    if (libssh2_userauth_password(session, user.c_str(), pass.c_str())) {
-        err_msg = "SSH认证失败";
-        libssh2_session_disconnect(session, "Authentication failed");
-        libssh2_session_free(session);
-        close(sock);
+    rc = sftp_init(sftp);
+    if (rc != SSH_OK) {
+        err_msg = "无法初始化SFTP会话: " + std::string(ssh_get_error(session));
+        sftp_free(sftp);
+        ssh_disconnect(session);
+        ssh_free(session);
         return false;
     }
 
-    LIBSSH2_SFTP *sftp_session = libssh2_sftp_init(session);
-    if (!sftp_session) {
-        err_msg = "无法初始化SFTP会话";
-        libssh2_session_disconnect(session, "SFTP init failed");
-        libssh2_session_free(session);
-        close(sock);
-        return false;
-    }
-
-    LIBSSH2_SFTP_HANDLE *sftp_handle = libssh2_sftp_open(sftp_session, remote_path.c_str(), LIBSSH2_FXF_READ, 0);
-    if (!sftp_handle) {
-        err_msg = "无法打开远程文件";
-        libssh2_sftp_shutdown(sftp_session);
-        libssh2_session_disconnect(session, "SFTP open failed");
-        libssh2_session_free(session);
-        close(sock);
+    sftp_file file = sftp_open(sftp, remote_path.c_str(), O_RDONLY, 0);
+    if (file == nullptr) {
+        err_msg = "无法打开远程文件: " + std::string(ssh_get_error(session));
+        sftp_free(sftp);
+        ssh_disconnect(session);
+        ssh_free(session);
         return false;
     }
 
     std::ofstream ofs(local_path, std::ios::binary);
     if (!ofs) {
         err_msg = "无法创建本地文件: " + local_path;
-        libssh2_sftp_close(sftp_handle);
-        libssh2_sftp_shutdown(sftp_session);
-        libssh2_session_disconnect(session, "Local file creation failed");
-        libssh2_session_free(session);
-        close(sock);
+        sftp_close(file);
+        sftp_free(sftp);
+        ssh_disconnect(session);
+        ssh_free(session);
         return false;
     }
 
     char buffer[4096];
     ssize_t nbytes;
-    while ((nbytes = libssh2_sftp_read(sftp_handle, buffer, sizeof(buffer))) > 0) {
+    while ((nbytes = sftp_read(file, buffer, sizeof(buffer))) > 0) {
         ofs.write(buffer, nbytes);
     }
-
+    
+    bool success = true;
     if (nbytes < 0) {
-        err_msg = "SFTP读取失败";
+        err_msg = "SFTP读取失败: " + std::string(ssh_get_error(session));
+        success = false;
     }
     
     ofs.close();
-    libssh2_sftp_close(sftp_handle);
-    libssh2_sftp_shutdown(sftp_session);
-    libssh2_session_disconnect(session, "Normal Shutdown");
-    libssh2_session_free(session);
-    close(sock);
+    sftp_close(file);
+    sftp_free(sftp);
+    ssh_disconnect(session);
+    ssh_free(session);
 
-    return nbytes == 0;
+    return success;
 } 

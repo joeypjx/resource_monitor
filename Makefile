@@ -18,22 +18,18 @@ HTTPLIB_DIR = $(DEPS_DIR)/cpp-httplib
 SPDLOG_DIR = $(DEPS_DIR)/spdlog
 SQLITECPP_DIR = $(DEPS_DIR)/SQLiteCpp
 SQLITE3_DIR = $(DEPS_DIR)/sqlite3
-# devel 头文件
-SSH_DIR = $(DEPS_DIR)/libssh2
-UUID_DIR = $(DEPS_DIR)/libuuid
-CURL_DIR = $(DEPS_DIR)/curl
 
 # 包含目录
 INCLUDES = -I$(SRC_DIR) \
           -I$(AGENT_DIR) \
           -I$(MANAGER_DIR) \
 		  -I$(UTILS_DIR) \
-		  -I$(DEPS_DIR) \
           -I$(JSON_DIR)/include \
           -I$(HTTPLIB_DIR) \
           -I$(SQLITECPP_DIR)/include \
 		  -I$(SQLITE3_DIR)/include \
-          -I$(SPDLOG_DIR)/include
+          -I$(SPDLOG_DIR)/include \
+		#   -I$(DEPS_DIR)
 
 # 库目录
 LIB_DIRS = -L$(SQLITECPP_DIR)/build \
@@ -52,7 +48,7 @@ AGENT_OBJECTS = $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(notdir $(AGENT_SRC_FILES) $(
 MANAGER_OBJECTS = $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(notdir $(MANAGER_SRC_FILES) $(COMMON_SRC_FILES)))
 
 # 依赖库
-AGENT_LIBS = -l:libcurl.so.4 -l:libuuid.so.1 /usr/lib64/libssh2.a -pthread -lssl -lcrypto -lz
+AGENT_LIBS = -l:libcurl.so.4 -l:libuuid.so.1 -l:libssh.so.4 -pthread
 MANAGER_LIBS = -l:libuuid.so.1 -lSQLiteCpp $(SQLITE3_DIR)/lib/libsqlite3.a -pthread -ldl
 
 # 目标可执行文件

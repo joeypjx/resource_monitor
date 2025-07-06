@@ -2,10 +2,10 @@
 #define SFTP_CLIENT_H
 
 #include <string>
-#include <libssh2.h>
-#include <libssh2_sftp.h>
+#include <libssh/libssh.h>
+#include <libssh/sftp.h>
 
-// SFTPClient类 - 基于libssh2的SFTP客户端
+// SFTPClient类 - 基于libssh的SFTP客户端
 // 支持通过SFTP协议下载文件
 class SFTPClient {
 public:
