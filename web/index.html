@@ -3,23 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>业务部署与监控平台</title>
+    <title>军事任务部署与监控系统</title>
     <link href="css/tailwind.min.css" rel="stylesheet">
     <link href="css/all.min.css" rel="stylesheet">
     <link href="css/webfonts/fa-solid-900.woff2" rel="preload" as="font" type="font/woff2" crossorigin>
     <link href="css/webfonts/fa-regular-400.woff2" rel="preload" as="font" type="font/woff2" crossorigin>
     <link href="css/webfonts/fa-brands-400.woff2" rel="preload" as="font" type="font/woff2" crossorigin>
     <style>
-        body { font-family: 'Inter', sans-serif; }
+        body { 
+            font-family: 'Courier New', 'Monaco', 'Consolas', monospace; 
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: #00ff00;
+        }
         .modal { display: none; }
         .modal.active { display: flex; }
-        /* Custom scrollbar for better aesthetics */
+        /* Custom scrollbar for military style */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb { background: #888; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #00ff00; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #00cc00; }
         .table-responsive { overflow-x: auto; }
-        .selected-business-item { background-color: #e0f2fe; /* sky-100 */ }
+        .selected-business-item { background-color: #1a3a1a; /* military green */ }
         .config-type-fields { display: none; } /* Initially hide type-specific fields */
 
         /* Larger modal for lists */
@@ -42,7 +46,7 @@
             height: 16px;
             margin-left: -8px;
             margin-top: -8px;
-            border: 2px solid #FFF; /* Spinner color */
+            border: 2px solid #00ff00; /* Military green spinner */
             border-top-color: transparent;
             border-radius: 50%;
             animation: spin 0.6s linear infinite;
@@ -50,20 +54,37 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
+        /* Military style overrides */
+        .bg-white { background-color: #1a1a1a !important; color: #00ff00 !important; }
+        .bg-gray-100 { background-color: #2d2d2d !important; }
+        .bg-gray-50 { background-color: #2d2d2d !important; }
+        .text-gray-800 { color: #00ff00 !important; }
+        .text-gray-700 { color: #00ff00 !important; }
+        .text-gray-600 { color: #00cc00 !important; }
+        .text-gray-500 { color: #00aa00 !important; }
+        .border-gray-300 { border-color: #00ff00 !important; }
+        .border-gray-200 { border-color: #00ff00 !important; }
+        .hover\:bg-blue-50:hover { background-color: #1a3a1a !important; }
+        .shadow-sm { box-shadow: 0 1px 2px 0 rgba(0, 255, 0, 0.3) !important; }
+        .shadow-md { box-shadow: 0 4px 6px -1px rgba(0, 255, 0, 0.3) !important; }
+        .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 255, 0, 0.3) !important; }
+        .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0, 255, 0, 0.3) !important; }
+        .shadow-inner { box-shadow: inset 0 2px 4px 0 rgba(0, 255, 0, 0.3) !important; }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body>
 
 
 
     <main class="h-screen" id="mainContent">
     </main>
 
-    <div id="genericModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 items-center justify-center p-4 z-50">
-        <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div id="genericModal" class="modal fixed inset-0 bg-black bg-opacity-90 items-center justify-center p-4 z-50">
+        <div class="modal-content bg-black border border-green-500 rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
-                <h2 id="modalTitle" class="text-xl font-semibold text-sky-700">Modal Title</h2>
-                <button onclick="app.closeModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                <h2 id="modalTitle" class="text-xl font-semibold text-green-500">Modal Title</h2>
+                <button onclick="app.closeModal()" class="text-green-500 hover:text-green-300 text-2xl">&times;</button>
             </div>
             <div id="modalBody">
             </div>
@@ -72,16 +93,16 @@
         </div>
     </div>
 
-    <div id="listModal" class="modal fixed inset-0 bg-gray-900 bg-opacity-75 items-center justify-center p-4 z-40"> 
-        <div class="modal-content bg-white rounded-lg shadow-xl p-6 w-full overflow-y-auto">
+    <div id="listModal" class="modal fixed inset-0 bg-black bg-opacity-90 items-center justify-center p-4 z-40"> 
+        <div class="modal-content bg-black border border-green-500 rounded-lg shadow-xl p-6 w-full overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
-                <h2 id="listModalTitle" class="text-xl font-semibold text-sky-700">List Modal Title</h2>
-                <button onclick="app.closeListModal()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+                <h2 id="listModalTitle" class="text-xl font-semibold text-green-500">List Modal Title</h2>
+                <button onclick="app.closeListModal()" class="text-green-500 hover:text-green-300 text-2xl">&times;</button>
             </div>
             <div id="listModalBody">
             </div>
             <div id="listModalFooter" class="mt-6 flex justify-end space-x-3">
-                 <button onclick="app.closeListModal()" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-md">关闭</button>
+                 <button onclick="app.closeListModal()" class="bg-green-600 hover:bg-green-700 text-black px-4 py-2 rounded-md border border-green-400">关闭</button>
             </div>
         </div>
     </div>
@@ -168,7 +189,7 @@
                                 const body = JSON.parse(options.body);
                                 const newId = 'ct-' + crypto.randomUUID().slice(0, 8);
                                 const newTemplate = { ...body, component_template_id: newId, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-                                resolve({ ok: true, status: 201, json: async () => ({ status: "success", component_template_id: newId, message: "组件模板创建成功 (模拟)", template: newTemplate }) });
+                                resolve({ ok: true, status: 201, json: async () => ({ status: "success", component_template_id: newId, message: "应用模板创建成功 (模拟)", template: newTemplate }) });
                             }
                             else if (url.startsWith(`${this.apiUrlPrefix}/templates/components/`) && method === 'PUT') {
                                 const body = JSON.parse(options.body);
@@ -176,7 +197,7 @@
                                 const existingTemplateIndex = this.mockData.componentTemplates.findIndex(t => t.component_template_id === id);
                                 if (existingTemplateIndex === -1) return resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Component template not found" }) });
                                 const updatedTemplate = { ...this.mockData.componentTemplates[existingTemplateIndex], ...body, component_template_id: id, updated_at: new Date().toISOString() };
-                                resolve({ ok: true, status: 200, json: async () => ({ status: "success", component_template_id: id, message: "组件模板更新成功 (模拟)", template: updatedTemplate }) });
+                                resolve({ ok: true, status: 200, json: async () => ({ status: "success", component_template_id: id, message: "应用模板更新成功 (模拟)", template: updatedTemplate }) });
                             }
                             else if (url === `${this.apiUrlPrefix}/templates/components` && method === 'GET') {
                                 resolve({ ok: true, status: 200, json: async () => ({ status: "success", templates: [...this.mockData.componentTemplates] }) });
@@ -185,13 +206,13 @@
                                 const id = url.split('/').pop();
                                 const template = this.mockData.componentTemplates.find(t => t.component_template_id === id);
                                 if (template) resolve({ ok: true, status: 200, json: async () => ({ status: "success", template: {...template} }) });
-                                else resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Component template not found" }) });
+                                else resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "应用模板未找到" }) });
                             }
                             else if (url.startsWith(`${this.apiUrlPrefix}/templates/components/`) && method === 'DELETE') {
                                 const id = url.split('/').pop();
                                 const index = this.mockData.componentTemplates.findIndex(t => t.component_template_id === id);
-                                if (index > -1) resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "Component template deleted successfully" }) });
-                                else resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Component template not found" }) });
+                                if (index > -1) resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "应用模板删除成功" }) });
+                                else resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "应用模板未找到" }) });
                             }
                             // --- Business Templates ---
                             else if (url === `${this.apiUrlPrefix}/templates/businesses` && method === 'POST') {
@@ -204,7 +225,7 @@
                                 const body = JSON.parse(options.body);
                                 const id = url.split('/').pop();
                                 const existingTemplateIndex = this.mockData.businessTemplates.findIndex(t => t.business_template_id === id);
-                                if (existingTemplateIndex === -1) return resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business template not found" }) });
+                                if (existingTemplateIndex === -1) return resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "任务模板未找到" }) });
                                 const updatedTemplate = { ...this.mockData.businessTemplates[existingTemplateIndex], ...body, business_template_id: id, updated_at: new Date().toISOString() };
                                 resolve({ ok: true, status: 200, json: async () => ({ status: "success", business_template_id: id, message: "业务模板更新成功 (模拟)", template: updatedTemplate }) });
                             }
@@ -221,23 +242,23 @@
                                     });
                                     resolve({ ok: true, status: 200, json: async () => ({ status: "success", template: {...template, components: componentsWithDetails} }) });
                                 } else {
-                                    resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business template not found" }) });
+                                    resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "任务模板未找到" }) });
                                 }
                             }
                             else if (url.startsWith(`${this.apiUrlPrefix}/templates/businesses/`) && method === 'DELETE') { 
                                 const id = url.split('/').pop();
                                 const index = this.mockData.businessTemplates.findIndex(t => t.business_template_id === id);
                                 if (index > -1) {
-                                    resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "Business template deleted successfully" }) });
+                                    resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "任务模板删除成功" }) });
                                 } else {
-                                    resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business template not found" }) });
+                                    resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "任务模板未找到" }) });
                                 }
                             }
                             else if (url.includes('/as-business') && method === 'GET') { 
                                 const id = url.split('/')[3]; 
                                 const businessTemplate = this.mockData.businessTemplates.find(t => t.business_template_id === id);
                                 if (!businessTemplate) {
-                                    return resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business template not found" }) });
+                                    return resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "任务模板未找到" }) });
                                 }
                                 const deployableComponents = businessTemplate.components.map(tc => {
                                     const compTpl = this.mockData.componentTemplates.find(ct => ct.component_template_id === tc.component_template_id);
@@ -266,13 +287,13 @@
                                     }
                                     resolve({ ok: true, status: 200, json: async () => ({ status: "success", business: detailedBusiness }) });
                                 } else {
-                                    resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business not found" }) });
+                                    resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "任务未找到" }) });
                                 }
                             }
                             else if (url.includes('/template/') && method === 'POST') { 
                                 const templateId = url.split('/template/').pop();
                                 const businessTemplate = this.mockData.businessTemplates.find(t => t.business_template_id === templateId);
-                                if (!businessTemplate) return resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business template not found for deployment" }) });
+                                if (!businessTemplate) return resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "任务模板未找到，无法部署" }) });
                                 
                                 const newBusinessId = 'b-' + crypto.randomUUID().slice(0,8);
                                 const newDeployedBusiness = {
@@ -284,33 +305,33 @@
                                     components: [] // Components would be derived by backend
                                 };
                                 this.mockData.deployedBusinesses.push(newDeployedBusiness);
-                                resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "Business deployed successfully from template (模拟)", business_id: newBusinessId }) });
+                                resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "任务已成功从模板部署 (模拟)", business_id: newBusinessId }) });
                             }
                              else if (url.includes('/stop') && method === 'POST') {
                                 const id = url.split('/')[3];
                                 const business = this.mockData.deployedBusinesses.find(b => b.business_id === id);
                                 if (business) {
-                                    resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "Business stopped successfully" }) });
+                                    resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "任务已成功停止" }) });
                                 } else {
-                                     resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business not found" }) });
+                                     resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "任务未找到" }) });
                                 }
                             }
                             else if (url.includes('/restart') && method === 'POST') {
                                  const id = url.split('/')[3];
                                 const business = this.mockData.deployedBusinesses.find(b => b.business_id === id);
                                 if (business) {
-                                    resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "Business restarted" }) });
+                                    resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "任务已重启" }) });
                                 } else {
-                                     resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business not found" }) });
+                                     resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "任务未找到" }) });
                                 }
                             }
                             else if (url.startsWith(`${this.apiUrlPrefix}/businesses/`) && method === 'DELETE') {
                                 const id = url.split('/').pop();
                                 const index = this.mockData.deployedBusinesses.findIndex(b => b.business_id === id);
                                 if (index > -1) {
-                                    resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "Business deleted successfully" }) });
+                                    resolve({ ok: true, status: 200, json: async () => ({ status: "success", message: "任务已成功删除" }) });
                                 } else {
-                                    resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Business not found" }) });
+                                    resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "任务未找到" }) });
                                 }
                             }
                             // --- Servers/Nodes ---
@@ -332,7 +353,7 @@
                                     }
                                     resolve({ ok: true, status: 200, json: async () => ({ status: "success", node: detailServer }) });
                                 } else {
-                                    resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "Node not found" }) });
+                                    resolve({ ok: false, status: 404, json: async () => ({ status: "error", message: "服务器节点未找到" }) });
                                 }
                             }
                             else {
@@ -447,7 +468,7 @@
 
             renderPageContent(view) {
                 const mainContent = document.getElementById('mainContent');
-                mainContent.innerHTML = '<p class="text-center text-gray-500 py-10">加载中...</p>'; 
+                mainContent.innerHTML = '<p class="text-center text-green-400 py-10">加载中...</p>'; 
                 
 
                 
@@ -456,7 +477,7 @@
                     try {
                     switch (view) {
                         case 'deployedBusinesses':
-                                mainContent.innerHTML = '<p class="text-center text-gray-500 py-10">加载已部署业务列表中...</p>';
+                                mainContent.innerHTML = '<p class="text-center text-green-400 py-10">加载已部署业务列表中...</p>';
                                 const bizResponse = await fetch(`${this.apiUrlPrefix}/businesses`);
                                 const bizJsonData = await bizResponse.json();
                                 if (bizResponse.ok && bizJsonData.status === 'success') {
@@ -471,11 +492,11 @@
                                     contentHTML = await this.getDeployedBusinessesPageHTML();
                                 } else {
                                     this.showNotification(bizJsonData.message || '获取已部署业务列表失败', 'error');
-                                    contentHTML = '<p class="text-center text-red-500 py-10">加载已部署业务列表失败。</p>';
+                                    contentHTML = '<p class="text-center text-red-400 py-10">加载已部署业务列表失败。</p>';
                                 }
                             break;
                             case 'servers':
-                                mainContent.innerHTML = '<p class="text-center text-gray-500 py-10">加载服务器列表中...</p>';
+                                mainContent.innerHTML = '<p class="text-center text-green-400 py-10">加载服务器列表中...</p>';
                                 const serverResponse = await fetch(`${this.apiUrlPrefix}/nodes`);
                                 const serverJsonData = await serverResponse.json();
                                 if (serverResponse.ok && serverJsonData.status === 'success') {
@@ -483,7 +504,7 @@
                                     contentHTML = this.getServersPageHTML();
                                 } else {
                                     this.showNotification(serverJsonData.message || '获取服务器列表失败', 'error');
-                                    contentHTML = '<p class="text-center text-red-500 py-10">加载服务器列表失败。</p>';
+                                    contentHTML = '<p class="text-center text-red-400 py-10">加载服务器列表失败。</p>';
                                 }
                             break;
                         default:
@@ -500,7 +521,7 @@
                     } catch (error) {
                         console.error("Failed to render page:", error);
                         this.showNotification('页面渲染失败: ' + error.message, 'error');
-                        mainContent.innerHTML = '<p class="text-center text-red-500 py-10">页面加载失败。</p>';
+                        mainContent.innerHTML = '<p class="text-center text-red-400 py-10">页面加载失败。</p>';
                     }
                 })();
             },
@@ -531,11 +552,11 @@
 
             getComponentTemplatesListHTML() {
                 let content = `<div class="flex justify-end mb-4">
-                                <button onclick="app.showCreateComponentTemplateForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow hover:shadow-lg transition duration-150 ease-in-out"><i class="fas fa-plus mr-2"></i>创建新模板</button>
+                                <button onclick="app.showCreateComponentTemplateForm()" class="bg-green-600 hover:bg-green-700 text-black px-4 py-2 rounded-md shadow hover:shadow-lg transition duration-150 ease-in-out border border-green-400"><i class="fas fa-plus mr-2"></i>创建新模板</button>
                                </div>
                                <div class="table-responsive max-h-[65vh] overflow-y-auto">
-                               <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50 sticky top-0">
+                               <table class="min-w-full divide-y divide-green-500">
+                                <thead class="bg-black sticky top-0">
                                     <tr>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名称</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型</th>
@@ -544,10 +565,10 @@
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                                     </tr>
                                 </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">`;
+                                <tbody class="bg-black divide-y divide-green-500">`;
                 
                 if (this.mockData.componentTemplates.length === 0) {
-                    content += `<tr><td colspan="5" class="text-center text-gray-500 py-10">暂无应用模板。</td></tr>`;
+                    content += `<tr><td colspan="5" class="text-center text-green-400 py-10">暂无应用模板。</td></tr>`;
                 } else {
                 this.mockData.componentTemplates.forEach(template => {
                     let mainFile = 'N/A';
@@ -559,14 +580,14 @@
 
                     content += `
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${template.template_name}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${template.type}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 truncate max-w-md" title="${mainFile}">${mainFile}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 truncate max-w-xs" title="${template.description}">${template.description || '无'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-400">${template.template_name}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-300">${template.type}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-300 truncate max-w-md" title="${mainFile}">${mainFile}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-300 truncate max-w-xs" title="${template.description}">${template.description || '无'}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                <button onclick="app.showComponentTemplateDetails('${template.component_template_id}')" class="text-sky-600 hover:text-sky-800" title="查看详情">查看</button>
-                                <button onclick="app.showEditComponentTemplateForm('${template.component_template_id}')" class="text-yellow-500 hover:text-yellow-700" title="编辑">编辑</button>
-                                <button onclick="app.deleteComponentTemplate('${template.component_template_id}')" class="text-red-500 hover:text-red-700" title="删除">删除</button>
+                                <button onclick="app.showComponentTemplateDetails('${template.component_template_id}')" class="text-green-500 hover:text-green-300" title="查看详情">查看</button>
+                                <button onclick="app.showEditComponentTemplateForm('${template.component_template_id}')" class="text-yellow-500 hover:text-yellow-300" title="编辑">编辑</button>
+                                <button onclick="app.deleteComponentTemplate('${template.component_template_id}')" class="text-red-500 hover:text-red-300" title="删除">删除</button>
                             </td>
                         </tr>`;
                 });
@@ -628,36 +649,36 @@
 
                 return `
                     <form id="componentTemplateForm" class="space-y-4">
-                        <div><label for="ct_template_name" class="block text-sm font-medium text-gray-700">模板名称</label><input type="text" id="ct_template_name" name="template_name" value="${template.template_name || ''}" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm"></div>
-                        <div><label for="ct_type" class="block text-sm font-medium text-gray-700">类型</label>
-                            <select id="ct_type" name="type" onchange="app.toggleComponentConfigFields()" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm">
+                        <div><label for="ct_template_name" class="block text-sm font-medium text-green-400">模板名称</label><input type="text" id="ct_template_name" name="template_name" value="${template.template_name || ''}" required class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
+                        <div><label for="ct_type" class="block text-sm font-medium text-green-400">类型</label>
+                            <select id="ct_type" name="type" onchange="app.toggleComponentConfigFields()" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400">
                                 <option value="binary" ${typeDefault === 'binary' ? 'selected' : ''}>Binary</option>
                                 <option value="docker" ${typeDefault === 'docker' ? 'selected' : ''}>Docker</option>
                             </select>
                         </div>
-                        <div><label for="ct_description" class="block text-sm font-medium text-gray-700">描述</label><textarea id="ct_description" name="description" rows="2" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm">${template.description || ''}</textarea></div>
+                        <div><label for="ct_description" class="block text-sm font-medium text-green-400">描述</label><textarea id="ct_description" name="description" rows="2" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400">${template.description || ''}</textarea></div>
                         
                         <div id="dockerFields" class="space-y-4 config-type-fields">
-                            <div><label for="ct_image_url" class="block text-sm font-medium text-gray-700">镜像URL</label><input type="text" id="ct_image_url" name="image_url" value="${template.config && template.type === 'docker' ? (template.config.image_url || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm"></div>
-                            <div><label for="ct_image_name" class="block text-sm font-medium text-gray-700">镜像名</label><input type="text" id="ct_image_name" name="image_name" value="${template.config && template.type === 'docker' ? (template.config.image_name || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm"></div>
+                            <div><label for="ct_image_url" class="block text-sm font-medium text-green-400">镜像URL</label><input type="text" id="ct_image_url" name="image_url" value="${template.config && template.type === 'docker' ? (template.config.image_url || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
+                            <div><label for="ct_image_name" class="block text-sm font-medium text-green-400">镜像名</label><input type="text" id="ct_image_name" name="image_name" value="${template.config && template.type === 'docker' ? (template.config.image_name || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
                         </div>
                         <div id="binaryFields" class="space-y-4 config-type-fields">
-                            <div><label for="ct_binary_path" class="block text-sm font-medium text-gray-700">二进制路径</label><input type="text" id="ct_binary_path" name="binary_path" value="${template.config && template.type === 'binary' ? (template.config.binary_path || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm"></div>
-                            <div><label for="ct_binary_url" class="block text-sm font-medium text-gray-700">二进制下载链接</label><input type="text" id="ct_binary_url" name="binary_url" value="${template.config && template.type === 'binary' ? (template.config.binary_url || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm"></div>
+                            <div><label for="ct_binary_path" class="block text-sm font-medium text-green-400">二进制路径</label><input type="text" id="ct_binary_path" name="binary_path" value="${template.config && template.type === 'binary' ? (template.config.binary_path || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
+                            <div><label for="ct_binary_url" class="block text-sm font-medium text-green-400">二进制下载链接</label><input type="text" id="ct_binary_url" name="binary_url" value="${template.config && template.type === 'binary' ? (template.config.binary_url || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">亲和性配置</label>
-                            <div id="affinityContainer" class="mt-1 space-y-2 p-2 border border-gray-200 rounded-md bg-gray-50 max-h-40 overflow-y-auto">
+                            <label class="block text-sm font-medium text-green-400">亲和性配置</label>
+                            <div id="affinityContainer" class="mt-1 space-y-2 p-2 border border-green-500 rounded-md bg-black max-h-40 overflow-y-auto">
                             </div>
-                            <button type="button" onclick="app.addKeyValueRow('affinityContainer', '', '', '例如: ip_address', '例如: 192.168.1.10', 'affinity-row')" class="mt-2 text-sm text-sky-600 hover:text-sky-800"><i class="fas fa-plus mr-1"></i>添加亲和性规则</button>
+                            <button type="button" onclick="app.addKeyValueRow('affinityContainer', '', '', '例如: ip_address', '例如: 192.168.1.10', 'affinity-row')" class="mt-2 text-sm text-green-500 hover:text-green-300"><i class="fas fa-plus mr-1"></i>添加亲和性规则</button>
                         </div>
 
                         <div>
-                            <label class="block text-sm font-medium text-gray-700">环境变量</label>
-                            <div id="envVarsContainer" class="mt-1 space-y-2 p-2 border border-gray-200 rounded-md bg-gray-50 max-h-40 overflow-y-auto">
+                            <label class="block text-sm font-medium text-green-400">环境变量</label>
+                            <div id="envVarsContainer" class="mt-1 space-y-2 p-2 border border-green-500 rounded-md bg-black max-h-40 overflow-y-auto">
                             </div>
-                            <button type="button" onclick="app.addKeyValueRow('envVarsContainer', '', '', '环境变量名', '环境变量值', 'env-var-row')" class="mt-2 text-sm text-sky-600 hover:text-sky-800"><i class="fas fa-plus mr-1"></i>添加环境变量</button>
+                            <button type="button" onclick="app.addKeyValueRow('envVarsContainer', '', '', '环境变量名', '环境变量值', 'env-var-row')" class="mt-2 text-sm text-green-500 hover:text-green-300"><i class="fas fa-plus mr-1"></i>添加环境变量</button>
                         </div>
                     </form>
                 `;
@@ -675,7 +696,7 @@
             showCreateComponentTemplateForm() { 
                 this.editingItemId = null; 
                 const formHTML = this.getComponentTemplateFormHTML();
-                const footerButtons = [ { label: '保存', id:"saveCtBtn", action: () => this.saveComponentTemplate(), class: 'bg-blue-600 hover:bg-blue-700 text-white' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }];
+                const footerButtons = [ { label: '保存', id:"saveCtBtn", action: () => this.saveComponentTemplate(), class: 'bg-green-600 hover:bg-green-700 text-black border border-green-400' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-600 hover:bg-gray-700 text-green-400 border border-gray-500' }];
                 this.openModal('创建应用模板', formHTML, footerButtons);
             },
             async showEditComponentTemplateForm(id) { 
@@ -685,7 +706,7 @@
                     const jsonData = await response.json();
                     if (response.ok && jsonData.status === 'success' && jsonData.template) {
                         const formHTML = this.getComponentTemplateFormHTML(jsonData.template); 
-                        const footerButtons = [ { label: '更新', id:"updateCtBtn", action: () => this.saveComponentTemplate(), class: 'bg-blue-600 hover:bg-blue-700 text-white' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }];
+                        const footerButtons = [ { label: '更新', id:"updateCtBtn", action: () => this.saveComponentTemplate(), class: 'bg-green-600 hover:bg-green-700 text-black border border-green-400' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-600 hover:bg-gray-700 text-green-400 border border-gray-500' }];
                 this.openModal('编辑应用模板', formHTML, footerButtons);
                     } else {
                         this.showNotification(jsonData.message || '获取模板详情失败', 'error');
@@ -830,8 +851,8 @@
                 const template = this.mockData.componentTemplates.find(t => t.component_template_id === id);
                 this.openModal( '确认删除', `<p>确定要删除应用模板 <strong>${template ? template.template_name : id}</strong> 吗？</p><p class="text-sm text-red-600 mt-2">此操作无法撤销。</p>`, 
                 [ 
-                    { label: '确认删除', action: () => this._confirmDeleteComponentTemplate(id), class: 'bg-red-600 hover:bg-red-700 text-white' }, 
-                    { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }
+                    { label: '确认删除', action: () => this._confirmDeleteComponentTemplate(id), class: 'bg-red-600 hover:bg-red-700 text-black border border-red-400' }, 
+                    { label: '取消', action: () => this.closeModal(), class: 'bg-gray-600 hover:bg-gray-700 text-green-400 border border-gray-500' }
                 ]);
             },
             async _confirmDeleteComponentTemplate(id) { 
@@ -924,36 +945,36 @@
 
             getBusinessTemplatesListHTML() {
                 let content = `<div class="flex justify-end mb-4">
-                                <button onclick="app.showCreateBusinessTemplateForm()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md shadow hover:shadow-lg transition duration-150 ease-in-out"><i class="fas fa-plus mr-2"></i>创建新模板</button>
+                                <button onclick="app.showCreateBusinessTemplateForm()" class="bg-green-600 hover:bg-green-700 text-black px-4 py-2 rounded-md shadow hover:shadow-lg transition duration-150 ease-in-out border border-green-400"><i class="fas fa-plus mr-2"></i>创建新模板</button>
                                </div>
                                <div class="table-responsive max-h-[65vh] overflow-y-auto">
-                               <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50 sticky top-0">
+                                                               <table class="min-w-full divide-y divide-green-500">
+                                <thead class="bg-black sticky top-0">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名称</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">描述</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">组件数</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">更新时间</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-400 uppercase tracking-wider">名称</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-400 uppercase tracking-wider">描述</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-400 uppercase tracking-wider">组件数</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-400 uppercase tracking-wider">更新时间</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-400 uppercase tracking-wider">操作</th>
                                     </tr>
                                 </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">`;
+                                <tbody class="bg-black divide-y divide-green-500">`;
                 
                 if(this.mockData.businessTemplates.length === 0) {
-                    content += `<tr><td colspan="5" class="text-center text-gray-500 py-10">暂无业务模板。</td></tr>`;
+                    content += `<tr><td colspan="5" class="text-center text-green-400 py-10">暂无业务模板。</td></tr>`;
                 } else {
                 this.mockData.businessTemplates.forEach(template => {
                     content += `
                         <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${template.template_name}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 truncate max-w-xs" title="${template.description}">${template.description}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${template.components ? template.components.length : 0}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">${new Date(template.updated_at).toLocaleString('zh-CN')}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-400">${template.template_name}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-300 truncate max-w-xs" title="${template.description}">${template.description}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-300">${template.components ? template.components.length : 0}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-300">${new Date(template.updated_at).toLocaleString('zh-CN')}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                <button onclick="app.showBusinessTemplateDetails('${template.business_template_id}')" class="text-sky-600 hover:text-sky-800" title="查看详情">查看</button>
-                                <button onclick="app.showEditBusinessTemplateForm('${template.business_template_id}')" class="text-yellow-500 hover:text-yellow-700" title="编辑">编辑</button>
-                                <button onclick="app.deleteBusinessTemplate('${template.business_template_id}')" class="text-red-500 hover:text-red-700" title="删除">删除</button>
-                                <button onclick="app.showDeployBusinessForm('${template.business_template_id}')" class="text-green-500 hover:text-green-700" title="部署">部署</button>
+                                <button onclick="app.showBusinessTemplateDetails('${template.business_template_id}')" class="text-green-500 hover:text-green-300" title="查看详情">查看</button>
+                                <button onclick="app.showEditBusinessTemplateForm('${template.business_template_id}')" class="text-yellow-500 hover:text-yellow-300" title="编辑">编辑</button>
+                                <button onclick="app.deleteBusinessTemplate('${template.business_template_id}')" class="text-red-500 hover:text-red-300" title="删除">删除</button>
+                                <button onclick="app.showDeployBusinessForm('${template.business_template_id}')" class="text-green-500 hover:text-green-300" title="部署">部署</button>
                             </td>
                         </tr>`;
                 });
@@ -969,10 +990,10 @@
                 }
                 return `
                     <form id="businessTemplateForm" class="space-y-4">
-                        <div><label for="bt_template_name" class="block text-sm font-medium text-gray-700">模板名称</label><input type="text" id="bt_template_name" name="template_name" value="${template.template_name || ''}" required class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm"></div>
-                        <div><label for="bt_description" class="block text-sm font-medium text-gray-700">描述</label><textarea id="bt_description" name="description" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm">${template.description || ''}</textarea></div>
-                        <div><label for="bt_component_select" class="block text-sm font-medium text-gray-700">选择应用模板</label><div class="flex space-x-2 mt-1"><select id="bt_component_select" class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm"><option value="">-- 请选择 --</option>${componentOptions}</select><button type="button" onclick="app.addSelectedComponentToBusinessTemplateForm()" class="bg-blue-500 hover:bg-blue-600 text-white px-3 py-2 rounded-md text-sm">添加</button></div></div>
-                        <div><label class="block text-sm font-medium text-gray-700">已选应用</label><ul id="bt_selected_components" class="mt-1 border border-gray-300 rounded-md p-2 h-32 overflow-y-auto bg-white">${selectedComponentsHTML}</ul></div>
+                        <div><label for="bt_template_name" class="block text-sm font-medium text-green-400">模板名称</label><input type="text" id="bt_template_name" name="template_name" value="${template.template_name || ''}" required class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
+                        <div><label for="bt_description" class="block text-sm font-medium text-green-400">描述</label><textarea id="bt_description" name="description" rows="3" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400">${template.description || ''}</textarea></div>
+                        <div><label for="bt_component_select" class="block text-sm font-medium text-green-400">选择应用模板</label><div class="flex space-x-2 mt-1"><select id="bt_component_select" class="flex-grow px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"><option value="">-- 请选择 --</option>${componentOptions}</select><button type="button" onclick="app.addSelectedComponentToBusinessTemplateForm()" class="bg-green-600 hover:bg-green-700 text-black px-3 py-2 rounded-md text-sm border border-green-400">添加</button></div></div>
+                        <div><label class="block text-sm font-medium text-green-400">已选应用</label><ul id="bt_selected_components" class="mt-1 border border-green-500 rounded-md p-2 h-32 overflow-y-auto bg-black">${selectedComponentsHTML}</ul></div>
                     </form>
                 `;
             },
@@ -986,7 +1007,7 @@
                 await this.fetchComponentTemplatesForBusinessForms(); 
                 if (this.mockData.componentTemplates.length === 0) { this.showNotification('请先创建应用模板，或等待应用模板加载完成。', 'error'); return; }
                 const formHTML = this.getBusinessTemplateFormHTML();
-                const footerButtons = [ { label: '保存', action: () => this.saveBusinessTemplate(), class: 'bg-blue-600 hover:bg-blue-700 text-white' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }];
+                const footerButtons = [ { label: '保存', action: () => this.saveBusinessTemplate(), class: 'bg-green-600 hover:bg-green-700 text-black border border-green-400' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-600 hover:bg-gray-700 text-green-400 border border-gray-500' }];
                 this.openModal('创建业务模板', formHTML, footerButtons);
             },
             async showEditBusinessTemplateForm(id) { 
@@ -999,7 +1020,7 @@
                     const jsonData = await response.json();
                     if (response.ok && jsonData.status === 'success' && jsonData.template) {
                         const formHTML = this.getBusinessTemplateFormHTML(jsonData.template);
-                        const footerButtons = [ { label: '更新', action: () => this.saveBusinessTemplate(), class: 'bg-blue-600 hover:bg-blue-700 text-white' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }];
+                        const footerButtons = [ { label: '更新', action: () => this.saveBusinessTemplate(), class: 'bg-green-600 hover:bg-green-700 text-black border border-green-400' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-600 hover:bg-gray-700 text-green-400 border border-gray-500' }];
                 this.openModal('编辑业务模板', formHTML, footerButtons);
                     } else {
                         this.showNotification(jsonData.message || '获取业务模板详情失败', 'error');
@@ -1241,45 +1262,45 @@
                     console.error("Failed to fetch servers for sidebar:", error);
                 }
 
-                let listHTML = `<div class="w-1/4 pr-2 border-r border-gray-300 overflow-y-auto h-full"> 
-                    <div class="flex justify-between items-center mb-3 sticky top-0 bg-white py-2 z-10 px-2">
-                        <h3 class="text-lg font-semibold text-sky-700">任务列表</h3>
+                let listHTML = `<div class="w-1/4 pr-2 border-r border-green-500 overflow-y-auto h-full"> 
+                    <div class="flex justify-between items-center mb-3 sticky top-0 bg-black py-2 z-10 px-2">
+                        <h3 class="text-lg font-semibold text-green-500">任务列表</h3>
                         <div class="flex space-x-1">
-                            <button onclick="app.navigateTo('componentTemplates')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs shadow hover:shadow-md transition" title="应用模板">
+                            <button onclick="app.navigateTo('componentTemplates')" class="bg-green-600 hover:bg-green-700 text-black px-2 py-1 rounded text-xs shadow hover:shadow-md transition border border-green-400" title="应用模板">
                                 <i class="fas fa-cube mr-1"></i>应用
                             </button>
-                            <button onclick="app.navigateTo('businessTemplates')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs shadow hover:shadow-md transition" title="任务模板">
+                            <button onclick="app.navigateTo('businessTemplates')" class="bg-green-600 hover:bg-green-700 text-black px-2 py-1 rounded text-xs shadow hover:shadow-md transition border border-green-400" title="任务模板">
                                 <i class="fas fa-layer-group mr-1"></i>任务
                             </button>
                         </div>
                     </div>`;
-                if (this.mockData.deployedBusinesses.length === 0) { listHTML += `<p class="text-sm text-gray-500 px-2">暂无已部署任务。</p>`; } 
+                if (this.mockData.deployedBusinesses.length === 0) { listHTML += `<p class="text-sm text-green-400 px-2">暂无已部署任务。</p>`; } 
                 else {
                     listHTML += `<ul class="space-y-2 px-2">`;
                     this.mockData.deployedBusinesses.forEach(biz => {
                         let statusClass = '';
                         let statusText = '';
-                        if (biz.status === 'running') { statusClass = 'text-green-600'; statusText = '运行中'; }
-                        else if (biz.status === 'stopped') { statusClass = 'text-red-600'; statusText = '已停止'; }
-                        else if (biz.status === 'pending') { statusClass = 'text-yellow-600'; statusText = '等待中'; }
-                        else if (biz.status === 'error') { statusClass = 'text-red-600'; statusText = '有异常'; }
-                        else { statusClass = 'text-gray-600'; statusText = biz.status; }
+                        if (biz.status === 'running') { statusClass = 'text-green-500'; statusText = '运行中'; }
+                        else if (biz.status === 'stopped') { statusClass = 'text-red-500'; statusText = '已停止'; }
+                        else if (biz.status === 'pending') { statusClass = 'text-yellow-500'; statusText = '等待中'; }
+                        else if (biz.status === 'error') { statusClass = 'text-red-500'; statusText = '有异常'; }
+                        else { statusClass = 'text-gray-400'; statusText = biz.status; }
                         const isSelected = biz.business_id === this.selectedBusinessId;
-                        listHTML += `<li class="p-2 rounded-md hover:bg-blue-50 transition-colors ${isSelected ? 'selected-business-item shadow-md border border-sky-300' : 'bg-white shadow-sm hover:shadow-md'}">
+                        listHTML += `<li class="p-2 rounded-md hover:bg-green-900 transition-colors ${isSelected ? 'selected-business-item shadow-md border border-green-500' : 'bg-black shadow-sm hover:shadow-md border border-green-600'}">
                             <div class="flex justify-between items-center mb-2">
                                 <div class="flex-1 cursor-pointer" onclick="app.selectDeployedBusiness('${biz.business_id}')">
                                     <div class="flex justify-between items-center">
-                                        <span class="font-medium text-gray-800">${biz.business_name}</span>
+                                        <span class="font-medium text-green-400">${biz.business_name}</span>
                                         <span class="text-xs font-semibold ${statusClass}">${statusText}</span>
                                     </div>
-                                    <p class="text-xs text-gray-500">创建: ${new Date(biz.created_at * 1000).toLocaleString('zh-CN')}</p>
-                                    <p class="text-xs text-gray-500">更新: ${new Date(biz.updated_at * 1000).toLocaleString('zh-CN')}</p>
+                                    <p class="text-xs text-green-300">创建: ${new Date(biz.created_at * 1000).toLocaleString('zh-CN')}</p>
+                                    <p class="text-xs text-green-300">更新: ${new Date(biz.updated_at * 1000).toLocaleString('zh-CN')}</p>
                                 </div>
                             </div>
-                            <div class="flex space-x-1 mt-2">
-                                <button onclick="app.stopBusiness('${biz.business_id}')" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs shadow hover:shadow-md transition" title="停止"><i class="fas fa-stop-circle mr-1"></i>停止</button>
-                                <button onclick="app.restartBusiness('${biz.business_id}')" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs shadow hover:shadow-md transition" title="重启"><i class="fas fa-redo mr-1"></i>重启</button>
-                                <button onclick="app.deleteDeployedBusiness('${biz.business_id}')" class="flex-1 bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs shadow hover:shadow-md transition" title="删除"><i class="fas fa-trash-alt mr-1"></i>删除</button>
+                            <div class="flex justify-end space-x-1 mt-2">
+                                <button onclick="app.stopBusiness('${biz.business_id}')" class="bg-yellow-600 hover:bg-yellow-700 text-black px-1 py-0.5 rounded text-xs shadow hover:shadow-md transition border border-yellow-400" title="停止">停止</button>
+                                <button onclick="app.restartBusiness('${biz.business_id}')" class="bg-green-600 hover:bg-green-700 text-black px-1 py-0.5 rounded text-xs shadow hover:shadow-md transition border border-green-400" title="重启">重启</button>
+                                <button onclick="app.deleteDeployedBusiness('${biz.business_id}')" class="bg-red-600 hover:bg-red-700 text-black px-1 py-0.5 rounded text-xs shadow hover:shadow-md transition border border-red-400" title="删除">删除</button>
                             </div>
                         </li>`;
                     });
@@ -1293,57 +1314,57 @@
                     detailsHTMLContent = `<div class="flex items-center justify-center h-full"><p class="text-gray-500 text-lg"><i class="fas fa-info-circle mr-2"></i>请从左侧列表选择一个业务查看详情。</p></div>`;
                 }
                 let detailsHTML = `<div class="w-1/2 px-2 overflow-y-auto h-full" id="deployedBusinessDetailsPanel">${detailsHTMLContent}</div>`;
-                let serversPanel = `<div class="w-1/4 pl-2 border-l border-gray-300 overflow-y-auto h-full">${serversHTML}</div>`;
-                return `<div class="bg-white h-screen flex flex-col"><div class="flex flex-1 overflow-hidden">${listHTML}${detailsHTML}${serversPanel}</div></div>`;
+                let serversPanel = `<div class="w-1/4 pl-2 border-l border-green-500 overflow-y-auto h-full">${serversHTML}</div>`;
+                return `<div class="bg-black border border-green-500 h-screen flex flex-col"><div class="flex flex-1 overflow-hidden">${listHTML}${detailsHTML}${serversPanel}</div></div>`;
             },
             async selectDeployedBusiness(id) { 
                 this.selectedBusinessId = id; 
                 const detailsPanel = document.getElementById('deployedBusinessDetailsPanel');
                 if (detailsPanel) {
-                    detailsPanel.innerHTML = '<p class="text-center text-gray-500 py-10">加载业务详情...</p>';
+                    detailsPanel.innerHTML = '<p class="text-center text-green-400 py-10">加载业务详情...</p>';
                     detailsPanel.innerHTML = await this.renderSelectedBusinessDetails(id);
                 }
                 // Re-render list part to update selection highlight, without re-fetching the list
                 const listContainer = document.querySelector('#mainContent > div > div > div:first-child'); // More specific selector if needed
                 if (listContainer) {
-                    let listHTML = `<div class="flex justify-between items-center mb-3 sticky top-0 bg-white py-2 z-10 px-2">
-                        <h3 class="text-lg font-semibold text-sky-700">任务列表</h3>
+                    let listHTML = `<div class="flex justify-between items-center mb-3 sticky top-0 bg-black py-2 z-10 px-2">
+                        <h3 class="text-lg font-semibold text-green-500">任务列表</h3>
                         <div class="flex space-x-1">
-                            <button onclick="app.navigateTo('componentTemplates')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs shadow hover:shadow-md transition" title="应用模板">
+                            <button onclick="app.navigateTo('componentTemplates')" class="bg-green-600 hover:bg-green-700 text-black px-2 py-1 rounded text-xs shadow hover:shadow-md transition border border-green-400" title="应用模板">
                                 <i class="fas fa-cube mr-1"></i>应用
                             </button>
-                            <button onclick="app.navigateTo('businessTemplates')" class="bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs shadow hover:shadow-md transition" title="任务模板">
+                            <button onclick="app.navigateTo('businessTemplates')" class="bg-green-600 hover:bg-green-700 text-black px-2 py-1 rounded text-xs shadow hover:shadow-md transition border border-green-400" title="任务模板">
                                 <i class="fas fa-layer-group mr-1"></i>任务
                             </button>
                         </div>
                     </div>`;
-                    if (this.mockData.deployedBusinesses.length === 0) { listHTML += `<p class="text-sm text-gray-500 px-2">暂无已部署任务。</p>`; } 
+                    if (this.mockData.deployedBusinesses.length === 0) { listHTML += `<p class="text-sm text-green-400 px-2">暂无已部署任务。</p>`; } 
                     else {
                         listHTML += `<ul class="space-y-2 px-2">`;
                         this.mockData.deployedBusinesses.forEach(biz => {
                             let statusClass = '';
                             let statusText = '';
-                            if (biz.status === 'running') { statusClass = 'text-green-600'; statusText = '运行中'; }
-                            else if (biz.status === 'stopped') { statusClass = 'text-red-600'; statusText = '已停止'; }
-                            else if (biz.status === 'pending') { statusClass = 'text-yellow-600'; statusText = '等待中'; }
-                            else if (biz.status === 'error') { statusClass = 'text-red-600'; statusText = '有异常'; }
-                            else { statusClass = 'text-gray-600'; statusText = biz.status; }
+                            if (biz.status === 'running') { statusClass = 'text-green-500'; statusText = '运行中'; }
+                            else if (biz.status === 'stopped') { statusClass = 'text-red-500'; statusText = '已停止'; }
+                            else if (biz.status === 'pending') { statusClass = 'text-yellow-500'; statusText = '等待中'; }
+                            else if (biz.status === 'error') { statusClass = 'text-red-500'; statusText = '有异常'; }
+                            else { statusClass = 'text-gray-400'; statusText = biz.status; }
                             const isSelected = biz.business_id === this.selectedBusinessId;
-                            listHTML += `<li class="p-2 rounded-md hover:bg-blue-50 transition-colors ${isSelected ? 'selected-business-item shadow-md border border-sky-300' : 'bg-white shadow-sm hover:shadow-md'}">
+                            listHTML += `<li class="p-2 rounded-md hover:bg-green-900 transition-colors ${isSelected ? 'selected-business-item shadow-md border border-green-500' : 'bg-black shadow-sm hover:shadow-md border border-green-600'}">
                                 <div class="flex justify-between items-center mb-2">
                                     <div class="flex-1 cursor-pointer" onclick="app.selectDeployedBusiness('${biz.business_id}')">
                                         <div class="flex justify-between items-center">
-                                            <span class="font-medium text-gray-800">${biz.business_name}</span>
+                                            <span class="font-medium text-green-400">${biz.business_name}</span>
                                             <span class="text-xs font-semibold ${statusClass}">${statusText}</span>
                                         </div>
-                                        <p class="text-xs text-gray-500">创建: ${new Date(biz.created_at * 1000).toLocaleString('zh-CN')}</p>
-                                        <p class="text-xs text-gray-500">更新: ${new Date(biz.updated_at * 1000).toLocaleString('zh-CN')}</p>
+                                        <p class="text-xs text-green-300">创建: ${new Date(biz.created_at * 1000).toLocaleString('zh-CN')}</p>
+                                        <p class="text-xs text-green-300">更新: ${new Date(biz.updated_at * 1000).toLocaleString('zh-CN')}</p>
                                     </div>
                                 </div>
-                                <div class="flex space-x-1 mt-2">
-                                    <button onclick="app.stopBusiness('${biz.business_id}')" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs shadow hover:shadow-md transition" title="停止"><i class="fas fa-stop-circle mr-1"></i>停止</button>
-                                    <button onclick="app.restartBusiness('${biz.business_id}')" class="flex-1 bg-blue-500 hover:bg-blue-600 text-white px-2 py-1 rounded text-xs shadow hover:shadow-md transition" title="重启"><i class="fas fa-redo mr-1"></i>重启</button>
-                                    <button onclick="app.deleteDeployedBusiness('${biz.business_id}')" class="flex-1 bg-red-500 hover:bg-red-600 text-white px-2 py-1 rounded text-xs shadow hover:shadow-md transition" title="删除"><i class="fas fa-trash-alt mr-1"></i>删除</button>
+                                <div class="flex justify-end space-x-1 mt-2">
+                                    <button onclick="app.stopBusiness('${biz.business_id}')" class="bg-yellow-600 hover:bg-yellow-700 text-black px-1 py-0.5 rounded text-xs shadow hover:shadow-md transition border border-yellow-400" title="停止">停止</button>
+                                    <button onclick="app.restartBusiness('${biz.business_id}')" class="bg-green-600 hover:bg-green-700 text-black px-1 py-0.5 rounded text-xs shadow hover:shadow-md transition border border-green-400" title="重启">重启</button>
+                                    <button onclick="app.deleteDeployedBusiness('${biz.business_id}')" class="bg-red-600 hover:bg-red-700 text-black px-1 py-0.5 rounded text-xs shadow hover:shadow-md transition border border-red-400" title="删除">删除</button>
                                 </div>
                             </li>`;
                         });
@@ -1378,59 +1399,59 @@
                         let componentsHTML = '无组件信息。';
                         if (biz.components && biz.components.length > 0) {
                              componentsHTML = biz.components.map(c => { 
-                    let statusClass = ''; 
+                                        let statusClass = '';
                     let componentStatusText = '';
-                    if (c.status === 'running') { statusClass = 'bg-green-100 text-green-800'; componentStatusText = '运行中'; }
-                    else if (c.status === 'stopped') { statusClass = 'bg-red-100 text-red-800'; componentStatusText = '已停止'; }
-                    else if (c.status === 'pending') { statusClass = 'bg-yellow-100 text-yellow-800'; componentStatusText = '等待中'; }
-                    else if (c.status === 'error') { statusClass = 'bg-red-100 text-red-800'; componentStatusText = '有异常'; }
-                    else { statusClass = 'bg-gray-100 text-gray-800'; componentStatusText = c.status; } 
+                    if (c.status === 'running') { statusClass = 'bg-green-900 text-green-400 border border-green-500'; componentStatusText = '运行中'; }
+                    else if (c.status === 'stopped') { statusClass = 'bg-red-900 text-red-400 border border-red-500'; componentStatusText = '已停止'; }
+                    else if (c.status === 'pending') { statusClass = 'bg-yellow-900 text-yellow-400 border border-yellow-500'; componentStatusText = '等待中'; }
+                    else if (c.status === 'error') { statusClass = 'bg-red-900 text-red-400 border border-red-500'; componentStatusText = '有异常'; }
+                    else { statusClass = 'bg-gray-900 text-gray-400 border border-gray-500'; componentStatusText = c.status; } 
                     let envDetail = '';
                     if(c.environment_variables && Object.keys(c.environment_variables).length > 0) {
-                        envDetail = `<p class=\"text-xs text-gray-500 mt-1\">环境变量: ${JSON.stringify(c.environment_variables)}</p>`;
+                        envDetail = `<p class=\"text-xs text-green-300 mt-1\">环境变量: ${JSON.stringify(c.environment_variables)}</p>`;
                     }
                     // 只显示一个操作按钮：running时显示停止，否则显示部署
                     let actionBtn = '';
                     if (c.status === 'running') {
-                        actionBtn = `<button onclick=\"app.stopComponent('${biz.business_id}', '${c.component_id}', this)\" class=\"bg-yellow-500 hover:bg-yellow-600 text-white px-2 py-1 rounded text-xs ml-2\">停止</button>`;
+                        actionBtn = `<button onclick=\"app.stopComponent('${biz.business_id}', '${c.component_id}', this)\" class=\"bg-yellow-600 hover:bg-yellow-700 text-black px-1 py-0.5 rounded text-xs ml-2 border border-yellow-400\">停止</button>`;
                     } else {
-                        actionBtn = `<button onclick=\"app.deployComponent('${biz.business_id}', '${c.component_id}', this)\" class=\"bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs ml-2\">部署</button>`;
+                        actionBtn = `<button onclick=\"app.deployComponent('${biz.business_id}', '${c.component_id}', this)\" class=\"bg-green-600 hover:bg-green-700 text-black px-1 py-0.5 rounded text-xs ml-2 border border-green-400\">部署</button>`;
                     }
                     // 新增：显示二进制路径或容器名
                     let mainPathOrName = '';
                     if (c.type === 'docker' && c.image_name) {
-                        mainPathOrName = `<p class=\"text-xs text-gray-500 mt-1\">容器名: ${c.image_name}</p>`;
+                        mainPathOrName = `<p class=\"text-xs text-green-300 mt-1\">容器名: ${c.image_name}</p>`;
                     } else if (c.type === 'binary' && c.binary_path) {
-                        mainPathOrName = `<p class=\"text-xs text-gray-500 mt-1\">二进制路径: ${c.binary_path}</p>`;
+                        mainPathOrName = `<p class=\"text-xs text-green-300 mt-1\">二进制路径: ${c.binary_path}</p>`;
                     }
-                    return `<li class=\"p-2 border-b border-gray-200 last:border-b-0 hover:bg-gray-50 rounded-md mb-1\">
+                    return `<li class=\"p-2 border-b border-green-500 last:border-b-0 hover:bg-green-900 rounded-md mb-1 bg-black border border-green-600\">
                         <div class=\"flex justify-between items-center\">
                             <div>
-                                <strong class=\"text-gray-800\">${c.component_name}</strong>
-                                <span class=\"text-xs text-gray-500 ml-2\">(类型: ${c.type})</span>
+                                <strong class=\"text-green-400\">${c.component_name}</strong>
+                                <span class=\"text-xs text-green-300 ml-2\">(类型: ${c.type})</span>
                             </div>
                             <div class=\"flex items-center space-x-2\">
                                 <span class=\"px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}\">${componentStatusText}</span>
                                 ${actionBtn}
                             </div>
                         </div>
-                        ${c.node_id ? `<p class=\"text-xs text-gray-500 mt-1\">节点: ${c.node_id} | ${c.type === 'docker' ? '容器ID' : '进程ID'}: ${c.container_id || c.process_id || 'N/A'}</p>` : ''}
+                        ${c.node_id ? `<p class=\"text-xs text-green-300 mt-1\">节点: ${c.node_id} | ${c.type === 'docker' ? '容器ID' : '进程ID'}: ${c.container_id || c.process_id || 'N/A'}</p>` : ''}
                         ${mainPathOrName}
                         ${envDetail}
                     </li>`; 
                 }).join('');
                         }
-                        return `<h3 class="text-xl font-semibold text-sky-700 mb-1 sticky top-0 bg-white py-2 z-10">${biz.business_name}</h3>
-                                <h4 class="text-md font-semibold text-gray-700 mb-2">应用列表 (${biz.components ? biz.components.length : 0}):</h4>
-                                <ul class="list-none bg-white p-2 rounded-md shadow-inner border border-gray-200 max-h-80 overflow-y-auto">${componentsHTML}</ul>`;
+                        return `<h3 class="text-xl font-semibold text-green-500 mb-1 sticky top-0 bg-black py-2 z-10">${biz.business_name}</h3>
+                                <h4 class="text-md font-semibold text-green-400 mb-2">应用列表 (${biz.components ? biz.components.length : 0}):</h4>
+                                <ul class="list-none bg-black p-2 rounded-md shadow-inner border border-green-500 max-h-80 overflow-y-auto">${componentsHTML}</ul>`;
                     } else {
                         this.showNotification(jsonData.message || '获取业务详情失败', 'error');
-                        return '<p class="text-center text-red-500 py-10">加载业务详情失败。</p>';
+                        return '<p class="text-center text-red-400 py-10">加载业务详情失败。</p>';
                     }
                 } catch (error) {
                     console.error("Failed to render business details:", error);
                     this.showNotification('渲染业务详情失败: ' + error.message, 'error');
-                    return '<p class="text-center text-red-500 py-10">加载业务详情出错。</p>';
+                    return '<p class="text-center text-red-400 py-10">加载业务详情出错。</p>';
                 }
             },
             async stopBusiness(id) {  
@@ -1547,25 +1568,25 @@
 
             // --- Server Sidebar for Combined View ---
             getServersSidebarHTML() {
-                let content = `<div class="flex justify-between items-center mb-3 sticky top-0 bg-white py-2 z-10 px-2">
-                    <h3 class="text-lg font-semibold text-sky-700">服务器状态</h3>
-                    <button id="autoRefreshButton" onclick="app.toggleAutoRefresh()" class="bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded text-xs shadow hover:shadow-md transition" title="自动刷新">
+                let content = `<div class="flex justify-between items-center mb-3 sticky top-0 bg-black py-2 z-10 px-2">
+                    <h3 class="text-lg font-semibold text-green-500">服务器状态</h3>
+                    <button id="autoRefreshButton" onclick="app.toggleAutoRefresh()" class="bg-green-600 hover:bg-green-700 text-black px-2 py-1 rounded text-xs shadow hover:shadow-md transition border border-green-400" title="自动刷新">
                         <i class="fas fa-sync-alt mr-1"></i>停止
                     </button>
                 </div>`;
                 
                 if (this.mockData.servers.length === 0) {
-                    content += `<p class="text-sm text-gray-500 px-2">暂无服务器信息。</p>`;
+                    content += `<p class="text-sm text-green-400 px-2">暂无服务器信息。</p>`;
                 } else {
                     content += `<div class="space-y-2 px-2">`;
                     this.mockData.servers.forEach(server => {
-                        let statusClass = server.status === 'online' ? 'text-green-600' : 'text-red-600';
+                        let statusClass = server.status === 'online' ? 'text-green-500' : 'text-red-500';
                         let statusText = server.status === 'online' ? '在线' : '离线';
                         
                         content += `
-                            <div class="p-2 bg-white rounded-md shadow-sm hover:shadow-md transition-colors cursor-pointer" onclick="app.showServerDetails('${server.node_id}')">
+                            <div class="p-2 bg-black border border-green-600 rounded-md shadow-sm hover:shadow-md transition-colors cursor-pointer" onclick="app.showServerDetails('${server.node_id}')">
                                 <div class="flex justify-between items-center">
-                                    <span class="font-medium text-gray-800 text-sm truncate" title="${server.ip_address}">${server.ip_address}</span>
+                                    <span class="font-medium text-green-400 text-sm truncate" title="${server.ip_address}">${server.ip_address}</span>
                                     <span class="text-xs font-semibold ${statusClass}">${statusText}</span>
                                 </div>
                             </div>`;
