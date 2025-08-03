@@ -1,0 +1,200 @@
+# C++ 编译产物
+build/
+*.o
+*.obj
+*.exe
+*.out
+*.app
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+
+# 依赖文件
+*.d
+
+# CMake 构建文件
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# IDE 和编辑器文件
+.vscode/settings.json
+.vscode/launch.json
+.vscode/tasks.json
+.vscode/c_cpp_properties.json
+.vscode/extensions.json
+.vscode/*.log
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 日志文件
+*.log
+logs/
+log/
+manager.log
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+manager.db
+
+# 配置文件（可选，根据项目需要调整）
+# agent_config.json
+# manager_config.json
+
+# 临时文件
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# 测试文件
+test_*
+*_test
+*.test
+
+# 文档生成
+docs/_build/
+docs/html/
+docs/latex/
+
+# 包管理器文件
+node_modules/
+vendor/
+composer.lock
+package-lock.json
+yarn.lock
+
+# 系统文件
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 备份文件
+*.orig
+*.rej
+*.orig~
+
+# 编译缓存
+.cache/
+*.cache
+
+# 覆盖率文件
+*.gcov
+*.gcda
+*.gcno
+coverage/
+
+# 内存检查文件
+*.memcheck
+valgrind-out.txt
+
+# 性能分析文件
+*.prof
+*.gprof
+
+# 调试文件
+*.pdb
+*.dSYM/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# 第三方库构建文件（保留源码，忽略构建产物）
+third_party/*/build/
+third_party/*/lib/
+third_party/*/bin/
+third_party/*/include/
+third_party/*/CMakeFiles/
+third_party/*/CMakeCache.txt
+third_party/*/cmake_install.cmake
+third_party/*/Makefile
+third_party/*/*.o
+third_party/*/*.a
+third_party/*/*.so
+third_party/*/*.dylib
+
+# 但保留 SQLiteCpp 的源码
+!third_party/SQLiteCpp/src/
+!third_party/SQLiteCpp/include/
+!third_party/SQLiteCpp/CMakeLists.txt
+!third_party/SQLiteCpp/README.md
+!third_party/SQLiteCpp/LICENSE.txt
+
+# 保留其他第三方库的源码
+!third_party/*/src/
+!third_party/*/include/
+!third_party/*/CMakeLists.txt
+!third_party/*/README*
+!third_party/*/LICENSE*
+!third_party/*/COPYING*
+
+# 项目特定的忽略文件
+agent_id.txt
+manager.db
+manager.log
+.DS_Store
+
+# 如果有特定的配置文件需要忽略，取消注释下面的行
+# config/local_config.json
+# secrets/
+# .env
+
+# 自动生成的文件
+auto_generated/
+generated/
+
+# 大型二进制文件
+*.bin
+*.dat
+*.data
+
+# 压缩文件
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# 文档构建产物
+docs/build/
+docs/_build/
+docs/html/
+docs/latex/
+
+# 测试结果
+test_results/
+test_output/
+*.test_result
+
+# 性能测试结果
+benchmark_results/
+*.benchmark
+
+# 静态分析结果
+static_analysis/
+*.clang-tidy
+*.cppcheck
+
+# 代码格式化备份
+*.formatted
+*.fmt
+
+# 本地开发文件
+local_*
+dev_*
+debug_* 
