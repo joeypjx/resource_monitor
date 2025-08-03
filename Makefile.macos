@@ -1,0 +1,272 @@
+# 资源监控系统 Makefile (macOS 版本)
+
+# 编译器和标准
+CXX = clang++
+CXXFLAGS = -std=c++14 -Wall -Wextra -MMD -MP
+
+# 项目目录
+SRC_DIR = src
+AGENT_DIR = $(SRC_DIR)/agent
+MANAGER_DIR = $(SRC_DIR)/manager
+UTILS_DIR = $(SRC_DIR)/utils
+BUILD_DIR = build
+
+# 依赖库目录
+DEPS_DIR = third_party
+JSON_DIR = $(DEPS_DIR)/nlohmann_json
+HTTPLIB_DIR = $(DEPS_DIR)/cpp-httplib
+SPDLOG_DIR = $(DEPS_DIR)/spdlog
+SQLITECPP_DIR = $(DEPS_DIR)/SQLiteCpp
+SQLITE3_DIR = $(DEPS_DIR)/sqlite3
+
+# 包含目录 - 优先使用系统库
+INCLUDES = -I$(SRC_DIR) \
+          -I$(AGENT_DIR) \
+          -I$(MANAGER_DIR) \
+          -I$(UTILS_DIR) \
+          -I/opt/homebrew/include \
+          -I/usr/local/include \
+          -I$(JSON_DIR)/include \
+          -I$(HTTPLIB_DIR) \
+          -I$(SPDLOG_DIR)/include \
+          -I$(SQLITECPP_DIR)/include \
+          -I$(SQLITE3_DIR)/include \
+          $(SQLITE_INCLUDES) \
+          $(CURL_INCLUDES) \
+          $(SSH_INCLUDES) \
+          $(FMT_INCLUDES) \
+          $(SPDLOG_INCLUDES)
+
+# 库目录 - 优先使用系统库
+LIB_DIRS = -L/opt/homebrew/lib \
+           -L/usr/local/lib \
+           -L$(SQLITECPP_DIR)/build \
+           $(SQLITE_LIBS) \
+           $(CURL_LIBS) \
+           $(SSH_LIBS) \
+           $(FMT_LIBS) \
+           $(SPDLOG_LIBS)
+
+# VPATH告诉make在哪里查找源文件
+VPATH = $(AGENT_DIR):$(MANAGER_DIR):$(UTILS_DIR):$(SRC_DIR)
+
+# Agent源文件
+AGENT_SRC_FILES = $(wildcard $(AGENT_DIR)/*.cpp) $(SRC_DIR)/agent_main.cpp
+MANAGER_SRC_FILES = $(wildcard $(MANAGER_DIR)/*.cpp) $(SRC_DIR)/manager_main.cpp
+COMMON_SRC_FILES = $(wildcard $(UTILS_DIR)/*.cpp)
+
+# 目标文件
+AGENT_OBJECTS = $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(notdir $(AGENT_SRC_FILES) $(COMMON_SRC_FILES)))
+MANAGER_OBJECTS = $(patsubst %.cpp,$(BUILD_DIR)/%.o,$(notdir $(MANAGER_SRC_FILES) $(COMMON_SRC_FILES)))
+
+# 依赖库 (macOS 版本) - 优先使用系统库
+# 检测系统库并设置相应的库链接
+SYSTEM_SQLITE := $(shell pkg-config --exists sqlite3 && echo "1" || echo "0")
+SYSTEM_CURL := $(shell pkg-config --exists libcurl && echo "1" || echo "0")
+SYSTEM_SSH := $(shell pkg-config --exists libssh && echo "1" || echo "0")
+SYSTEM_FMT := $(shell pkg-config --exists fmt && echo "1" || echo "0")
+SYSTEM_SPDLOG := $(shell pkg-config --exists spdlog && echo "1" || echo "0")
+
+# 根据系统库可用性设置库链接
+ifeq ($(SYSTEM_SQLITE),1)
+    MANAGER_LIBS = -luuid -lsqlite3 -lSQLiteCpp -pthread
+    SQLITE_INCLUDES = $(shell pkg-config --cflags sqlite3)
+    SQLITE_LIBS = $(shell pkg-config --libs sqlite3)
+else
+    MANAGER_LIBS = -luuid -lSQLiteCpp $(SQLITE3_DIR)/lib/libsqlite3.a -pthread
+    SQLITE_INCLUDES = -I$(SQLITE3_DIR)/include
+    SQLITE_LIBS = -L$(SQLITE3_DIR)/lib -lsqlite3
+endif
+
+ifeq ($(SYSTEM_CURL),1)
+    AGENT_LIBS = -lcurl -luuid -lssh -lsqlite3 -lfmt -lspdlog -pthread
+    CURL_INCLUDES = $(shell pkg-config --cflags libcurl)
+    CURL_LIBS = $(shell pkg-config --libs libcurl)
+else
+    AGENT_LIBS = -lcurl -luuid -lssh -lsqlite3 -lfmt -lspdlog -pthread
+    CURL_INCLUDES = 
+    CURL_LIBS = -lcurl
+endif
+
+# SSH 库配置
+ifeq ($(SYSTEM_SSH),1)
+    SSH_INCLUDES = $(shell pkg-config --cflags libssh)
+    SSH_LIBS = $(shell pkg-config --libs libssh)
+else
+    SSH_INCLUDES = -I/opt/homebrew/Cellar/libssh/0.11.2/include
+    SSH_LIBS = -L/opt/homebrew/Cellar/libssh/0.11.2/lib -lssh
+endif
+
+# FMT 库配置
+ifeq ($(SYSTEM_FMT),1)
+    FMT_INCLUDES = $(shell pkg-config --cflags fmt)
+    FMT_LIBS = $(shell pkg-config --libs fmt)
+else
+    FMT_INCLUDES = -I/opt/homebrew/include
+    FMT_LIBS = -L/opt/homebrew/lib -lfmt
+endif
+
+# SPDLOG 库配置
+ifeq ($(SYSTEM_SPDLOG),1)
+    SPDLOG_INCLUDES = $(shell pkg-config --cflags spdlog)
+    SPDLOG_LIBS = $(shell pkg-config --libs spdlog)
+else
+    SPDLOG_INCLUDES = -I/opt/homebrew/include
+    SPDLOG_LIBS = -L/opt/homebrew/lib -lspdlog
+endif
+
+# 目标可执行文件
+AGENT_TARGET = $(BUILD_DIR)/agent
+MANAGER_TARGET = $(BUILD_DIR)/manager
+
+# 默认目标
+all: $(AGENT_TARGET) $(MANAGER_TARGET)
+
+# 编译Agent
+$(AGENT_TARGET): $(AGENT_OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIB_DIRS) $(AGENT_LIBS)
+
+# 编译Manager
+$(MANAGER_TARGET): $(MANAGER_OBJECTS)
+	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIB_DIRS) $(MANAGER_LIBS)
+
+# 编译规则
+$(BUILD_DIR)/%.o: %.cpp
+	@mkdir -p $(@D)
+	$(CXX) $(CXXFLAGS) $(INCLUDES) -c -o $@ $<
+
+# 清理
+clean:
+	rm -rf $(BUILD_DIR)
+
+# 安装 (macOS 版本)
+install: all
+	sudo mkdir -p /usr/local/zygl/
+	sudo cp $(AGENT_TARGET) /usr/local/zygl/
+	sudo cp $(MANAGER_TARGET) /usr/local/zygl/
+	sudo chmod +x /usr/local/zygl/agent
+	sudo chmod +x /usr/local/zygl/manager
+
+# 包含自动生成的依赖文件
+-include $(AGENT_OBJECTS:.o=.d)
+-include $(MANAGER_OBJECTS:.o=.d)
+
+# 检测系统库是否可用
+check-system-libs:
+	@echo "检测系统库可用性..."
+	@if pkg-config --exists sqlite3; then \
+		echo "✓ 系统 SQLite3 可用"; \
+	else \
+		echo "⚠ 系统 SQLite3 不可用，将使用项目自带版本"; \
+	fi
+	@if pkg-config --exists libcurl; then \
+		echo "✓ 系统 libcurl 可用"; \
+	else \
+		echo "⚠ 系统 libcurl 不可用，将使用项目自带版本"; \
+	fi
+	@if pkg-config --exists libssh; then \
+		echo "✓ 系统 libssh 可用"; \
+	else \
+		echo "⚠ 系统 libssh 不可用，将使用 Homebrew 版本"; \
+	fi
+	@if pkg-config --exists fmt; then \
+		echo "✓ 系统 fmt 可用"; \
+	else \
+		echo "⚠ 系统 fmt 不可用，将使用 Homebrew 版本"; \
+	fi
+	@if pkg-config --exists spdlog; then \
+		echo "✓ 系统 spdlog 可用"; \
+	else \
+		echo "⚠ 系统 spdlog 不可用，将使用 Homebrew 版本"; \
+	fi
+
+# 依赖检查 (macOS 版本)
+deps: check-system-libs
+	@echo "正在检查 macOS 依赖项..."
+	@which clang++ > /dev/null || (echo "错误: 需要安装 Xcode Command Line Tools。请运行: xcode-select --install" && exit 1)
+	@which pkg-config > /dev/null || (echo "错误: 需要安装 pkg-config。请运行: brew install pkg-config" && exit 1)
+	@brew list curl > /dev/null 2>&1 || (echo "错误: 需要安装 curl。请运行: brew install curl" && exit 1)
+	@brew list libssh > /dev/null 2>&1 || (echo "错误: 需要安装 libssh。请运行: brew install libssh" && exit 1)
+	@brew list fmt > /dev/null 2>&1 || (echo "错误: 需要安装 fmt。请运行: brew install fmt" && exit 1)
+	@brew list spdlog > /dev/null 2>&1 || (echo "错误: 需要安装 spdlog。请运行: brew install spdlog" && exit 1)
+	@brew list sqlite3 > /dev/null 2>&1 || (echo "错误: 需要安装 sqlite3。请运行: brew install sqlite3" && exit 1)
+	@echo "所有依赖项均已满足。"
+
+# 安装依赖 (macOS 版本)
+install-deps:
+	@echo "正在安装 macOS 依赖项..."
+	@xcode-select --install || true
+	@brew install curl libssh fmt spdlog sqlite3 pkg-config || true
+	@echo "依赖项安装完成。"
+
+# 显示库配置信息
+show-config:
+	@echo "=== 当前库配置 ==="
+	@echo "系统 SQLite3: $(SYSTEM_SQLITE)"
+	@echo "系统 libcurl: $(SYSTEM_CURL)"
+	@echo "系统 libssh: $(SYSTEM_SSH)"
+	@echo "系统 fmt: $(SYSTEM_FMT)"
+	@echo "系统 spdlog: $(SYSTEM_SPDLOG)"
+	@echo ""
+	@echo "SQLite 包含目录: $(SQLITE_INCLUDES)"
+	@echo "SQLite 库: $(SQLITE_LIBS)"
+	@echo "CURL 包含目录: $(CURL_INCLUDES)"
+	@echo "CURL 库: $(CURL_LIBS)"
+	@echo "SSH 包含目录: $(SSH_INCLUDES)"
+	@echo "SSH 库: $(SSH_LIBS)"
+	@echo "FMT 包含目录: $(FMT_INCLUDES)"
+	@echo "FMT 库: $(FMT_LIBS)"
+	@echo "SPDLOG 包含目录: $(SPDLOG_INCLUDES)"
+	@echo "SPDLOG 库: $(SPDLOG_LIBS)"
+	@echo "=================="
+
+# 帮助
+help:
+	@echo "资源监控系统 Makefile (macOS 版本)"
+	@echo "使用方法:"
+	@echo "  make              - 构建agent和manager"
+	@echo "  make agent        - 仅构建agent"
+	@echo "  make manager      - 仅构建manager"
+	@echo "  make clean        - 清理构建文件"
+	@echo "  make install      - 安装到系统"
+	@echo "  make deps         - 检查依赖"
+	@echo "  make install-deps - 安装依赖"
+	@echo "  make show-config  - 显示当前库配置"
+	@echo "  make help         - 显示此帮助信息"
+	@echo "  make build-sqlite3 - 重新编译sqlite3库"
+	@echo "  make build-sqlitecpp - 重新编译SQLiteCpp库"
+
+# 单独构建目标
+agent: $(AGENT_TARGET)
+manager: $(MANAGER_TARGET)
+
+# 重新编译sqlite3 (macOS 版本)
+build-sqlite3:
+	@echo "正在编译 sqlite3..."
+	@cd $(SQLITE3_DIR) && \
+	(make clean || true) && \
+	rm -rf lib include && \
+	./configure --prefix=$(CURDIR)/$(SQLITE3_DIR) --enable-static --disable-shared CFLAGS="-DSQLITE_ENABLE_COLUMN_METADATA" && \
+	make && \
+	make install
+
+# 重新编译 SQLiteCpp (macOS 版本)
+build-sqlitecpp:
+	@echo "正在编译 SQLiteCpp..."
+	@cd $(SQLITECPP_DIR) && \
+	rm -rf build && \
+	mkdir -p build && \
+	cd build && \
+	cmake .. -DSQLITECPP_BUILD_EXAMPLES=OFF -DSQLITECPP_BUILD_TESTS=OFF -DCMAKE_POLICY_VERSION_MINIMUM=3.5 -DSQLITECPP_USE_SYSTEM_SQLITE=OFF -DCMAKE_CXX_FLAGS="-DSQLITE_OMIT_LOAD_EXTENSION" && \
+	make
+
+# 检查 Homebrew 是否安装
+check-brew:
+	@which brew > /dev/null || (echo "错误: 需要安装 Homebrew。请访问 https://brew.sh 安装" && exit 1)
+
+# 设置开发环境
+setup-dev: check-brew install-deps
+	@echo "开发环境设置完成。"
+
+.PHONY: all clean install deps help agent manager build-sqlitecpp install-deps check-brew setup-dev check-system-libs show-config
+.DEFAULT_GOAL := all 

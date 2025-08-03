@@ -1,5 +1,5 @@
 {
   "port": 8080,
   "db_path": "manager.db",
-  "sftp_host": "sftp://root:password@192.168.10.15:22/data/"
+  "sftp_host": "sftp://root:1989117@192.168.31.15:8022/data/data/com.termux/files/home"
 } 

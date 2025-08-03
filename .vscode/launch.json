@@ -1,0 +1,259 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "调试 Agent (Linux)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/agent",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "构建 Agent (Linux)",
+            "setupCommands": [
+                {
+                    "description": "为 gdb 启用整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "logging": {
+                "moduleLoad": true,
+                "trace": true,
+                "engineLogging": true,
+                "programOutput": true,
+                "exceptions": true
+            }
+        },
+        {
+            "name": "调试 Manager (Linux)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/manager",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "构建 Manager (Linux)",
+            "setupCommands": [
+                {
+                    "description": "为 gdb 启用整齐打印",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "logging": {
+                "moduleLoad": true,
+                "trace": true,
+                "engineLogging": true,
+                "programOutput": true,
+                "exceptions": true
+            }
+        },
+        {
+            "name": "调试 Agent (macOS)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/agent",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "构建 Agent (macOS)",
+            "setupCommands": [
+                {
+                    "description": "为 lldb 启用整齐打印",
+                    "text": "settings set target.print-object-description true",
+                    "ignoreFailures": true
+                }
+            ],
+            "logging": {
+                "moduleLoad": true,
+                "trace": true,
+                "engineLogging": true,
+                "programOutput": true,
+                "exceptions": true
+            }
+        },
+        {
+            "name": "调试 Manager (macOS)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/manager",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "构建 Manager (macOS)",
+            "setupCommands": [
+                {
+                    "description": "为 lldb 启用整齐打印",
+                    "text": "settings set target.print-object-description true",
+                    "ignoreFailures": true
+                }
+            ],
+            "logging": {
+                "moduleLoad": true,
+                "trace": true,
+                "engineLogging": true,
+                "programOutput": true,
+                "exceptions": true
+            }
+        },
+        {
+            "name": "调试 Agent (macOS - 无构建)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/agent",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "setupCommands": [
+                {
+                    "description": "为 lldb 启用整齐打印",
+                    "text": "settings set target.print-object-description true",
+                    "ignoreFailures": true
+                }
+            ],
+            "logging": {
+                "moduleLoad": true,
+                "trace": true,
+                "engineLogging": true,
+                "programOutput": true,
+                "exceptions": true
+            }
+        },
+        {
+            "name": "调试 Manager (macOS - 无构建)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/manager",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "setupCommands": [
+                {
+                    "description": "为 lldb 启用整齐打印",
+                    "text": "settings set target.print-object-description true",
+                    "ignoreFailures": true
+                }
+            ],
+            "logging": {
+                "moduleLoad": true,
+                "trace": true,
+                "engineLogging": true,
+                "programOutput": true,
+                "exceptions": true
+            }
+        },
+        {
+            "name": "调试 Agent (附加到进程)",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "${workspaceFolder}/build/agent",
+            "processId": "${command:pickProcess}",
+            "MIMode": "lldb",
+            "setupCommands": [
+                {
+                    "description": "为 lldb 启用整齐打印",
+                    "text": "settings set target.print-object-description true",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "调试 Manager (附加到进程)",
+            "type": "cppdbg",
+            "request": "attach",
+            "program": "${workspaceFolder}/build/manager",
+            "processId": "${command:pickProcess}",
+            "MIMode": "lldb",
+            "setupCommands": [
+                {
+                    "description": "为 lldb 启用整齐打印",
+                    "text": "settings set target.print-object-description true",
+                    "ignoreFailures": true
+                }
+            ]
+        },
+        {
+            "name": "调试 Agent (带配置文件)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/agent",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "AGENT_CONFIG",
+                    "value": "${workspaceFolder}/agent_config.json"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "构建 Agent (macOS)",
+            "setupCommands": [
+                {
+                    "description": "为 lldb 启用整齐打印",
+                    "text": "settings set target.print-object-description true",
+                    "ignoreFailures": true
+                }
+            ],
+            "logging": {
+                "moduleLoad": true,
+                "trace": true,
+                "engineLogging": true,
+                "programOutput": true,
+                "exceptions": true
+            }
+        },
+        {
+            "name": "调试 Manager (带配置文件)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/manager",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [
+                {
+                    "name": "MANAGER_CONFIG",
+                    "value": "${workspaceFolder}/manager_config.json"
+                }
+            ],
+            "externalConsole": false,
+            "MIMode": "lldb",
+            "preLaunchTask": "构建 Manager (macOS)",
+            "setupCommands": [
+                {
+                    "description": "为 lldb 启用整齐打印",
+                    "text": "settings set target.print-object-description true",
+                    "ignoreFailures": true
+                }
+            ],
+            "logging": {
+                "moduleLoad": true,
+                "trace": true,
+                "engineLogging": true,
+                "programOutput": true,
+                "exceptions": true
+            }
+        }
+    ]
+} 
