@@ -1,0 +1,59 @@
+# install_agent.yml
+- name: Deploy DT Agent
+  hosts: agent_servers
+  become: yes # 以 root 权限执行
+  vars:
+    agent_source_path: "files/agent"
+    agent_dest_dir: "/usr/local/zygl"
+    agent_dest_path: "{{ agent_dest_dir }}/agent"
+    service_name: "dtagent.service"
+
+  tasks:
+    - name: 检查 Manager 服务器 IP 是否已定义
+      fail:
+        msg: "变量 'manager_ip' 未定义, 请在 inventory.ini 文件中设置。"
+      when: manager_ip is not defined or manager_ip == ""
+
+    - name: 检查 Manager 服务器是否可以访问
+      command: "ping -c 1 {{ manager_ip }}"
+      register: ping_result
+      ignore_errors: yes
+      changed_when: false # 此命令不应标记为“已更改”
+
+    - name: 如果 Manager 无法访问则中止
+      fail:
+        msg: "无法访问 Manager 服务器 {{ manager_ip }}。请检查网络连接和 IP 地址。"
+      when: ping_result.rc != 0
+
+    - name: 确保目标目录存在
+      file:
+        path: "{{ agent_dest_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: 复制 agent 文件到目标服务器
+      copy:
+        src: "{{ agent_source_path }}"
+        dest: "{{ agent_dest_path }}"
+        mode: '0755'
+      notify: Restart dtagent # 如果 agent 文件有更新, 则通知重启服务
+
+    - name: 使用模板创建 systemd 服务文件
+      template:
+        src: "templates/dtagent.service.j2"
+        dest: "/etc/systemd/system/{{ service_name }}"
+        mode: '0644'
+      notify: Restart dtagent # 如果服务文件有变更, 则通知重启服务
+
+    - name: 重新加载 systemd 并启用/启动服务
+      systemd:
+        name: "{{ service_name }}"
+        daemon_reload: yes
+        enabled: yes
+        state: started
+
+  handlers:
+    - name: Restart dtagent
+      systemd:
+        name: "{{ service_name }}"
+        state: restarted

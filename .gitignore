@@ -163,6 +163,7 @@ generated/
 *.bin
 *.dat
 *.data
+*.tar
 
 # 压缩文件
 *.zip

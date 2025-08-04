@@ -6,12 +6,24 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# check if /usr/local/zygl exists
+if [ ! -d /usr/local/zygl ]; then
+    mkdir -p /usr/local/zygl
+    echo "创建 /usr/local/zygl 目录"
+fi
+
+# check if agent exists
+if [ -f agent ]; then
+    cp ./agent /usr/local/zygl/agent
+    chmod +x /usr/local/zygl/agent
+    echo "agent 文件已复制到 /usr/local/zygl/agent"
+fi
+
 # check if /usr/local/zygl/agent exists
 if [ ! -f /usr/local/zygl/agent ]; then
     echo "/usr/local/zygl/agent 不存在"
     exit 1
 fi
-
 
 # Prompt for manager IP
 read -p "请输入 Manager 服务器 IP: " manager_ip

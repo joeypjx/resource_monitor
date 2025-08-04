@@ -6,6 +6,19 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
+# check if /usr/local/zygl exists
+if [ ! -d /usr/local/zygl ]; then
+    mkdir -p /usr/local/zygl
+    echo "创建 /usr/local/zygl 目录"
+fi
+
+# check if manager exists
+if [ -f manager ]; then
+    cp ./manager /usr/local/zygl/manager
+    chmod +x /usr/local/zygl/manager
+    echo "manager 文件已复制到 /usr/local/zygl/manager"
+fi
+
 # check if /usr/local/zygl/manager exists
 if [ ! -f /usr/local/zygl/manager ]; then
     echo "/usr/local/zygl/manager 不存在"

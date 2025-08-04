@@ -1,0 +1,15 @@
+# templates/dtagent.service.j2
+[Unit]
+Description=DT Agent Service
+After=network.target
+
+[Service]
+WorkingDirectory=/usr/local/zygl
+Type=simple
+# Ansible 会根据 inventory.ini 中的变量动态生成此行
+ExecStart=/usr/local/zygl/agent --manager-url http://{{ manager_ip }}:38080 --port 38081{% if network_interface %} --network-interface {{ network_interface }}{% endif %}
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target
