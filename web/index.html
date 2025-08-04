@@ -59,6 +59,8 @@
         .bg-white { background-color: #1a1a1a !important; color: #00ff00 !important; }
         .bg-gray-100 { background-color: #2d2d2d !important; }
         .bg-gray-50 { background-color: #2d2d2d !important; }
+        .bg-gray-300 { background-color: #2d2d2d !important; }
+        .bg-gray-400 { background-color: #1a1a1a !important; }
         .text-gray-800 { color: #00ff00 !important; }
         .text-gray-700 { color: #00ff00 !important; }
         .text-gray-600 { color: #00cc00 !important; }
@@ -71,6 +73,65 @@
         .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 255, 0, 0.3) !important; }
         .shadow-xl { box-shadow: 0 20px 25px -5px rgba(0, 255, 0, 0.3) !important; }
         .shadow-inner { box-shadow: inset 0 2px 4px 0 rgba(0, 255, 0, 0.3) !important; }
+        
+        /* 应用标签样式 */
+        .app-tag {
+            display: inline-block;
+            background-color: #1a3a1a;
+            color: #00cc00;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            margin-right: 4px;
+            margin-bottom: 4px;
+            border: 1px solid #00ff00;
+            word-break: break-word;
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .app-tag-more {
+            background-color: #3a1a1a;
+            color: #ffcc00;
+            border-color: #ffcc00;
+        }
+        
+        .app-tag-container {
+            display: flex;
+            flex-wrap: wrap;
+            max-height: 60px;
+            overflow: hidden;
+        }
+        
+        /* 未选中任务的文字样式 */
+        .unselected-business-item .text-green-400 {
+            color: #00aa00 !important;
+        }
+        .unselected-business-item .text-green-300 {
+            color: #008800 !important;
+        }
+        .unselected-business-item .text-green-500 {
+            color: #00aa00 !important;
+        }
+        .unselected-business-item .text-red-500 {
+            color: #aa0000 !important;
+        }
+        .unselected-business-item .text-yellow-500 {
+            color: #aa8800 !important;
+        }
+        .unselected-business-item .text-gray-400 {
+            color: #666666 !important;
+        }
+        
+        /* 确保通知显示在最顶层 */
+        #notificationArea {
+            z-index: 999999 !important;
+        }
+        #notificationArea > div {
+            z-index: 999999 !important;
+        }
     </style>
 </head>
 <body>
@@ -108,12 +169,30 @@
     </div>
 
 
-    <div id="notificationArea" class="fixed bottom-5 right-5 z-[100]">
+    <div id="notificationArea" class="fixed bottom-5 right-5 z-[99999]" style="z-index: 99999 !important;">
     </div>
 
 
     <script>
         // --- Application Logic ---
+        // 全局函数：清空IP地址
+        window.clearIPAddress = function(button) {
+            const valueInput = button.parentElement.querySelector('input[data-type="value"]');
+            if (valueInput) {
+                valueInput.value = '';
+            }
+        };
+
+        // 全局函数：切换组件选择
+        window.toggleComponentSelection = function(componentId, element) {
+            const checkbox = element.querySelector('input[type="checkbox"]');
+            if (checkbox) {
+                // 切换复选框状态
+                checkbox.checked = !checkbox.checked;
+                // 不改变卡片的视觉状态，保持统一的黑色背景
+            }
+        };
+
         const app = {
             currentView: 'deployedBusinesses',
             selectedBusinessId: null,
@@ -133,6 +212,7 @@
                 const area = document.getElementById('notificationArea');
                 const notification = document.createElement('div');
                 notification.className = `p-3 rounded-lg shadow-md mb-2 text-white ${type === 'success' ? 'bg-green-500' : (type === 'error' ? 'bg-red-500' : 'bg-blue-500')}`;
+                notification.style.zIndex = '999999';
                 notification.textContent = message;
                 area.appendChild(notification);
                 setTimeout(() => {
@@ -406,10 +486,8 @@
                     if (this.editingItemId && this.mockData.componentTemplates.find(t=>t.component_template_id === this.editingItemId)) { 
                         const template = this.mockData.componentTemplates.find(t => t.component_template_id === this.editingItemId);
                          if (template && template.config) { // Check if template and template.config exist
-                            this.renderKeyValueRows('affinityContainer', template.config.affinity || {}, '亲和性键', '亲和性值', 'affinity-row', '例如: ip_address', '例如: 192.168.1.10');
                             this.renderKeyValueRows('envVarsContainer', template.config.environment_variables || {}, '环境变量名', '环境变量值', 'env-var-row');
                         } else { // Fallback if template or template.config is missing (should ideally not happen if fetched)
-                             this.renderKeyValueRows('affinityContainer', {}, '亲和性键', '亲和性值', 'affinity-row', '例如: ip_address', '例如: 192.168.1.10');
                              this.renderKeyValueRows('envVarsContainer', {}, '环境变量名', '环境变量值', 'env-var-row');
                         }
                     } else { 
@@ -494,7 +572,7 @@
                                     }
                                     contentHTML = await this.getDeployedBusinessesPageHTML();
                                 } else {
-                                    this.showNotification(bizJsonData.message || '获取已部署业务列表失败', 'error');
+                                    this.showNotification('获取已部署业务列表失败', 'error');
                                     contentHTML = '<p class="text-center text-red-400 py-10">加载已部署业务列表失败。</p>';
                                 }
                             break;
@@ -506,7 +584,7 @@
                                     this.mockData.servers = serverJsonData.nodes || [];
                                     contentHTML = this.getServersPageHTML();
                                 } else {
-                                    this.showNotification(serverJsonData.message || '获取服务器列表失败', 'error');
+                                    this.showNotification('获取服务器列表失败', 'error');
                                     contentHTML = '<p class="text-center text-red-400 py-10">加载服务器列表失败。</p>';
                                 }
                             break;
@@ -533,7 +611,7 @@
             async openComponentTemplatesListModal() {
                 const listModalBody = document.getElementById('listModalBody');
                 if (listModalBody) listModalBody.innerHTML = '<p class="text-center text-gray-500 py-10">加载应用模板列表中...</p>';
-                this.openListModal('应用模板管理', listModalBody.innerHTML); 
+                this.openListModal('应用管理', listModalBody.innerHTML); 
 
                 try {
                     const response = await fetch(`${this.apiUrlPrefix}/templates/components`);
@@ -543,7 +621,7 @@
                 const listHTML = this.getComponentTemplatesListHTML();
                         document.getElementById('listModalBody').innerHTML = listHTML; 
                     } else {
-                                            this.showNotification(jsonData.message || '获取应用模板列表失败', 'error');
+                                            this.showNotification('获取应用模板列表失败', 'error');
                     document.getElementById('listModalBody').innerHTML = '<p class="text-center text-red-500 py-10">加载失败。</p>';
                     }
                 } catch (error) {
@@ -555,40 +633,40 @@
 
             getComponentTemplatesListHTML() {
                 let content = `<div class="flex justify-end mb-4">
-                                <button onclick="app.showCreateComponentTemplateForm()" class="bg-green-600 hover:bg-green-700 text-black px-4 py-2 rounded-md shadow hover:shadow-lg transition duration-150 ease-in-out border border-green-400"><i class="fas fa-plus mr-2"></i>创建新模板</button>
+                                <button onclick="app.showCreateComponentTemplateForm()" class="bg-green-600 hover:bg-green-700 text-black px-4 py-2 rounded-md shadow hover:shadow-lg transition duration-150 ease-in-out border border-green-400"><i class="fas fa-plus mr-2"></i>添加新应用</button>
                                </div>
                                <div class="table-responsive max-h-[65vh] overflow-y-auto">
                                <table class="min-w-full divide-y divide-green-500">
                                 <thead class="bg-black sticky top-0">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名称</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">类型</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">组件文件</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">描述</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">应用名称</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">可执行文件绝对路径</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">服务器IP地址</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-black divide-y divide-green-500">`;
                 
                 if (this.mockData.componentTemplates.length === 0) {
-                    content += `<tr><td colspan="5" class="text-center text-green-400 py-10">暂无应用模板。</td></tr>`;
+                    content += `<tr><td colspan="4" class="text-center text-green-400 py-10">请先添加应用</td></tr>`;
                 } else {
                 this.mockData.componentTemplates.forEach(template => {
-                    let mainFile = 'N/A';
-                    if (template.type === 'docker' && template.config && template.config.image_name) {
-                        mainFile = template.config.image_name;
-                    } else if (template.type === 'binary' && template.config && template.config.binary_path) {
-                        mainFile = template.config.binary_path;
+                    let binaryPath = 'N/A';
+                    if (template.config && template.config.binary_path) {
+                        binaryPath = template.config.binary_path;
+                    }
+
+                    let serverIP = '系统自动分配';
+                    if (template.config && template.config.affinity && template.config.affinity.ip_address) {
+                        serverIP = template.config.affinity.ip_address;
                     }
 
                     content += `
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-400">${template.template_name}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-300">${template.type}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-300 truncate max-w-md" title="${mainFile}">${mainFile}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-300 truncate max-w-xs" title="${template.description}">${template.description || '无'}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-300 truncate max-w-md" title="${binaryPath}">${binaryPath}</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-300" title="${serverIP}">${serverIP}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                <button onclick="app.showComponentTemplateDetails('${template.component_template_id}')" class="text-green-500 hover:text-green-300" title="查看详情">查看</button>
                                 <button onclick="app.showEditComponentTemplateForm('${template.component_template_id}')" class="text-yellow-500 hover:text-yellow-300" title="编辑">编辑</button>
                                 <button onclick="app.deleteComponentTemplate('${template.component_template_id}')" class="text-red-500 hover:text-red-300" title="删除">删除</button>
                             </td>
@@ -603,6 +681,11 @@
                 const container = document.getElementById(containerId);
                 if (!container) return;
 
+                // 对于亲和性容器，不允许添加额外的行
+                if (containerId === 'affinityContainer') {
+                    return;
+                }
+
                 const rowDiv = document.createElement('div');
                 rowDiv.className = `key-value-row ${rowClass}`;
 
@@ -611,21 +694,22 @@
                 keyInput.dataset.type = 'key'; 
                 keyInput.placeholder = keyPlaceholder;
                 keyInput.value = key;
-                keyInput.className = 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm';
+                keyInput.className = 'flex-1 px-2 py-1 border border-green-500 rounded bg-black text-green-400 text-sm';
                 
                 const valueInput = document.createElement('input');
                 valueInput.type = 'text';
                 valueInput.dataset.type = 'value'; 
                 valueInput.placeholder = valuePlaceholder;
                 valueInput.value = value;
-                valueInput.className = 'block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-sky-500 focus:border-sky-500 sm:text-sm';
+                valueInput.className = 'flex-1 px-2 py-1 border border-green-500 rounded bg-black text-green-400 text-sm';
 
                 const deleteButton = document.createElement('button');
                 deleteButton.type = 'button';
-                deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
-                deleteButton.className = 'text-red-500 hover:text-red-700 px-2 py-1 rounded-md flex-shrink-0';
+                deleteButton.innerHTML = '<i class="fas fa-times"></i>';
+                deleteButton.className = 'px-2 py-1 text-red-500 hover:text-red-300 text-sm';
                 deleteButton.onclick = () => rowDiv.remove();
 
+                rowDiv.className = `flex space-x-2 ${rowClass}`;
                 rowDiv.appendChild(keyInput);
                 rowDiv.appendChild(valueInput);
                 rowDiv.appendChild(deleteButton);
@@ -635,6 +719,12 @@
             renderKeyValueRows(containerId, dataObject, keyPlaceholder, valuePlaceholder, rowClass, keyPlaceholderForEmpty = keyPlaceholder, valuePlaceholderForEmpty = valuePlaceholder) {
                 const container = document.getElementById(containerId);
                 if (!container) return;
+                
+                // 对于亲和性容器，不进行重新渲染
+                if (containerId === 'affinityContainer') {
+                    return;
+                }
+                
                 container.innerHTML = ''; 
                 if (dataObject && typeof dataObject === 'object' && Object.keys(dataObject).length > 0) {
                     for (const [key, value] of Object.entries(dataObject)) {
@@ -648,82 +738,94 @@
 
             getComponentTemplateFormHTML(template = {}) { 
                 const isCreate = !template.component_template_id;
-                const typeDefault = isCreate ? 'binary' : template.type; 
+                const typeDefault = 'binary'; // 默认使用binary类型 
 
                 return `
                     <form id="componentTemplateForm" class="space-y-4">
-                        <div><label for="ct_template_name" class="block text-sm font-medium text-green-400">模板名称</label><input type="text" id="ct_template_name" name="template_name" value="${template.template_name || ''}" required class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
-                        <div><label for="ct_type" class="block text-sm font-medium text-green-400">类型</label>
-                            <select id="ct_type" name="type" onchange="app.toggleComponentConfigFields()" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400">
-                                <option value="binary" ${typeDefault === 'binary' ? 'selected' : ''}>Binary</option>
-                                <option value="docker" ${typeDefault === 'docker' ? 'selected' : ''}>Docker</option>
-                            </select>
-                        </div>
-                        <div><label for="ct_description" class="block text-sm font-medium text-green-400">描述</label><textarea id="ct_description" name="description" rows="2" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400">${template.description || ''}</textarea></div>
+                        <div><label for="ct_template_name" class="block text-sm font-medium text-green-400">应用名称</label><input type="text" id="ct_template_name" name="template_name" value="${template.template_name || ''}" required class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
+                        <input type="hidden" id="ct_type" name="type" value="binary">
                         
-                        <div id="dockerFields" class="space-y-4 config-type-fields" style="${typeDefault === 'docker' ? 'display: block;' : 'display: none;'}">
-                            <div><label for="ct_image_url" class="block text-sm font-medium text-green-400">镜像URL</label><input type="text" id="ct_image_url" name="image_url" value="${template.config && template.type === 'docker' ? (template.config.image_url || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
-                            <div><label for="ct_image_name" class="block text-sm font-medium text-green-400">镜像名</label><input type="text" id="ct_image_name" name="image_name" value="${template.config && template.type === 'docker' ? (template.config.image_name || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
-                        </div>
-                        <div id="binaryFields" class="space-y-4 config-type-fields" style="${typeDefault === 'binary' ? 'display: block;' : 'display: none;'}">
-                            <div><label for="ct_binary_path" class="block text-sm font-medium text-green-400">二进制路径</label><input type="text" id="ct_binary_path" name="binary_path" value="${template.config && template.type === 'binary' ? (template.config.binary_path || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
-                            <div><label for="ct_binary_url" class="block text-sm font-medium text-green-400">二进制下载链接</label><input type="text" id="ct_binary_url" name="binary_url" value="${template.config && template.type === 'binary' ? (template.config.binary_url || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
+                        <div id="binaryFields" class="space-y-4">
+                            <div><label for="ct_binary_path" class="block text-sm font-medium text-green-400">可执行文件绝对路径</label><input type="text" id="ct_binary_path" name="binary_path" value="${template.config && template.config.binary_path ? template.config.binary_path : ''}" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
                         </div>
                         
                         <div>
-                            <label class="block text-sm font-medium text-green-400">亲和性配置</label>
+                            <label class="block text-sm font-medium text-green-400">服务器亲和性</label>
                             <div id="affinityContainer" class="mt-1 space-y-2 p-2 border border-green-500 rounded-md bg-black max-h-40 overflow-y-auto">
+                                ${(() => {
+                                    if (isCreate) {
+                                        return `<div class="affinity-row flex space-x-2">
+                                            <input type="text" data-type="key" value="服务器IP地址" readonly class="flex-1 px-2 py-1 border border-green-500 rounded bg-gray-800 text-green-400 text-sm">
+                                            <input type="text" data-type="value" placeholder="请输入服务器IP地址，例如: 192.168.1.10" class="flex-1 px-2 py-1 border border-green-500 rounded bg-black text-green-400 text-sm">
+                                            <button type="button" onclick="clearIPAddress(this)" class="px-2 py-1 text-red-500 hover:text-red-300 text-sm" title="清空IP地址"><i class="fas fa-times"></i></button>
+                                        </div>`;
+                                    } else {
+                                        // 编辑模式：显示现有数据或默认行
+                                        const affinity = template.config && template.config.affinity ? template.config.affinity : {};
+                                        const ipAddress = affinity.ip_address || '';
+                                        return `<div class="affinity-row flex space-x-2">
+                                            <input type="text" data-type="key" value="服务器IP地址" readonly class="flex-1 px-2 py-1 border border-green-500 rounded bg-gray-800 text-green-400 text-sm">
+                                            <input type="text" data-type="value" value="${ipAddress}" placeholder="请输入服务器IP地址，例如: 192.168.1.10" class="flex-1 px-2 py-1 border border-green-500 rounded bg-black text-green-400 text-sm">
+                                            <button type="button" onclick="clearIPAddress(this)" class="px-2 py-1 text-red-500 hover:text-red-300 text-sm" title="清空IP地址"><i class="fas fa-times"></i></button>
+                                        </div>`;
+                                    }
+                                })()}
                             </div>
-                            <button type="button" onclick="app.addKeyValueRow('affinityContainer', '', '', '例如: ip_address', '例如: 192.168.1.10', 'affinity-row')" class="mt-2 text-sm text-green-500 hover:text-green-300"><i class="fas fa-plus mr-1"></i>添加亲和性规则</button>
+                            <p class="text-xs text-green-300 mt-1">提示：若不添加服务器IP地址，则系统自动选择服务器部署该应用</p>
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium text-green-400">环境变量</label>
                             <div id="envVarsContainer" class="mt-1 space-y-2 p-2 border border-green-500 rounded-md bg-black max-h-40 overflow-y-auto">
+                                ${(() => {
+                                    if (isCreate) {
+                                        return `<div class="env-var-row flex space-x-2">
+                                            <input type="text" data-type="key" placeholder="环境变量名" class="flex-1 px-2 py-1 border border-green-500 rounded bg-black text-green-400 text-sm">
+                                            <input type="text" data-type="value" placeholder="环境变量值" class="flex-1 px-2 py-1 border border-green-500 rounded bg-black text-green-400 text-sm">
+                                            <button type="button" onclick="this.parentElement.remove()" class="px-2 py-1 text-red-500 hover:text-red-300 text-sm"><i class="fas fa-times"></i></button>
+                                        </div>`;
+                                    } else {
+                                        // 编辑模式：显示现有数据或默认行
+                                        const envVars = template.config && template.config.environment_variables ? template.config.environment_variables : {};
+                                        const envVarEntries = Object.entries(envVars);
+                                        if (envVarEntries.length > 0) {
+                                            return envVarEntries.map(([key, value]) => `
+                                                <div class="env-var-row flex space-x-2">
+                                                    <input type="text" data-type="key" value="${key}" class="flex-1 px-2 py-1 border border-green-500 rounded bg-black text-green-400 text-sm">
+                                                    <input type="text" data-type="value" value="${value}" class="flex-1 px-2 py-1 border border-green-500 rounded bg-black text-green-400 text-sm">
+                                                    <button type="button" onclick="this.parentElement.remove()" class="px-2 py-1 text-red-500 hover:text-red-300 text-sm"><i class="fas fa-times"></i></button>
+                                                </div>
+                                            `).join('');
+                                        } else {
+                                            return `<div class="env-var-row flex space-x-2">
+                                                <input type="text" data-type="key" placeholder="环境变量名" class="flex-1 px-2 py-1 border border-green-500 rounded bg-black text-green-400 text-sm">
+                                                <input type="text" data-type="value" placeholder="环境变量值" class="flex-1 px-2 py-1 border border-green-500 rounded bg-black text-green-400 text-sm">
+                                                <button type="button" onclick="this.parentElement.remove()" class="px-2 py-1 text-red-500 hover:text-red-300 text-sm"><i class="fas fa-times"></i></button>
+                                            </div>`;
+                                        }
+                                    }
+                                })()}
                             </div>
                             <button type="button" onclick="app.addKeyValueRow('envVarsContainer', '', '', '环境变量名', '环境变量值', 'env-var-row')" class="mt-2 text-sm text-green-500 hover:text-green-300"><i class="fas fa-plus mr-1"></i>添加环境变量</button>
+                        </div>
+                        
+                        <div>
+                            <label for="ct_binary_url" class="block text-sm font-medium text-green-400">文件下载链接</label>
+                            <input type="text" id="ct_binary_url" name="binary_url" value="${template.config && template.config.binary_url ? template.config.binary_url : ''}" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400">
+                            <p class="text-xs text-green-300 mt-1">提示：若服务器无可执行文件，则先进行下载（可不填，默认使用本地SFTP服务链接）</p>
                         </div>
                     </form>
                 `;
             },
             toggleComponentConfigFields() { 
-                const typeSelect = document.getElementById('ct_type');
-                const dockerFields = document.getElementById('dockerFields');
-                const binaryFields = document.getElementById('binaryFields');
-                
-                if (!typeSelect || !dockerFields || !binaryFields) {
-                    console.warn('toggleComponentConfigFields: Required elements not found', {
-                        typeSelect: !!typeSelect,
-                        dockerFields: !!dockerFields,
-                        binaryFields: !!binaryFields
-                    });
-                    return;
-                }
-                
-                const selectedType = typeSelect.value;
-                console.log('toggleComponentConfigFields: Selected type:', selectedType);
-                
-                if (selectedType === 'docker') { 
-                    dockerFields.style.display = 'block'; 
-                    binaryFields.style.display = 'none';
-                } else if (selectedType === 'binary') { 
-                    dockerFields.style.display = 'none'; 
-                    binaryFields.style.display = 'block';
-                } else { 
-                    dockerFields.style.display = 'none'; 
-                    binaryFields.style.display = 'none';
-                }
-                
-                console.log('toggleComponentConfigFields: Display states updated', {
-                    dockerFieldsDisplay: dockerFields.style.display,
-                    binaryFieldsDisplay: binaryFields.style.display
-                });
+                // 由于默认使用binary类型，不再需要切换字段显示
+                console.log('toggleComponentConfigFields: Using default binary type');
             },
             showCreateComponentTemplateForm() { 
                 this.editingItemId = null; 
                 const formHTML = this.getComponentTemplateFormHTML();
                 const footerButtons = [ { label: '保存', id:"saveCtBtn", action: () => this.saveComponentTemplate(), class: 'bg-green-600 hover:bg-green-700 text-black border border-green-400' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-600 hover:bg-gray-700 text-green-400 border border-gray-500' }];
-                this.openModal('创建应用模板', formHTML, footerButtons);
+                this.openModal('创建应用', formHTML, footerButtons);
                 // Ensure the correct fields are shown based on the default type
                 setTimeout(() => {
                     this.toggleComponentConfigFields();
@@ -737,13 +839,13 @@
                     if (response.ok && jsonData.status === 'success' && jsonData.template) {
                         const formHTML = this.getComponentTemplateFormHTML(jsonData.template); 
                         const footerButtons = [ { label: '更新', id:"updateCtBtn", action: () => this.saveComponentTemplate(), class: 'bg-green-600 hover:bg-green-700 text-black border border-green-400' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-600 hover:bg-gray-700 text-green-400 border border-gray-500' }];
-                this.openModal('编辑应用模板', formHTML, footerButtons);
+                this.openModal('编辑应用', formHTML, footerButtons);
                 // Ensure the correct fields are shown based on the template type
                 setTimeout(() => {
                     this.toggleComponentConfigFields();
                 }, 100);
                     } else {
-                        this.showNotification(jsonData.message || '获取模板详情失败', 'error');
+                        this.showNotification('获取模板详情失败', 'error');
                         this.editingItemId = null; 
                     }
                 } catch (error) {
@@ -774,12 +876,31 @@
 
                 const affinity = {};
                 let affinityHasEntries = false;
+                
+                // IP地址验证函数
+                const isValidIPAddress = (ip) => {
+                    if (!ip || ip.trim() === '') return false;
+                    const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
+                    return ipRegex.test(ip.trim());
+                };
+                
                 document.querySelectorAll('#affinityContainer .affinity-row').forEach(row => {
                     const keyInput = row.querySelector('input[data-type="key"]');
                     const valueInput = row.querySelector('input[data-type="value"]');
-                    if (keyInput && valueInput && keyInput.value.trim() !== '') {
-                        affinity[keyInput.value.trim()] = valueInput.value.trim();
-                        affinityHasEntries = true;
+                    if (keyInput && valueInput && keyInput.value.trim() === '服务器IP地址') {
+                        const ipAddress = valueInput.value.trim();
+                        if (ipAddress !== '' && isValidIPAddress(ipAddress)) {
+                            affinity.ip_address = ipAddress;
+                            affinityHasEntries = true;
+                        } else if (ipAddress !== '') {
+                            // IP地址格式不正确，显示错误提示
+                            this.showNotification('IP地址格式不正确，请输入有效的IP地址（如：192.168.1.10）', 'error');
+                            if (saveButton) {
+                                saveButton.classList.remove('button-loading');
+                                saveButton.disabled = false;
+                            }
+                            return;
+                        }
                     }
                 });
 
@@ -791,13 +912,9 @@
                     config.affinity = affinity;
                 }
                 
-                if (type === 'docker') { 
-                    config.image_url = formData.get('image_url'); 
-                    config.image_name = formData.get('image_name'); 
-                } else if (type === 'binary') { 
-                    config.binary_path = formData.get('binary_path'); 
-                    config.binary_url = formData.get('binary_url');
-                }
+                // 默认使用binary类型
+                config.binary_path = formData.get('binary_path'); 
+                config.binary_url = formData.get('binary_url');
                 
                 const templateName = formData.get('template_name');
                 if (!templateName.trim()) {
@@ -811,8 +928,8 @@
 
                 const templateDataForApi = { 
                     template_name: templateName, 
-                    type: type, 
-                    description: formData.get('description'), 
+                    type: 'binary', // 固定使用binary类型
+                    description: '', 
                     config: config
                 };
 
@@ -834,10 +951,10 @@
                     const jsonData = await response.json();
 
                     if (response.ok && jsonData.status === 'success') {
-                        this.showNotification(jsonData.message || (method === 'POST' ? '应用模板已创建' : '应用模板已更新'), 'success');
+                        this.showNotification(method === 'POST' ? '应用模板已创建' : '应用模板已更新', 'success');
                 this.closeModal(); 
                     } else {
-                        this.showNotification(jsonData.message || '操作失败', 'error');
+                        this.showNotification('操作失败', 'error');
                     }
                 } catch (error) {
                     console.error("API call failed:", error);
@@ -862,17 +979,53 @@
                         let detailsHTML = `<div class="space-y-3">
                             <p><strong>ID:</strong> ${template.component_template_id}</p>
                             <p><strong>名称:</strong> ${template.template_name}</p>
-                            <p><strong>类型:</strong> ${template.type}</p>
-                            <p><strong>描述:</strong> ${template.description || '无'}</p>
-                            <p><strong>配置:</strong></p>
-                            <pre class="bg-gray-100 p-3 rounded-md text-sm overflow-x-auto">${JSON.stringify(template.config, null, 2)}</pre>
+                            ${(() => {
+                                let configHTML = '';
+                                if (template.config) {
+                                    // 类型特定配置
+                                    if (template.type === 'docker') {
+                                        if (template.config.image_url) {
+                                            configHTML += `<p><strong>镜像URL:</strong> ${template.config.image_url}</p>`;
+                                        }
+                                        if (template.config.image_name) {
+                                            configHTML += `<p><strong>镜像名:</strong> ${template.config.image_name}</p>`;
+                                        }
+                                    } else if (template.type === 'binary') {
+                                        if (template.config.binary_path) {
+                                            configHTML += `<p><strong>二进制路径:</strong> ${template.config.binary_path}</p>`;
+                                        }
+                                        if (template.config.binary_url) {
+                                            configHTML += `<p><strong>二进制下载链接:</strong> ${template.config.binary_url}</p>`;
+                                        }
+                                    }
+                                    
+                                    // 环境变量
+                                    if (template.config.environment_variables && Object.keys(template.config.environment_variables).length > 0) {
+                                        configHTML += '<p><strong>环境变量:</strong></p><ul class="list-disc list-inside ml-4 space-y-1">';
+                                        Object.entries(template.config.environment_variables).forEach(([key, value]) => {
+                                            configHTML += `<li><span class="font-medium">${key}</span>: ${value}</li>`;
+                                        });
+                                        configHTML += '</ul>';
+                                    }
+                                    
+                                    // 亲和性配置
+                                    if (template.config.affinity && Object.keys(template.config.affinity).length > 0) {
+                                        configHTML += '<p><strong>亲和性配置:</strong></p><ul class="list-disc list-inside ml-4 space-y-1">';
+                                        Object.entries(template.config.affinity).forEach(([key, value]) => {
+                                            configHTML += `<li><span class="font-medium">${key}</span>: ${value}</li>`;
+                                        });
+                                        configHTML += '</ul>';
+                                    }
+                                }
+                                return configHTML;
+                            })()}
                             <p><strong>创建时间:</strong> ${new Date(template.created_at).toLocaleString('zh-CN')}</p>
                             <p><strong>更新时间:</strong> ${new Date(template.updated_at).toLocaleString('zh-CN')}</p>
                         </div>`;
                         document.getElementById('modalTitle').textContent = `应用模板详情: ${template.template_name}`;
                         modalBody.innerHTML = detailsHTML;
                     } else {
-                        this.showNotification(jsonData.message || '获取模板详情失败', 'error');
+                        this.showNotification('获取模板详情失败', 'error');
                         modalBody.innerHTML = '<p class="text-center text-red-500 py-5">加载详情失败。</p>';
                     }
                 } catch (error) {
@@ -911,10 +1064,10 @@
                     const jsonData = await response.json();
 
                     if (response.ok && jsonData.status === 'success') {
-                        this.showNotification(jsonData.message || '应用模板已删除', 'success');
+                        this.showNotification('应用模板已删除', 'success');
                 this.closeModal(); 
                     } else {
-                        this.showNotification(jsonData.message || '删除失败', 'error');
+                        this.showNotification('删除失败', 'error');
                          if(deleteButtonInConfirmModal) {
                             deleteButtonInConfirmModal.classList.remove('button-loading');
                             deleteButtonInConfirmModal.disabled = false;
@@ -934,7 +1087,7 @@
             async openBusinessTemplatesListModal() {
                 const listModalBody = document.getElementById('listModalBody');
                 if (listModalBody) listModalBody.innerHTML = '<p class="text-center text-gray-500 py-10">加载任务模板列表中...</p>';
-                this.openListModal('任务模板管理', listModalBody.innerHTML);
+                this.openListModal('任务管理', listModalBody.innerHTML);
 
                 try {
                     const response = await fetch(`${this.apiUrlPrefix}/templates/businesses`);
@@ -947,7 +1100,7 @@
                 const listHTML = this.getBusinessTemplatesListHTML();
                         document.getElementById('listModalBody').innerHTML = listHTML;
                     } else {
-                                            this.showNotification(jsonData.message || '获取任务模板列表失败', 'error');
+                                            this.showNotification('获取任务模板列表失败', 'error');
                     document.getElementById('listModalBody').innerHTML = '<p class="text-center text-red-500 py-10">加载失败。</p>';
                     }
                 } catch (error) {
@@ -979,36 +1132,72 @@
 
             getBusinessTemplatesListHTML() {
                 let content = `<div class="flex justify-end mb-4">
-                                <button onclick="app.showCreateBusinessTemplateForm()" class="bg-green-600 hover:bg-green-700 text-black px-4 py-2 rounded-md shadow hover:shadow-lg transition duration-150 ease-in-out border border-green-400"><i class="fas fa-plus mr-2"></i>创建新模板</button>
+                                <button onclick="app.showCreateBusinessTemplateForm()" class="bg-green-600 hover:bg-green-700 text-black px-4 py-2 rounded-md shadow hover:shadow-lg transition duration-150 ease-in-out border border-green-400"><i class="fas fa-plus mr-2"></i>创建新任务</button>
                                </div>
                                <div class="table-responsive max-h-[65vh] overflow-y-auto">
                                                                <table class="min-w-full divide-y divide-green-500">
                                 <thead class="bg-black sticky top-0">
                                     <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-400 uppercase tracking-wider">名称</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-400 uppercase tracking-wider">描述</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-400 uppercase tracking-wider">组件数</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-400 uppercase tracking-wider">更新时间</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-400 uppercase tracking-wider">任务名称</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-400 uppercase tracking-wider">已选应用</th>
                                         <th class="px-6 py-3 text-left text-xs font-medium text-green-400 uppercase tracking-wider">操作</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-green-400 uppercase tracking-wider">部署</th>
                                     </tr>
                                 </thead>
                                 <tbody class="bg-black divide-y divide-green-500">`;
                 
                 if(this.mockData.businessTemplates.length === 0) {
-                    content += `<tr><td colspan="5" class="text-center text-green-400 py-10">暂无业务模板。</td></tr>`;
+                    content += `<tr><td colspan="4" class="text-center text-green-400 py-10">请先创建任务</td></tr>`;
                 } else {
                 this.mockData.businessTemplates.forEach(template => {
+                    // 获取已选应用名称列表
+                    let selectedAppNames = [];
+                    if (template.components && template.components.length > 0) {
+                        selectedAppNames = template.components.map(comp => {
+                            const componentTemplate = this.mockData.componentTemplates.find(ct => ct.component_template_id === comp.component_template_id);
+                            return componentTemplate ? componentTemplate.template_name : comp.component_template_id;
+                        });
+                    }
+                    
+                    // 生成显示的应用名称（最多显示两行）
+                    let displayApps = '';
+                    let tooltipApps = '';
+                    if (selectedAppNames.length === 0) {
+                        displayApps = '<span class="text-gray-500">无</span>';
+                        tooltipApps = '无已选应用';
+                    } else {
+                        // 最多显示两行，每行最多显示2个应用
+                        const maxAppsPerLine = 2;
+                        const maxLines = 2;
+                        const maxTotalApps = maxAppsPerLine * maxLines;
+                        
+                        if (selectedAppNames.length <= maxTotalApps) {
+                            // 如果应用数量不超过最大显示数量，直接显示
+                            displayApps = selectedAppNames.map(name => `<span class="app-tag" title="${name}">${name}</span>`).join('');
+                        } else {
+                            // 如果超过最大显示数量，显示前几个并添加省略号
+                            const displayNames = selectedAppNames.slice(0, maxTotalApps - 1);
+                            displayApps = displayNames.map(name => `<span class="app-tag" title="${name}">${name}</span>`).join('');
+                            displayApps += `<span class="app-tag app-tag-more">+${selectedAppNames.length - maxTotalApps + 1}</span>`;
+                        }
+                        
+                        tooltipApps = selectedAppNames.join('\n');
+                    }
+                    
                     content += `
                         <tr>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-400">${template.template_name}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-green-300 truncate max-w-xs" title="${template.description}">${template.description}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-300">${template.components ? template.components.length : 0}</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-green-300">${new Date(template.updated_at).toLocaleString('zh-CN')}</td>
+                            <td class="px-6 py-4 text-sm text-green-300" title="${tooltipApps}">
+                                <div class="app-tag-container">
+                                    ${displayApps}
+                                </div>
+                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                <button onclick="app.showBusinessTemplateDetails('${template.business_template_id}')" class="text-green-500 hover:text-green-300" title="查看详情">查看</button>
                                 <button onclick="app.showEditBusinessTemplateForm('${template.business_template_id}')" class="text-yellow-500 hover:text-yellow-300" title="编辑">编辑</button>
                                 <button onclick="app.deleteBusinessTemplate('${template.business_template_id}')" class="text-red-500 hover:text-red-300" title="删除">删除</button>
-                                <button onclick="app.showDeployBusinessForm('${template.business_template_id}')" class="text-green-500 hover:text-green-300" title="部署">部署</button>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button onclick="app.showDeployBusinessForm('${template.business_template_id}')" class="bg-green-600 hover:bg-green-700 text-black px-3 py-1 rounded text-sm font-medium shadow hover:shadow-md transition border border-green-400" title="部署">部署</button>
                             </td>
                         </tr>`;
                 });
@@ -1017,32 +1206,51 @@
                 return content;
             },
             getBusinessTemplateFormHTML(template = {}) { 
-                let componentOptions = this.mockData.componentTemplates.map(ct => `<option value="${ct.component_template_id}">${ct.template_name} (${ct.component_template_id})</option>`).join('');
-                let selectedComponentsHTML = '';
+                // 获取已选择的组件ID列表
+                let selectedComponentIds = [];
                 if (template.components && template.components.length > 0) {
-                    selectedComponentsHTML = template.components.map(c => { const compTpl = this.mockData.componentTemplates.find(ct => ct.component_template_id === c.component_template_id); return `<li data-id="${c.component_template_id}" class="flex justify-between items-center p-2 bg-gray-100 rounded-md mb-1"><span>${compTpl ? compTpl.template_name : c.component_template_id}</span><button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700">&times;</button></li>`; }).join('');
+                    selectedComponentIds = template.components.map(c => c.component_template_id);
                 }
+                
+                // 生成候选应用列表HTML
+                let candidateComponentsHTML = '';
+                this.mockData.componentTemplates.forEach(ct => {
+                    const isSelected = selectedComponentIds.includes(ct.component_template_id);
+                    const checkedAttr = isSelected ? 'checked' : '';
+                    
+                    candidateComponentsHTML += `
+                        <div class="candidate-component bg-black border border-green-600 rounded-md p-3 mb-2 cursor-pointer hover:bg-green-900 transition-colors" onclick="app.toggleComponentSelection('${ct.component_template_id}', this)">
+                            <div class="flex items-center space-x-3">
+                                <input type="checkbox" id="comp_${ct.component_template_id}" ${checkedAttr} class="w-4 h-4 text-green-600 bg-black border-green-500 rounded focus:ring-green-500 focus:ring-2" onclick="event.stopPropagation()">
+                                <div class="flex-1">
+                                    <div class="font-medium text-green-400">${ct.template_name}</div>
+                                    ${ct.description ? `<div class="text-xs text-green-500 mt-1">${ct.description}</div>` : ''}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                
                 return `
                     <form id="businessTemplateForm" class="space-y-4">
-                        <div><label for="bt_template_name" class="block text-sm font-medium text-green-400">模板名称</label><input type="text" id="bt_template_name" name="template_name" value="${template.template_name || ''}" required class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
-                        <div><label for="bt_description" class="block text-sm font-medium text-green-400">描述</label><textarea id="bt_description" name="description" rows="3" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400">${template.description || ''}</textarea></div>
-                        <div><label for="bt_component_select" class="block text-sm font-medium text-green-400">选择应用模板</label><div class="flex space-x-2 mt-1"><select id="bt_component_select" class="flex-grow px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"><option value="">-- 请选择 --</option>${componentOptions}</select><button type="button" onclick="app.addSelectedComponentToBusinessTemplateForm()" class="bg-green-600 hover:bg-green-700 text-black px-3 py-2 rounded-md text-sm border border-green-400">添加</button></div></div>
-                        <div><label class="block text-sm font-medium text-green-400">已选应用</label><ul id="bt_selected_components" class="mt-1 border border-green-500 rounded-md p-2 h-32 overflow-y-auto bg-black">${selectedComponentsHTML}</ul></div>
+                        <div><label for="bt_template_name" class="block text-sm font-medium text-green-400">任务名称</label><input type="text" id="bt_template_name" name="template_name" value="${template.template_name || ''}" required class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
+                        <div>
+                            <label class="block text-sm font-medium text-green-400 mb-2">选择应用</label>
+                            <div class="max-h-64 overflow-y-auto border border-green-500 rounded-md p-3 bg-black">
+                                ${candidateComponentsHTML || '<p class="text-center text-green-400 py-4">请先添加应用</p>'}
+                            </div>
+                            <p class="text-xs text-green-300 mt-1">点击应用卡片或复选框进行选择</p>
+                        </div>
                     </form>
                 `;
             },
-            addSelectedComponentToBusinessTemplateForm() { 
-                const selectEl = document.getElementById('bt_component_select'); const selectedId = selectEl.value; if (!selectedId) return;
-                const componentTemplate = this.mockData.componentTemplates.find(ct => ct.component_template_id === selectedId); if (!componentTemplate) return;
-                const existingLi = document.querySelector(`#bt_selected_components li[data-id="${selectedId}"]`); if (existingLi) { this.showNotification('该应用模板已添加', 'error'); return; }
-                const listEl = document.getElementById('bt_selected_components'); const listItem = document.createElement('li'); listItem.dataset.id = selectedId; listItem.className = "flex justify-between items-center p-2 bg-gray-100 rounded-md mb-1"; listItem.innerHTML = `<span>${componentTemplate.template_name} (${selectedId})</span><button type="button" onclick="this.parentElement.remove()" class="text-red-500 hover:text-red-700">&times;</button>`; listEl.appendChild(listItem); selectEl.value = '';
-            },
+
             async showCreateBusinessTemplateForm() { 
                 await this.fetchComponentTemplatesForBusinessForms(); 
-                if (this.mockData.componentTemplates.length === 0) { this.showNotification('请先创建应用模板，或等待应用模板加载完成。', 'error'); return; }
+                if (this.mockData.componentTemplates.length === 0) { this.showNotification('请先添加应用', 'error'); return; }
                 const formHTML = this.getBusinessTemplateFormHTML();
                 const footerButtons = [ { label: '保存', action: () => this.saveBusinessTemplate(), class: 'bg-green-600 hover:bg-green-700 text-black border border-green-400' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-600 hover:bg-gray-700 text-green-400 border border-gray-500' }];
-                this.openModal('创建业务模板', formHTML, footerButtons);
+                this.openModal('创建业务', formHTML, footerButtons);
             },
             async showEditBusinessTemplateForm(id) { 
                 this.editingItemId = id;
@@ -1055,9 +1263,9 @@
                     if (response.ok && jsonData.status === 'success' && jsonData.template) {
                         const formHTML = this.getBusinessTemplateFormHTML(jsonData.template);
                         const footerButtons = [ { label: '更新', action: () => this.saveBusinessTemplate(), class: 'bg-green-600 hover:bg-green-700 text-black border border-green-400' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-600 hover:bg-gray-700 text-green-400 border border-gray-500' }];
-                this.openModal('编辑业务模板', formHTML, footerButtons);
+                this.openModal('编辑业务', formHTML, footerButtons);
                     } else {
-                        this.showNotification(jsonData.message || '获取业务模板详情失败', 'error');
+                        this.showNotification('获取业务模板详情失败', 'error');
                         this.editingItemId = null;
                     }
                 } catch (error) {
@@ -1075,8 +1283,9 @@
 
                 const form = document.getElementById('businessTemplateForm'); const formData = new FormData(form);
                 const selectedComponents = []; 
-                document.querySelectorAll('#bt_selected_components li').forEach(li => { 
-                    selectedComponents.push({ component_template_id: li.dataset.id }); 
+                document.querySelectorAll('.candidate-component input[type="checkbox"]:checked').forEach(checkbox => { 
+                    const componentId = checkbox.id.replace('comp_', '');
+                    selectedComponents.push({ component_template_id: componentId }); 
                 });
                 if (selectedComponents.length === 0) { 
                     this.showNotification('请至少选择一个应用模板', 'error'); 
@@ -1092,7 +1301,7 @@
                 
                 const templateDataForApi = { 
                     template_name: templateName, 
-                    description: formData.get('description'), 
+                    description: '', 
                     components: selectedComponents
                 };
 
@@ -1113,10 +1322,10 @@
                     });
                     const jsonData = await response.json();
                     if (response.ok && jsonData.status === 'success') {
-                        this.showNotification(jsonData.message || (method === 'POST' ? '业务模板已创建' : '业务模板已更新'), 'success');
+                        this.showNotification(method === 'POST' ? '业务模板已创建' : '业务模板已更新', 'success');
                 this.closeModal(); 
                     } else {
-                        this.showNotification(jsonData.message || '操作失败', 'error');
+                        this.showNotification('操作失败', 'error');
                     }
                 } catch (error) {
                     console.error("Business Template API call failed:", error);
@@ -1146,7 +1355,6 @@
                         let detailsHTML = `<div class="space-y-3">
                             <p><strong>ID:</strong> ${template.business_template_id}</p>
                             <p><strong>名称:</strong> ${template.template_name}</p>
-                            <p><strong>描述:</strong> ${template.description || '无'}</p>
                             <p><strong>应用模板:</strong></p>
                             <ul class="list-disc list-inside ml-4 bg-gray-50 p-2 rounded">${componentsDetails}</ul>
                             <p><strong>创建时间:</strong> ${new Date(template.created_at).toLocaleString('zh-CN')}</p>
@@ -1156,7 +1364,7 @@
                         modalBody.innerHTML = detailsHTML;
 
                     } else {
-                         this.showNotification(jsonData.message || '获取业务模板详情失败', 'error');
+                         this.showNotification('获取业务模板详情失败', 'error');
                         modalBody.innerHTML = '<p class="text-center text-red-500 py-5">加载详情失败。</p>';
                     }
                 } catch (error) {
@@ -1170,7 +1378,7 @@
                 this.openModal( '确认删除', `<p>确定要删除业务模板 <strong>${template ? template.template_name : id}</strong> 吗？</p><p class="text-sm text-red-600 mt-2">此操作无法撤销。</p>`, 
                 [ 
                     { label: '确认删除', action: () => this._confirmDeleteBusinessTemplate(id), class: 'bg-red-600 hover:bg-red-700 text-white' }, 
-                    { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }
+                    { label: '取消', action: () => this.closeModal(), class: 'bg-gray-600 hover:bg-gray-700 text-green-400 border border-gray-500' }
                 ]);
             },
             async _confirmDeleteBusinessTemplate(id) { 
@@ -1184,10 +1392,10 @@
                     const jsonData = await response.json();
 
                     if (response.ok && jsonData.status === 'success') {
-                        this.showNotification(jsonData.message || '业务模板已删除', 'success');
+                        this.showNotification('业务模板已删除', 'success');
                 this.closeModal(); 
                     } else {
-                        this.showNotification(jsonData.message || '删除失败', 'error');
+                        this.showNotification('删除失败', 'error');
                          if(deleteButtonInConfirmModal) {
                             deleteButtonInConfirmModal.classList.remove('button-loading');
                             deleteButtonInConfirmModal.disabled = false;
@@ -1213,7 +1421,7 @@
                     const templateJsonData = await templateResponse.json();
 
                     if (!templateResponse.ok || templateJsonData.status !== 'success' || !templateJsonData.template) {
-                        this.showNotification(templateJsonData.message || '获取业务模板信息失败', 'error');
+                        this.showNotification('获取业务模板信息失败', 'error');
                         this.closeModal();
                         return;
                     }
@@ -1229,7 +1437,7 @@
                     
                     const footerButtons = [ 
                         { label: '部署', action: () => this.deployBusinessFromTemplate(), class: 'bg-green-600 hover:bg-green-700 text-white' }, 
-                        { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }
+                        { label: '取消', action: () => this.closeModal(), class: 'bg-gray-600 hover:bg-gray-700 text-green-400 border border-gray-500' }
                     ];
                     
                 this.openModal('部署业务', formHTML, footerButtons); 
@@ -1262,7 +1470,7 @@
                     const jsonData = await response.json();
 
                     if (response.ok && jsonData.status === 'success' && jsonData.business_id) {
-                        this.showNotification(jsonData.message || '业务已成功从模板部署', 'success');
+                        this.showNotification('业务已成功从模板部署', 'success');
                         
                         if (this.isListModalOpen) this.closeListModal();
                         this.currentView = 'deployedBusinesses'; 
@@ -1271,7 +1479,7 @@
                 this.closeModal(); 
 
                     } else {
-                        this.showNotification(jsonData.message || '从模板部署业务失败', 'error');
+                        this.showNotification('从模板部署业务失败', 'error');
                     }
                 } catch (error) {
                     console.error("Deploy from template API call failed:", error);
@@ -1320,7 +1528,7 @@
                         else if (biz.status === 'error') { statusClass = 'text-red-500'; statusText = '有异常'; }
                         else { statusClass = 'text-gray-400'; statusText = biz.status; }
                         const isSelected = biz.business_id === this.selectedBusinessId;
-                        listHTML += `<li class="p-2 rounded-md hover:bg-green-900 transition-colors ${isSelected ? 'selected-business-item shadow-md border border-green-500' : 'bg-black shadow-sm hover:shadow-md border border-green-600'}">
+                        listHTML += `<li class="p-2 rounded-md hover:bg-green-900 transition-colors ${isSelected ? 'selected-business-item shadow-md border border-green-500' : 'bg-black shadow-sm hover:shadow-md border border-green-600 unselected-business-item'}">
                             <div class="flex justify-between items-center mb-2">
                                 <div class="flex-1 cursor-pointer" onclick="app.selectDeployedBusiness('${biz.business_id}')">
                                     <div class="flex justify-between items-center">
@@ -1345,7 +1553,7 @@
                  if (this.selectedBusinessId) { 
                     detailsHTMLContent = await this.renderSelectedBusinessDetails(this.selectedBusinessId); 
                 } else { 
-                    detailsHTMLContent = `<div class="flex items-center justify-center h-full"><p class="text-gray-500 text-lg"><i class="fas fa-info-circle mr-2"></i>请从左侧列表选择一个业务查看详情。</p></div>`;
+                    detailsHTMLContent = `<div class="flex items-center justify-center h-full"><p class="text-gray-500 text-lg"><i class="fas fa-info-circle mr-2"></i>请先部署任务</p></div>`;
                 }
                 let detailsHTML = `<div class="w-1/2 px-2 overflow-y-auto h-full" id="deployedBusinessDetailsPanel">${detailsHTMLContent}</div>`;
                 let serversPanel = `<div class="w-1/4 pl-2 border-l border-green-500 overflow-y-auto h-full">${serversHTML}</div>`;
@@ -1384,7 +1592,7 @@
                             else if (biz.status === 'error') { statusClass = 'text-red-500'; statusText = '有异常'; }
                             else { statusClass = 'text-gray-400'; statusText = biz.status; }
                             const isSelected = biz.business_id === this.selectedBusinessId;
-                            listHTML += `<li class="p-2 rounded-md hover:bg-green-900 transition-colors ${isSelected ? 'selected-business-item shadow-md border border-green-500' : 'bg-black shadow-sm hover:shadow-md border border-green-600'}">
+                            listHTML += `<li class="p-2 rounded-md hover:bg-green-900 transition-colors ${isSelected ? 'selected-business-item shadow-md border border-green-500' : 'bg-black shadow-sm hover:shadow-md border border-green-600 unselected-business-item'}">
                                 <div class="flex justify-between items-center mb-2">
                                     <div class="flex-1 cursor-pointer" onclick="app.selectDeployedBusiness('${biz.business_id}')">
                                         <div class="flex justify-between items-center">
@@ -1451,25 +1659,24 @@
                     } else {
                         actionBtn = `<button onclick=\"app.deployComponent('${biz.business_id}', '${c.component_id}', this)\" class=\"bg-green-600 hover:bg-green-700 text-black px-1 py-0.5 rounded text-xs ml-2 border border-green-400\">部署</button>`;
                     }
-                    // 新增：显示二进制路径或容器名
+                    // 新增：显示执行文件或容器名
                     let mainPathOrName = '';
                     if (c.type === 'docker' && c.image_name) {
                         mainPathOrName = `<p class=\"text-xs text-green-300 mt-1\">容器名: ${c.image_name}</p>`;
                     } else if (c.type === 'binary' && c.binary_path) {
-                        mainPathOrName = `<p class=\"text-xs text-green-300 mt-1\">二进制路径: ${c.binary_path}</p>`;
+                        mainPathOrName = `<p class=\"text-xs text-green-300 mt-1\">执行文件: ${c.binary_path}</p>`;
                     }
                     return `<li class=\"p-2 border-b border-green-500 last:border-b-0 hover:bg-green-900 rounded-md mb-1 bg-black border border-green-600\">
                         <div class=\"flex justify-between items-center\">
                             <div>
                                 <strong class=\"text-green-400\">${c.component_name}</strong>
-                                <span class=\"text-xs text-green-300 ml-2\">(类型: ${c.type})</span>
                             </div>
                             <div class=\"flex items-center space-x-2\">
                                 <span class=\"px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}\">${componentStatusText}</span>
                                 ${actionBtn}
                             </div>
                         </div>
-                        ${c.node_id ? `<p class=\"text-xs text-green-300 mt-1\">节点: ${c.node_id} | ${c.type === 'docker' ? '容器ID' : '进程ID'}: ${c.container_id || c.process_id || 'N/A'}</p>` : ''}
+                        ${c.type === 'docker' ? `<p class=\"text-xs text-green-300 mt-1\">容器ID: ${c.container_id || 'N/A'}</p>` : `<p class=\"text-xs text-green-300 mt-1\">进程ID: ${c.process_id || 'N/A'}</p>`}
                         ${mainPathOrName}
                         ${envDetail}
                     </li>`; 
@@ -1479,7 +1686,7 @@
                                 <h4 class="text-md font-semibold text-green-400 mb-2">应用列表 (${biz.components ? biz.components.length : 0}):</h4>
                                 <ul class="list-none bg-black p-2 rounded-md shadow-inner border border-green-500 max-h-80 overflow-y-auto">${componentsHTML}</ul>`;
                     } else {
-                        this.showNotification(jsonData.message || '获取业务详情失败', 'error');
+                        this.showNotification('获取业务详情失败', 'error');
                         return '<p class="text-center text-red-400 py-10">加载业务详情失败。</p>';
                     }
                 } catch (error) {
@@ -1495,10 +1702,10 @@
                     const response = await fetch(`${this.apiUrlPrefix}/businesses/${id}/stop`, { method: 'POST' });
                     const jsonData = await response.json();
                     if (response.ok && jsonData.status === 'success') {
-                        this.showNotification(jsonData.message, 'success');
+                        this.showNotification('任务已成功停止', 'success');
                         this.renderPageContent('deployedBusinesses'); 
                     } else {
-                        this.showNotification(jsonData.message || '停止业务失败', 'error');
+                        this.showNotification('停止业务失败', 'error');
                     }
                 } catch (error) {
                      this.showNotification('停止业务请求失败: ' + error.message, 'error');
@@ -1513,10 +1720,10 @@
                     const response = await fetch(`${this.apiUrlPrefix}/businesses/${id}/restart`, { method: 'POST' });
                     const jsonData = await response.json();
                     if (response.ok && jsonData.status === 'success') {
-                        this.showNotification(jsonData.message, 'success');
+                        this.showNotification('任务已成功重启', 'success');
                          this.renderPageContent('deployedBusinesses');
                     } else {
-                        this.showNotification(jsonData.message || '重启业务失败', 'error');
+                        this.showNotification('重启业务失败', 'error');
                     }
                 } catch (error) {
                      this.showNotification('重启业务请求失败: ' + error.message, 'error');
@@ -1529,7 +1736,7 @@
                 this.openModal( '确认删除部署', `<p>确定要删除已部署的业务 <strong>${biz ? biz.business_name : id}</strong> 吗？</p><p class="text-sm text-red-600 mt-2">此操作将取消部署且无法撤销。</p>`, 
                 [ 
                     { label: '确认删除', action: () => this._confirmDeleteDeployedBusiness(id), class: 'bg-red-600 hover:bg-red-700 text-white' }, 
-                    { label: '取消', action: () => this.closeModal(), class: 'bg-gray-300 hover:bg-gray-400 text-gray-800' }
+                    { label: '取消', action: () => this.closeModal(), class: 'bg-gray-600 hover:bg-gray-700 text-green-400 border border-gray-500' }
                 ]);
             },
             async _confirmDeleteDeployedBusiness(id) { 
@@ -1540,12 +1747,12 @@
                     const response = await fetch(`${this.apiUrlPrefix}/businesses/${id}`, { method: 'DELETE'});
                     const jsonData = await response.json();
                     if (response.ok && jsonData.status === 'success') {
-                        this.showNotification(jsonData.message || '已部署业务已删除', 'success');
+                        this.showNotification('已部署业务已删除', 'success');
                         this.selectedBusinessId = null; 
                         this.closeModal(); 
                         this.renderPageContent('deployedBusinesses'); 
                     } else {
-                        this.showNotification(jsonData.message || '删除已部署业务失败', 'error');
+                        this.showNotification('删除已部署业务失败', 'error');
                         if(deleteButtonInConfirmModal) { deleteButtonInConfirmModal.classList.remove('button-loading'); deleteButtonInConfirmModal.disabled = false;}
                     }
                 } catch(error) {
@@ -1605,7 +1812,7 @@
                 let content = `<div class="flex justify-between items-center mb-3 sticky top-0 bg-black py-2 z-10 px-2">
                     <h3 class="text-lg font-semibold text-green-500">服务器状态</h3>
                     <button id="autoRefreshButton" onclick="app.toggleAutoRefresh()" class="bg-green-600 hover:bg-green-700 text-black px-2 py-1 rounded text-xs shadow hover:shadow-md transition border border-green-400" title="自动刷新">
-                        <i class="fas fa-sync-alt mr-1"></i>停止
+                        <i class="fas fa-sync-alt mr-1"></i>自动刷新中
                     </button>
                 </div>`;
                 
@@ -1687,7 +1894,7 @@
                         document.getElementById('modalTitle').textContent = `服务器详情: ${server.hostname}`;
                         modalBody.innerHTML = detailsHTML;
                     } else {
-                        this.showNotification(jsonData.message || '获取服务器详情失败', 'error');
+                        this.showNotification('获取服务器详情失败', 'error');
                         modalBody.innerHTML = '<p class="text-center text-red-500 py-5">加载详情失败。</p>';
                     }
                 } catch (error) {
@@ -1718,8 +1925,8 @@
                 const refreshButton = document.getElementById('autoRefreshButton');
                 if (refreshButton) {
                     refreshButton.innerHTML = this.autoRefreshEnabled ? 
-                        '<i class="fas fa-sync-alt mr-1"></i>停止自动刷新' : 
-                        '<i class="fas fa-sync-alt mr-1"></i>开启自动刷新';
+                        '<i class="fas fa-sync-alt mr-1"></i>自动刷新中' : 
+                        '<i class="fas fa-sync-alt mr-1"></i>点击开启自动刷新';
                     refreshButton.classList.toggle('bg-green-500', this.autoRefreshEnabled);
                     refreshButton.classList.toggle('bg-gray-500', !this.autoRefreshEnabled);
                 }
@@ -1751,10 +1958,10 @@
                     const response = await fetch(`/api/businesses/${businessId}/components/${componentId}/deploy`, { method: 'POST' });
                     const jsonData = await response.json();
                     if (response.ok && jsonData.status === 'success') {
-                        this.showNotification(jsonData.message || '组件部署成功', 'success');
+                        this.showNotification('组件部署成功', 'success');
                         this.renderPageContent('deployedBusinesses');
                     } else {
-                        this.showNotification(jsonData.message || '组件部署失败', 'error');
+                        this.showNotification('组件部署失败', 'error');
                     }
                 } catch (error) {
                     this.showNotification('组件部署请求失败: ' + error.message, 'error');
@@ -1768,10 +1975,10 @@
                     const response = await fetch(`/api/businesses/${businessId}/components/${componentId}/stop`, { method: 'POST' });
                     const jsonData = await response.json();
                     if (response.ok && jsonData.status === 'success') {
-                        this.showNotification(jsonData.message || '组件已停止', 'success');
+                        this.showNotification('组件已停止', 'success');
                         this.renderPageContent('deployedBusinesses');
                     } else {
-                        this.showNotification(jsonData.message || '停止组件失败', 'error');
+                        this.showNotification('停止组件失败', 'error');
                     }
                 } catch (error) {
                     this.showNotification('停止组件请求失败: ' + error.message, 'error');
