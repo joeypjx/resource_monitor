@@ -399,7 +399,10 @@
 
                 document.getElementById('genericModal').classList.add('active');
                 if (title.includes("组件模板") && document.getElementById('ct_type')) {
-                    this.toggleComponentConfigFields();
+                    // Use setTimeout to ensure the DOM is fully rendered before calling toggleComponentConfigFields
+                    setTimeout(() => {
+                        this.toggleComponentConfigFields();
+                    }, 0);
                     if (this.editingItemId && this.mockData.componentTemplates.find(t=>t.component_template_id === this.editingItemId)) { 
                         const template = this.mockData.componentTemplates.find(t => t.component_template_id === this.editingItemId);
                          if (template && template.config) { // Check if template and template.config exist
@@ -658,11 +661,11 @@
                         </div>
                         <div><label for="ct_description" class="block text-sm font-medium text-green-400">描述</label><textarea id="ct_description" name="description" rows="2" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400">${template.description || ''}</textarea></div>
                         
-                        <div id="dockerFields" class="space-y-4 config-type-fields">
+                        <div id="dockerFields" class="space-y-4 config-type-fields" style="${typeDefault === 'docker' ? 'display: block;' : 'display: none;'}">
                             <div><label for="ct_image_url" class="block text-sm font-medium text-green-400">镜像URL</label><input type="text" id="ct_image_url" name="image_url" value="${template.config && template.type === 'docker' ? (template.config.image_url || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
                             <div><label for="ct_image_name" class="block text-sm font-medium text-green-400">镜像名</label><input type="text" id="ct_image_name" name="image_name" value="${template.config && template.type === 'docker' ? (template.config.image_name || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
                         </div>
-                        <div id="binaryFields" class="space-y-4 config-type-fields">
+                        <div id="binaryFields" class="space-y-4 config-type-fields" style="${typeDefault === 'binary' ? 'display: block;' : 'display: none;'}">
                             <div><label for="ct_binary_path" class="block text-sm font-medium text-green-400">二进制路径</label><input type="text" id="ct_binary_path" name="binary_path" value="${template.config && template.type === 'binary' ? (template.config.binary_path || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
                             <div><label for="ct_binary_url" class="block text-sm font-medium text-green-400">二进制下载链接</label><input type="text" id="ct_binary_url" name="binary_url" value="${template.config && template.type === 'binary' ? (template.config.binary_url || '') : ''}" class="mt-1 block w-full px-3 py-2 border border-green-500 rounded-md shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm bg-black text-green-400"></div>
                         </div>
@@ -687,17 +690,44 @@
                 const typeSelect = document.getElementById('ct_type');
                 const dockerFields = document.getElementById('dockerFields');
                 const binaryFields = document.getElementById('binaryFields');
-                if (!typeSelect || !dockerFields || !binaryFields) return;
+                
+                if (!typeSelect || !dockerFields || !binaryFields) {
+                    console.warn('toggleComponentConfigFields: Required elements not found', {
+                        typeSelect: !!typeSelect,
+                        dockerFields: !!dockerFields,
+                        binaryFields: !!binaryFields
+                    });
+                    return;
+                }
+                
                 const selectedType = typeSelect.value;
-                if (selectedType === 'docker') { dockerFields.style.display = 'block'; binaryFields.style.display = 'none';}
-                else if (selectedType === 'binary') { dockerFields.style.display = 'none'; binaryFields.style.display = 'block';}
-                else { dockerFields.style.display = 'none'; binaryFields.style.display = 'none';}
+                console.log('toggleComponentConfigFields: Selected type:', selectedType);
+                
+                if (selectedType === 'docker') { 
+                    dockerFields.style.display = 'block'; 
+                    binaryFields.style.display = 'none';
+                } else if (selectedType === 'binary') { 
+                    dockerFields.style.display = 'none'; 
+                    binaryFields.style.display = 'block';
+                } else { 
+                    dockerFields.style.display = 'none'; 
+                    binaryFields.style.display = 'none';
+                }
+                
+                console.log('toggleComponentConfigFields: Display states updated', {
+                    dockerFieldsDisplay: dockerFields.style.display,
+                    binaryFieldsDisplay: binaryFields.style.display
+                });
             },
             showCreateComponentTemplateForm() { 
                 this.editingItemId = null; 
                 const formHTML = this.getComponentTemplateFormHTML();
                 const footerButtons = [ { label: '保存', id:"saveCtBtn", action: () => this.saveComponentTemplate(), class: 'bg-green-600 hover:bg-green-700 text-black border border-green-400' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-600 hover:bg-gray-700 text-green-400 border border-gray-500' }];
                 this.openModal('创建应用模板', formHTML, footerButtons);
+                // Ensure the correct fields are shown based on the default type
+                setTimeout(() => {
+                    this.toggleComponentConfigFields();
+                }, 100);
             },
             async showEditComponentTemplateForm(id) { 
                 this.editingItemId = id;
@@ -708,6 +738,10 @@
                         const formHTML = this.getComponentTemplateFormHTML(jsonData.template); 
                         const footerButtons = [ { label: '更新', id:"updateCtBtn", action: () => this.saveComponentTemplate(), class: 'bg-green-600 hover:bg-green-700 text-black border border-green-400' }, { label: '取消', action: () => this.closeModal(), class: 'bg-gray-600 hover:bg-gray-700 text-green-400 border border-gray-500' }];
                 this.openModal('编辑应用模板', formHTML, footerButtons);
+                // Ensure the correct fields are shown based on the template type
+                setTimeout(() => {
+                    this.toggleComponentConfigFields();
+                }, 100);
                     } else {
                         this.showNotification(jsonData.message || '获取模板详情失败', 'error');
                         this.editingItemId = null; 
