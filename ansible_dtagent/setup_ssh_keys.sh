@@ -56,7 +56,7 @@ fi
 echo -e "\n${GREEN}准备将公钥分发到以下服务器:${NC}"
 
 # 提取服务器列表 (忽略注释和分组标题)
-HOSTS=$(grep -vE '^\s*#|^\s*$' "$INVENTORY_FILE" | grep -v '\[.*\]')
+HOSTS=$(grep -vE '^\s*#|^\s*$' "$INVENTORY_FILE" | grep -v '\[.*\]' | grep -v '=')
 echo "$HOSTS"
 echo "----------------------------------------"
 

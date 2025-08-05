@@ -1,7 +1,7 @@
-alias ansible="docker run -ti --rm -v ~/.ssh:/root/.ssh -v ~/.aws:/root/.aws -v $(pwd):/apps -w /apps alpine/ansible:2.18.6 ansible"
+alias ansible="docker run -ti --rm -v ~/.ssh:/root/.ssh -v ~/.aws:/root/.aws -v $(pwd):/apps -w /apps alpine/ansible:2.17.0 ansible"
 ansible <follow command>
 
-alias ansible-playbook=" docker run -ti --rm -v ~/.ssh:/root/.ssh -v ~/.aws:/root/.aws -v $(pwd):/apps -w /apps alpine/ansible:2.18.6 ansible-playbook"
+alias ansible-playbook=" docker run -ti --rm -v ~/.ssh:/root/.ssh -v ~/.aws:/root/.aws -v $(pwd):/apps -w /apps alpine/ansible:2.17.0 ansible-playbook"
 ansible-playbook -i inventory < follow command>
 
 与所有服务器建立 SSH 密钥对认证 ./setup_ssh_keys.sh

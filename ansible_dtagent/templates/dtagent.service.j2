@@ -7,7 +7,11 @@ After=network.target
 WorkingDirectory=/usr/local/zygl
 Type=simple
 # Ansible 会根据 inventory.ini 中的变量动态生成此行
-ExecStart=/usr/local/zygl/agent --manager-url http://{{ manager_ip }}:38080 --port 38081{% if network_interface %} --network-interface {{ network_interface }}{% endif %}
+{% if network_interface %}
+ExecStart=/usr/local/zygl/agent --manager-url http://{{ manager_ip }}:38080 --port 38081 --network-interface {{ network_interface }}
+{% else %}
+ExecStart=/usr/local/zygl/agent --manager-url http://{{ manager_ip }}:38080 --port 38081
+{% endif %}
 Restart=always
 RestartSec=3
 
