@@ -361,8 +361,8 @@
                                     const detailedBusiness = JSON.parse(JSON.stringify(business)); // Deep copy
                                     if (!detailedBusiness.components) { // Simulate fetching components if not present
                                         detailedBusiness.components = [
-                                            { component_id: "comp-sim-1-" + id.slice(0,4), component_name: "Simulated Component 1 for " + detailedBusiness.business_name , type: "docker", status: detailedBusiness.status, node_id: "node-sim", container_id: "container-sim-1", affinity: {}, environment_variables: { FOO: "BAR" }, started_at: detailedBusiness.created_at, updated_at: detailedBusiness.updated_at },
-                                            { component_id: "comp-sim-2-" + id.slice(0,4), component_name: "Simulated Component 2 for " + detailedBusiness.business_name, type: "binary", status: detailedBusiness.status, node_id: "node-sim", process_id: "proc-sim-2", affinity: {}, environment_variables: { BA_Z: "QUX" }, started_at: detailedBusiness.created_at, updated_at: detailedBusiness.updated_at }
+                                            { component_id: "comp-sim-1-" + id.slice(0,4), component_name: "Simulated Component 1 for " + detailedBusiness.business_name , type: "docker", status: detailedBusiness.status, node_id: "node-0a00ae17-45ec-4dd1-9155-dc76cce95ff6", container_id: "container-sim-1", affinity: {}, environment_variables: { FOO: "BAR" }, started_at: detailedBusiness.created_at, updated_at: detailedBusiness.updated_at },
+                                            { component_id: "comp-sim-2-" + id.slice(0,4), component_name: "Simulated Component 2 for " + detailedBusiness.business_name, type: "binary", status: detailedBusiness.status, node_id: "node-1b2c3d4e-5f6a-7b8c-9d0e-1f2a3b4c5d6e", process_id: "proc-sim-2", affinity: {}, environment_variables: { BA_Z: "QUX" }, started_at: detailedBusiness.created_at, updated_at: detailedBusiness.updated_at }
                                         ];
                                     }
                                     resolve({ ok: true, status: 200, json: async () => ({ status: "success", business: detailedBusiness }) });
@@ -1640,47 +1640,51 @@
                         const biz = jsonData.business;
                         let componentsHTML = '无组件信息。';
                         if (biz.components && biz.components.length > 0) {
-                             componentsHTML = biz.components.map(c => { 
-                                        let statusClass = '';
-                    let componentStatusText = '';
-                    if (c.status === 'running') { statusClass = 'bg-green-900 text-green-400 border border-green-500'; componentStatusText = '运行中'; }
-                    else if (c.status === 'stopped') { statusClass = 'bg-red-900 text-red-400 border border-red-500'; componentStatusText = '已停止'; }
-                    else if (c.status === 'pending') { statusClass = 'bg-yellow-900 text-yellow-400 border border-yellow-500'; componentStatusText = '等待中'; }
-                    else if (c.status === 'error') { statusClass = 'bg-red-900 text-red-400 border border-red-500'; componentStatusText = '有异常'; }
-                    else { statusClass = 'bg-gray-900 text-gray-400 border border-gray-500'; componentStatusText = c.status; } 
-                    let envDetail = '';
-                    if(c.environment_variables && Object.keys(c.environment_variables).length > 0) {
-                        envDetail = `<p class=\"text-xs text-green-300 mt-1\">环境变量: ${JSON.stringify(c.environment_variables)}</p>`;
-                    }
-                    // 只显示一个操作按钮：running时显示停止，否则显示部署
-                    let actionBtn = '';
-                    if (c.status === 'running') {
-                        actionBtn = `<button onclick=\"app.stopComponent('${biz.business_id}', '${c.component_id}', this)\" class=\"bg-yellow-600 hover:bg-yellow-700 text-black px-1 py-0.5 rounded text-xs ml-2 border border-yellow-400\">停止</button>`;
-                    } else {
-                        actionBtn = `<button onclick=\"app.deployComponent('${biz.business_id}', '${c.component_id}', this)\" class=\"bg-green-600 hover:bg-green-700 text-black px-1 py-0.5 rounded text-xs ml-2 border border-green-400\">部署</button>`;
-                    }
-                    // 新增：显示执行文件或容器名
-                    let mainPathOrName = '';
-                    if (c.type === 'docker' && c.image_name) {
-                        mainPathOrName = `<p class=\"text-xs text-green-300 mt-1\">容器名: ${c.image_name}</p>`;
-                    } else if (c.type === 'binary' && c.binary_path) {
-                        mainPathOrName = `<p class=\"text-xs text-green-300 mt-1\">执行文件: ${c.binary_path}</p>`;
-                    }
-                    return `<li class=\"p-2 border-b border-green-500 last:border-b-0 hover:bg-green-900 rounded-md mb-1 bg-black border border-green-600\">
-                        <div class=\"flex justify-between items-center\">
-                            <div>
-                                <strong class=\"text-green-400\">${c.component_name}</strong>
-                            </div>
-                            <div class=\"flex items-center space-x-2\">
-                                <span class=\"px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}\">${componentStatusText}</span>
-                                ${actionBtn}
-                            </div>
-                        </div>
-                        ${c.type === 'docker' ? `<p class=\"text-xs text-green-300 mt-1\">容器ID: ${c.container_id || 'N/A'}</p>` : `<p class=\"text-xs text-green-300 mt-1\">进程ID: ${c.process_id || 'N/A'}</p>`}
-                        ${mainPathOrName}
-                        ${envDetail}
-                    </li>`; 
-                }).join('');
+                            componentsHTML = biz.components.map(c => { 
+                                let statusClass = '';
+                                let componentStatusText = '';
+                                if (c.status === 'running') { statusClass = 'bg-green-900 text-green-400 border border-green-500'; componentStatusText = '运行中'; }
+                                else if (c.status === 'stopped') { statusClass = 'bg-red-900 text-red-400 border border-red-500'; componentStatusText = '已停止'; }
+                                else if (c.status === 'pending') { statusClass = 'bg-yellow-900 text-yellow-400 border border-yellow-500'; componentStatusText = '等待中'; }
+                                else if (c.status === 'error') { statusClass = 'bg-red-900 text-red-400 border border-red-500'; componentStatusText = '有异常'; }
+                                else { statusClass = 'bg-gray-900 text-gray-400 border border-gray-500'; componentStatusText = c.status; } 
+                                let envDetail = '';
+                                if(c.environment_variables && Object.keys(c.environment_variables).length > 0) {
+                                    envDetail = `<p class=\"text-xs text-green-300 mt-1\">环境变量: ${JSON.stringify(c.environment_variables)}</p>`;
+                                }
+                                // 只显示一个操作按钮：running时显示停止，否则显示部署
+                                let actionBtn = '';
+                                if (c.status === 'running') {
+                                    actionBtn = `<button onclick=\"app.stopComponent('${biz.business_id}', '${c.component_id}', this)\" class=\"bg-yellow-600 hover:bg-yellow-700 text-black px-1 py-0.5 rounded text-xs ml-2 border border-yellow-400\">停止</button>`;
+                                } else {
+                                    actionBtn = `<button onclick=\"app.deployComponent('${biz.business_id}', '${c.component_id}', this)\" class=\"bg-green-600 hover:bg-green-700 text-black px-1 py-0.5 rounded text-xs ml-2 border border-green-400\">部署</button>`;
+                                }
+                                // 新增：显示执行文件或容器名
+                                let mainPathOrName = '';
+                                if (c.type === 'docker' && c.image_name) {
+                                    mainPathOrName = `<p class=\"text-xs text-green-300 mt-1\">容器名: ${c.image_name}</p>`;
+                                } else if (c.type === 'binary' && c.binary_path) {
+                                    mainPathOrName = `<p class=\"text-xs text-green-300 mt-1\">执行文件: ${c.binary_path}</p>`;
+                                }
+                                return `<li class=\"p-2 border-b border-green-500 last:border-b-0 hover:bg-green-900 rounded-md mb-1 bg-black border border-green-600 cursor-pointer\" onclick=\"app.fetchNodeIpOnClick(this)\">
+                                    <div class=\"flex justify-between items-center\">
+                                        <div>
+                                            <strong class=\"text-green-400\">${c.component_name}</strong>
+                                        </div>
+                                        <div class=\"flex items-center space-x-2\">
+                                            <span class=\"px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClass}\">${componentStatusText}</span>
+                                            ${actionBtn}
+                                        </div>
+                                    </div>
+                                    ${c.type === 'docker' ? `<p class=\"text-xs text-green-300 mt-1\">容器ID: ${c.container_id || 'N/A'}</p>` : `<p class=\"text-xs text-green-300 mt-1\">进程ID: ${c.process_id || 'N/A'}</p>`}
+                                    ${mainPathOrName}
+                                    <p class=\"text-xs text-green-300 mt-1\">部署时间: ${c.started_at ? new Date(c.started_at * 1000).toLocaleString('zh-CN') : 'N/A'}</p>
+                                    <div class=\"node-ip-container\" data-node-id=\"${c.node_id}\" style=\"display: none;\">
+                                        <p class=\"text-xs text-green-300 mt-1\">应用所在服务器IP地址：<span class=\"node-ip-text\"></span></p>
+                                    </div>
+                                    ${envDetail}
+                                </li>`; 
+                            }).join('');
                         }
                         return `<h3 class="text-xl font-semibold text-green-500 mb-1 sticky top-0 bg-black py-2 z-10">${biz.business_name}</h3>
                                 <h4 class="text-md font-semibold text-green-400 mb-2">应用列表 (${biz.components ? biz.components.length : 0}):</h4>
@@ -1693,6 +1697,47 @@
                     console.error("Failed to render business details:", error);
                     this.showNotification('渲染业务详情失败: ' + error.message, 'error');
                     return '<p class="text-center text-red-400 py-10">加载业务详情出错。</p>';
+                }
+            },
+            async fetchNodeIpOnClick(cardElement) {
+                // 阻止事件冒泡
+                event.stopPropagation();
+                
+                const nodeIpContainer = cardElement.querySelector('.node-ip-container');
+                const nodeIpText = cardElement.querySelector('.node-ip-text');
+                
+                if (!nodeIpContainer || !nodeIpText) {
+                    return;
+                }
+                
+                // 如果已经显示过IP，就不再重复获取
+                if (nodeIpContainer.style.display !== 'none' && nodeIpText.textContent && nodeIpText.textContent !== '') {
+                    return;
+                }
+                
+                const nodeId = nodeIpContainer.getAttribute('data-node-id');
+                if (!nodeId) {
+                    nodeIpText.textContent = '节点ID无效';
+                    nodeIpContainer.style.display = 'block';
+                    return;
+                }
+                
+                // 显示容器并显示加载状态
+                nodeIpContainer.style.display = 'block';
+                nodeIpText.textContent = '获取中...';
+                
+                try {
+                    const response = await fetch(`${this.apiUrlPrefix}/nodes/${nodeId}`);
+                    const data = await response.json();
+                    
+                    if (response.ok && data.status === 'success' && data.node) {
+                        nodeIpText.textContent = data.node.ip_address || 'N/A';
+                    } else {
+                        nodeIpText.textContent = '获取失败';
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch node IP:', error);
+                    nodeIpText.textContent = '获取失败';
                 }
             },
             async stopBusiness(id) {  
